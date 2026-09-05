@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- background_downloader's BaseDirectory.temporary resolves to the
+         app cacheDir (Helpers.kt); the downloaded update APK lives here.
+         external-cache-path covers its external-storage variant. -->
+    <cache-path name="apk_cache" path="."/>
+    <external-cache-path name="apk_ext_cache" path="."/>
+</paths>

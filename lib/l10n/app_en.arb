@@ -1,0 +1,189 @@
+{
+  "@@locale": "en",
+
+  "navHome": "Home",
+  "navLibrary": "Library",
+  "settingsTooltip": "Settings",
+
+  "clipboardLinkPasted": "Link pasted from clipboard",
+  "clearTooltip": "Clear",
+  "goButton": "Go",
+  "fetchingButton": "Fetching…",
+  "pauseButton": "Pause",
+  "resumeButton": "Resume",
+  "cancelButton": "Cancel",
+  "retryButton": "Retry",
+  "shareButton": "Share",
+  "sharingButton": "Sharing…",
+  "deleteButton": "Delete",
+
+  "renameTooltip": "Rename before downloading",
+  "saveAsTitle": "Save as",
+  "fileNameLabel": "File name",
+  "downloadButton": "Download",
+  "sizeUnknown": "size unknown",
+  "imageLabel": "Photo",
+
+  "homeUrlHint": "Paste a video link",
+  "linkNotRecognized": "Link not recognized or not supported yet",
+  "whatsappNotSupportedYet": "This service isn't supported yet",
+  "serviceDisabledLabel": "Disabled",
+  "serviceDisabledSnack": "{service} is disabled — enable it in Settings",
+  "@serviceDisabledSnack": {
+    "placeholders": { "service": { "type": "String" } }
+  },
+
+  "youtubeUrlHint": "Paste a YouTube video link.",
+  "youtubeUrlLabel": "YouTube URL",
+  "tiktokUrlHint": "Paste a TikTok video link.",
+  "tiktokUrlLabel": "TikTok URL",
+  "xTwitterUrlHint": "Paste an X/Twitter post link.",
+  "xTwitterUrlLabel": "X/Twitter URL",
+  "instagramUrlHint": "Paste an Instagram reel/post link.",
+  "instagramUrlLabel": "Instagram URL",
+  "linkedinUrlHint": "Paste a LinkedIn post link.",
+  "linkedinUrlLabel": "LinkedIn URL",
+
+  "downloadingPercent": "Downloading… {percent}%",
+  "@downloadingPercent": {
+    "placeholders": { "percent": { "type": "String" } }
+  },
+  "pausedPercent": "Paused {percent}%",
+  "@pausedPercent": {
+    "placeholders": { "percent": { "type": "String" } }
+  },
+  "downloadingVideoPercent": "Downloading video… {percent}%",
+  "@downloadingVideoPercent": {
+    "placeholders": { "percent": { "type": "String" } }
+  },
+  "downloadingAudioPercent": "Downloading audio… {percent}%",
+  "@downloadingAudioPercent": {
+    "placeholders": { "percent": { "type": "String" } }
+  },
+  "mergingPercent": "Merging video and audio… {percent}%",
+  "@mergingPercent": {
+    "placeholders": { "percent": { "type": "String" } }
+  },
+  "mergingIndeterminate": "Merging video and audio…",
+
+  "itemsSelectedCount": "{count} selected",
+  "@itemsSelectedCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "cancelSelectionTooltip": "Cancel selection",
+  "selectTooltip": "Select",
+  "refreshTooltip": "Refresh",
+  "changeFolderTooltip": "Change folder",
+  "whatsappPickFolderInstructions": "To show statuses, pick your WhatsApp status folder. The picker will open already positioned there — just tap \"use this folder\".",
+  "whatsappPickFolderNote": "Note: a status has to be opened/viewed in WhatsApp itself first, otherwise it isn't cached on the device yet.",
+  "whatsappNoStatuses": "No statuses available right now.\nOpen a status in WhatsApp, then refresh.",
+  "couldNotReadFolder": "Could not read the folder.\n{error}",
+  "@couldNotReadFolder": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "pickFolderAgainButton": "Pick folder again",
+  "savingButton": "Saving…",
+  "saveCountButton": "Save ({count})",
+  "@saveCountButton": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "libraryTitle": "Library",
+  "sortTooltip": "Sort",
+  "newestFirst": "Newest first",
+  "oldestFirst": "Oldest first",
+  "nameAZ": "Name (A–Z)",
+  "nameZA": "Name (Z–A)",
+  "couldNotLoadLibrary": "Could not load your library.\n{error}",
+  "@couldNotLoadLibrary": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "filterAll": "All",
+  "noFilesForFilter": "No files for this filter.",
+  "libraryAccessDenied": "Access was denied. If tapping below does nothing, Android has stopped showing the permission prompt — open Settings and allow access manually.",
+  "libraryAllowAccessPrompt": "To show your downloaded files, allow access to your gallery.",
+  "tryAgainButton": "Try again",
+  "allowAccessButton": "Allow access",
+  "openSettingsButton": "Open Settings",
+  "libraryNoDownloads": "No downloads yet.\nFiles you save from YouTube or WhatsApp will show up here.",
+  "shareCountButton": "Share ({count})",
+  "@shareCountButton": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "downloadAlreadyInProgress": "A download is already in progress",
+  "notYoutubeLink": "That doesn't look like a YouTube link",
+  "notTiktokLink": "That doesn't look like a TikTok link",
+  "notXTwitterLink": "That doesn't look like an X/Twitter link",
+  "notInstagramLink": "That doesn't look like an Instagram link",
+  "notLinkedinLink": "That doesn't look like a LinkedIn link",
+  "couldNotFetchVideo": "Could not fetch this video: {error}",
+  "@couldNotFetchVideo": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "couldNotFetchPost": "Could not fetch this post: {error}",
+  "@couldNotFetchPost": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "savedMessage": "Saved",
+  "downloadCanceledMessage": "Download canceled",
+  "downloadFailedMessage": "Download failed: {error}",
+  "@downloadFailedMessage": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "couldNotShareFiles": "Could not share the selected files",
+  "whatsappSavedCount": "Saved: {succeeded}",
+  "@whatsappSavedCount": {
+    "placeholders": { "succeeded": { "type": "int" } }
+  },
+  "whatsappSavedFailedCount": "Saved: {succeeded}, failed: {failed}",
+  "@whatsappSavedFailedCount": {
+    "placeholders": { "succeeded": { "type": "int" }, "failed": { "type": "int" } }
+  },
+  "deletedCount": "Deleted: {count}",
+  "@deletedCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "deleteFailed": "Delete failed: {error}",
+  "@deleteFailed": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+
+  "settingsTitle": "Settings",
+  "appearanceSection": "Appearance",
+  "systemDefaultOption": "System default",
+  "lightThemeOption": "Light",
+  "darkThemeOption": "Dark",
+  "servicesSection": "Services",
+  "clipboardSection": "Clipboard",
+  "clipboardAutoPasteTitle": "Auto-paste recognized links",
+  "clipboardAutoPasteSubtitle": "Automatically fill in a supported link copied to the clipboard",
+  "languageSection": "Language",
+  "aboutSection": "About",
+  "whatsNewTitle": "What's new",
+  "versionLabel": "Version {version}",
+  "@versionLabel": {
+    "placeholders": { "version": { "type": "String" } }
+  },
+
+  "checkForUpdatesTitle": "Check for updates",
+  "updateChecking": "Checking…",
+  "updateUpToDate": "You're on the latest version",
+  "updateAvailable": "Version {version} available",
+  "@updateAvailable": {
+    "placeholders": { "version": { "type": "String" } }
+  },
+  "updateReleaseNotesTitle": "What's new in this version",
+  "updateDownloadButton": "Download ({size})",
+  "@updateDownloadButton": {
+    "placeholders": { "size": { "type": "String" } }
+  },
+  "updateDownloadButtonPlain": "Download",
+  "updateInstallButton": "Install now",
+  "updateRetryButton": "Try again",
+  "updateDownloadingLabel": "Downloading update…",
+  "updateFailed": "Update failed — open the release page instead",
+  "updatePermissionNeeded": "Allow installing apps from this source, then tap Install again",
+  "updateOpenReleasePage": "Open release page",
+  "updateNoAsset": "No compatible download for this device"
+}
