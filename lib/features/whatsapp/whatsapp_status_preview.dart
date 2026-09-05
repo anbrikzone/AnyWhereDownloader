@@ -37,6 +37,12 @@ class _StatusPreviewPageState extends State<StatusPreviewPage> {
   );
   late int _currentIndex = widget.initialIndex;
 
+  // True while the current image is zoomed in (or a two-finger pinch is in
+  // progress) — freezes page swiping so the gesture pans/zooms the image
+  // instead of flicking to the next status. Same coordination as
+  // `library_preview.dart`.
+  bool _pageLocked = false;
+
   @override
   void dispose() {
     _pageController.dispose();
@@ -60,10 +66,19 @@ class _StatusPreviewPageState extends State<StatusPreviewPage> {
       body: PageView.builder(
         controller: _pageController,
         itemCount: widget.items.length,
-        onPageChanged: (index) => setState(() => _currentIndex = index),
+        physics: _pageLocked
+            ? const NeverScrollableScrollPhysics()
+            : const PageScrollPhysics(),
+        onPageChanged: (index) => setState(() {
+          _currentIndex = index;
+          _pageLocked = false;
+        }),
         itemBuilder: (context, index) => _StatusPreviewItem(
           key: ValueKey(widget.items[index].uri),
           item: widget.items[index],
+          onZoomChanged: (zoomed) {
+            if (zoomed != _pageLocked) setState(() => _pageLocked = zoomed);
+          },
         ),
       ),
     );
@@ -75,9 +90,17 @@ class _StatusPreviewPageState extends State<StatusPreviewPage> {
 /// unchanged from before the swipe feature; only the enclosing `Scaffold`/
 /// `AppBar` moved up to the new parent widget.
 class _StatusPreviewItem extends StatefulWidget {
-  const _StatusPreviewItem({super.key, required this.item});
+  const _StatusPreviewItem({
+    super.key,
+    required this.item,
+    this.onZoomChanged,
+  });
 
   final StatusItem item;
+
+  /// Fired by the zoomable image when it zooms in/out (or a pinch starts/
+  /// ends) so the parent can freeze/unfreeze page swiping.
+  final ValueChanged<bool>? onZoomChanged;
 
   @override
   State<_StatusPreviewItem> createState() => _StatusPreviewItemState();
@@ -440,12 +463,113 @@ class _StatusPreviewItemState extends State<_StatusPreviewItem> {
       );
     }
     if (_imagePath != null) {
-      return InteractiveViewer(child: Image.file(File(_imagePath!)));
+      return _ZoomableImage(
+        file: File(_imagePath!),
+        onZoomChanged: widget.onZoomChanged,
+      );
     }
     return const Icon(
       Icons.broken_image_outlined,
       color: Colors.white54,
       size: 64,
+    );
+  }
+}
+
+/// An image with pinch-zoom (`InteractiveViewer`) plus double-tap zoom —
+/// a direct port of the one in `library_preview.dart` (kept duplicated, not
+/// shared, matching this file pair's convention). [onZoomChanged] lets the
+/// parent freeze the `PageView` while zoomed so a pinch isn't stolen as a
+/// swipe to the next status.
+class _ZoomableImage extends StatefulWidget {
+  const _ZoomableImage({required this.file, this.onZoomChanged});
+
+  final File file;
+  final ValueChanged<bool>? onZoomChanged;
+
+  @override
+  State<_ZoomableImage> createState() => _ZoomableImageState();
+}
+
+class _ZoomableImageState extends State<_ZoomableImage>
+    with SingleTickerProviderStateMixin {
+  static const _zoomScale = 2.5;
+
+  final _controller = TransformationController();
+  Offset? _doubleTapPosition;
+  AnimationController? _animation;
+  bool _reportedZoomed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(_syncZoomState);
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_syncZoomState);
+    _animation?.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  bool get _isZoomedIn => _controller.value.getMaxScaleOnAxis() > 1.01;
+
+  void _setZoomReported(bool zoomed) {
+    if (zoomed == _reportedZoomed) return;
+    _reportedZoomed = zoomed;
+    widget.onZoomChanged?.call(zoomed);
+  }
+
+  void _syncZoomState() => _setZoomReported(_isZoomedIn);
+
+  void _handleDoubleTap() {
+    final position = _doubleTapPosition;
+    final Matrix4 target;
+    if (_isZoomedIn || position == null) {
+      target = Matrix4.identity();
+    } else {
+      target = Matrix4.identity()
+        ..translateByDouble(
+          -position.dx * (_zoomScale - 1),
+          -position.dy * (_zoomScale - 1),
+          0,
+          1,
+        )
+        ..scaleByDouble(_zoomScale, _zoomScale, _zoomScale, 1);
+    }
+    _animateTo(target);
+  }
+
+  void _animateTo(Matrix4 target) {
+    _animation?.dispose();
+    final animation = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+    final tween = Matrix4Tween(begin: _controller.value, end: target).animate(
+      CurvedAnimation(parent: animation, curve: Curves.easeOut),
+    );
+    tween.addListener(() => _controller.value = tween.value);
+    _animation = animation;
+    animation.forward();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onDoubleTapDown: (details) => _doubleTapPosition = details.localPosition,
+      onDoubleTap: _handleDoubleTap,
+      child: InteractiveViewer(
+        transformationController: _controller,
+        maxScale: 5,
+        onInteractionStart: (details) {
+          if (details.pointerCount >= 2) _setZoomReported(true);
+        },
+        onInteractionEnd: (_) => _setZoomReported(_isZoomedIn),
+        child: Image.file(widget.file),
+      ),
     );
   }
 }
