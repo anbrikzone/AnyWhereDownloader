@@ -316,25 +316,27 @@ class _LibraryPreviewItemState extends State<_LibraryPreviewItem> {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            Positioned.fill(
-              child: _isAudio
-                  ? const ColoredBox(
-                      color: Colors.black,
-                      child: Center(
-                        child: Icon(
-                          Icons.music_note,
-                          color: Colors.white24,
-                          size: 96,
-                        ),
-                      ),
-                    )
-                  : Center(
-                      child: AspectRatio(
-                        aspectRatio: controller.value.aspectRatio,
-                        child: VideoPlayer(controller),
-                      ),
+            // Non-positioned so the Stack sizes to it (a Positioned.fill
+            // child doesn't drive the Stack's size — that regressed every
+            // preview to the tiny play-icon size).
+            if (_isAudio)
+              const SizedBox.expand(
+                child: ColoredBox(
+                  color: Colors.black,
+                  child: Center(
+                    child: Icon(
+                      Icons.music_note,
+                      color: Colors.white24,
+                      size: 96,
                     ),
-            ),
+                  ),
+                ),
+              )
+            else
+              AspectRatio(
+                aspectRatio: controller.value.aspectRatio,
+                child: VideoPlayer(controller),
+              ),
             ValueListenableBuilder<VideoPlayerValue>(
               valueListenable: controller,
               builder: (context, value, _) {

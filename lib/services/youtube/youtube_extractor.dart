@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../../core/extraction/media_extractor.dart';
 import '../../core/yt_dlp_engine/yt_dlp_engine.dart';
 
@@ -127,6 +129,12 @@ class YouTubeExtractor implements MediaExtractor {
         ),
       );
     }
+
+    // TEMP diagnostic — remove once the "320 kbps → video" bug is fixed.
+    debugPrint(
+      '[AWD] extract: hasAnyAudio=$hasAnyAudio variants='
+      '${variants.map((v) => '${v.type.name}:${v.resolutionLabel ?? v.audioSpec?.qualityKbps ?? v.audioSpec?.format}').toList()}',
+    );
 
     return MediaInfo(
       title: info.title ?? 'YouTube video',

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:background_downloader/background_downloader.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -193,6 +194,14 @@ class YouTubeController extends StateNotifier<YouTubeState> {
     // blocking the download itself over).
     unawaited(_notificationPermissionService.ensureRequested());
     final filename = '$baseFileName.${variant.container}';
+    // TEMP diagnostic (bug: picking "320 kbps" downloaded a video) — remove
+    // once root-caused.
+    debugPrint(
+      '[AWD] downloadVariant type=${variant.type} '
+      'container=${variant.container} '
+      'audioSpec=${variant.audioSpec?.format}/${variant.audioSpec?.qualityKbps} '
+      'merge=${variant.mergeFormatSelector != null}',
+    );
     if (variant.audioSpec != null) {
       return _downloadViaAudio(variant, filename);
     }
