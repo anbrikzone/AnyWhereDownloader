@@ -75,9 +75,10 @@ void main() {
     expect(await svc.checkForUpdate(), isNull);
   });
 
-  test('placeholder repo slug never hits the network', () async {
+  test('unconfigured repo slug never hits the network', () async {
     var called = false;
     final svc = UpdateService(
+      repoSlug: 'OWNER/REPO',
       client: MockClient((_) async {
         called = true;
         return http.Response('{}', 200);

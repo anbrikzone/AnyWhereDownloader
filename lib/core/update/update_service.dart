@@ -11,7 +11,7 @@ import '../changelog/changelog.dart';
 ///
 /// While this is left as the placeholder the check is inert — [checkForUpdate]
 /// treats a 404 the same as "no newer version" and returns null.
-const String kUpdateRepoSlug = 'OWNER/REPO';
+const String kUpdateRepoSlug = 'anbrikzone/AnyWhereDownloader';
 
 /// One downloadable file attached to a GitHub release.
 class UpdateAsset {

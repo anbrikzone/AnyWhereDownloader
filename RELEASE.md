@@ -5,14 +5,14 @@ just a **GitHub Release with the split APKs attached**. The in-app updater
 (Settings → About → *Check for updates*) polls the repo's `releases/latest`
 and compares the tag against the bundled version.
 
-## One-time setup
+## One-time setup — done
 
-1. Create a **public** GitHub repo (GPL-3.0 — the code is open anyway).
-2. `git remote add origin git@github.com:<owner>/<repo>.git && git push -u origin main`
-3. Set the repo slug the app checks: edit `kUpdateRepoSlug` in
-   `lib/core/update/update_service.dart` to `'<owner>/<repo>'`. While it is
-   the literal `OWNER/REPO` placeholder the update check is inert (always
-   reports "up to date").
+- Repo: <https://github.com/anbrikzone/AnyWhereDownloader> (public, GPL-3.0).
+- `kUpdateRepoSlug` in `lib/core/update/update_service.dart` is set to
+  `anbrikzone/AnyWhereDownloader` — the app checks this repo's
+  `releases/latest`.
+- If the repo ever moves, update that constant (setting it back to the
+  literal `OWNER/REPO` makes the update check inert).
 
 ## Per release
 
