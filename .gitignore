@@ -49,3 +49,9 @@ app.*.map.json
 /android/keystore/
 *.jks
 *.keystore
+
+# Local planning / spec / assistant files — kept out of the public repo
+/TODO.md
+/TZ_media_downloader.md
+/CLAUDE.md
+/.claude/
