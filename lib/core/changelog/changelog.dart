@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 /// changelog entry's version. Keep this in sync with `pubspec.yaml`'s
 /// `version:` field and the top entry of both [kChangelog] and the
 /// project-root `CHANGELOG.md`.
-const String kAppVersion = '0.3.1';
+const String kAppVersion = '0.3.2';
 
 /// The kind of change a changelog line describes. Rendered as a small
 /// section header ("Added" / "Changed" / "Fixed"); a kind with no lines is
@@ -40,6 +40,36 @@ class ChangelogEntry {
 /// new" screen renders; the project-root `CHANGELOG.md` mirrors it for
 /// people reading the repo. Update both together on every release.
 const List<ChangelogEntry> kChangelog = [
+  ChangelogEntry(
+    version: '0.3.2',
+    date: '2026-09-05',
+    notes: {
+      'en': {
+        ChangeKind.added: [
+          'Download just the audio from a YouTube video — MP3 at 320, 192 or 128 kbps, or keep the original M4A. Saved to your Music folder and listed in the Library.',
+        ],
+        ChangeKind.fixed: [
+          'Pinch-to-zoom on a photo in the full-screen viewer no longer flicks to the next item.',
+        ],
+      },
+      'ru': {
+        ChangeKind.added: [
+          'Скачивание только звука из видео YouTube — MP3 320, 192 или 128 kbps либо оригинал M4A. Сохраняется в папку Music и показывается в Библиотеке.',
+        ],
+        ChangeKind.fixed: [
+          'Масштабирование фото щипком в полноэкранном просмотре больше не перелистывает на следующий файл.',
+        ],
+      },
+      'kk': {
+        ChangeKind.added: [
+          'YouTube бейнесінен тек дыбысты жүктеу — MP3 320, 192 немесе 128 kbps не түпнұсқа M4A. Music қалтасына сақталып, Кітапханада көрсетіледі.',
+        ],
+        ChangeKind.fixed: [
+          'Толық экранды қараушыда фотоны шымшып масштабтау енді келесі файлға өтіп кетпейді.',
+        ],
+      },
+    },
+  ),
   ChangelogEntry(
     version: '0.3.1',
     date: '2026-09-05',

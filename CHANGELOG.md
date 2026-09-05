@@ -6,6 +6,34 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 
 ---
 
+## 0.3.2 — 2026-09-05
+
+### English
+
+**Added**
+- Download just the audio from a YouTube video — MP3 at 320, 192 or 128 kbps, or keep the original M4A. Saved to your Music folder and listed in the Library.
+
+**Fixed**
+- Pinch-to-zoom on a photo in the full-screen viewer no longer flicks to the next item.
+
+### Русский
+
+**Добавлено**
+- Скачивание только звука из видео YouTube — MP3 320, 192 или 128 kbps либо оригинал M4A. Сохраняется в папку Music и показывается в Библиотеке.
+
+**Исправлено**
+- Масштабирование фото щипком в полноэкранном просмотре больше не перелистывает на следующий файл.
+
+### Қазақша
+
+**Қосылды**
+- YouTube бейнесінен тек дыбысты жүктеу — MP3 320, 192 немесе 128 kbps не түпнұсқа M4A. Music қалтасына сақталып, Кітапханада көрсетіледі.
+
+**Түзетілді**
+- Толық экранды қараушыда фотоны шымшып масштабтау енді келесі файлға өтіп кетпейді.
+
+---
+
 ## 0.3.1 — 2026-09-05
 
 ### English
