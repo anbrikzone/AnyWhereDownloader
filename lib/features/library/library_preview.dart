@@ -29,6 +29,11 @@ class _LibraryPreviewPageState extends State<LibraryPreviewPage> {
   );
   late int _currentIndex = widget.initialIndex;
 
+  // True while the current image is zoomed in (or a two-finger pinch is in
+  // progress) — freezes page swiping so the gesture pans/zooms the image
+  // instead of flicking to the next item.
+  bool _pageLocked = false;
+
   @override
   void dispose() {
     _pageController.dispose();
@@ -52,10 +57,19 @@ class _LibraryPreviewPageState extends State<LibraryPreviewPage> {
       body: PageView.builder(
         controller: _pageController,
         itemCount: widget.assets.length,
-        onPageChanged: (index) => setState(() => _currentIndex = index),
+        physics: _pageLocked
+            ? const NeverScrollableScrollPhysics()
+            : const PageScrollPhysics(),
+        onPageChanged: (index) => setState(() {
+          _currentIndex = index;
+          _pageLocked = false;
+        }),
         itemBuilder: (context, index) => _LibraryPreviewItem(
           key: ValueKey(widget.assets[index].id),
           asset: widget.assets[index],
+          onZoomChanged: (zoomed) {
+            if (zoomed != _pageLocked) setState(() => _pageLocked = zoomed);
+          },
         ),
       ),
     );
@@ -64,9 +78,17 @@ class _LibraryPreviewPageState extends State<LibraryPreviewPage> {
 
 /// One swipeable page: the image or video player plus its controls.
 class _LibraryPreviewItem extends StatefulWidget {
-  const _LibraryPreviewItem({super.key, required this.asset});
+  const _LibraryPreviewItem({
+    super.key,
+    required this.asset,
+    this.onZoomChanged,
+  });
 
   final AssetEntity asset;
+
+  /// Fired by the zoomable image when it zooms in/out (or a pinch starts/
+  /// ends) so the parent can freeze/unfreeze page swiping.
+  final ValueChanged<bool>? onZoomChanged;
 
   @override
   State<_LibraryPreviewItem> createState() => _LibraryPreviewItemState();
@@ -407,7 +429,10 @@ class _LibraryPreviewItemState extends State<_LibraryPreviewItem> {
       );
     }
     if (_file != null) {
-      return _ZoomableImage(file: _file!);
+      return _ZoomableImage(
+        file: _file!,
+        onZoomChanged: widget.onZoomChanged,
+      );
     }
     return const Icon(
       Icons.broken_image_outlined,
@@ -419,13 +444,17 @@ class _LibraryPreviewItemState extends State<_LibraryPreviewItem> {
 
 /// An image with pinch-zoom (`InteractiveViewer`) plus double-tap zoom:
 /// first double-tap zooms in centred on the tapped point, a second one
-/// (while zoomed) resets to fit. Lives inside the preview `PageView` — at
-/// scale 1 the `InteractiveViewer` doesn't consume horizontal drags so
-/// page swiping still works; once zoomed it pans instead.
+/// (while zoomed) resets to fit.
+///
+/// Lives inside the preview `PageView`. Left alone, the `PageView` grabs the
+/// horizontal part of a two-finger pinch and flicks to the next item, so
+/// [onZoomChanged] tells the parent to freeze paging while zoomed in — or as
+/// soon as a second finger goes down, so the pinch is never stolen.
 class _ZoomableImage extends StatefulWidget {
-  const _ZoomableImage({required this.file});
+  const _ZoomableImage({required this.file, this.onZoomChanged});
 
   final File file;
+  final ValueChanged<bool>? onZoomChanged;
 
   @override
   State<_ZoomableImage> createState() => _ZoomableImageState();
@@ -438,13 +467,31 @@ class _ZoomableImageState extends State<_ZoomableImage>
   final _controller = TransformationController();
   Offset? _doubleTapPosition;
   AnimationController? _animation;
+  bool _reportedZoomed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(_syncZoomState);
+  }
 
   @override
   void dispose() {
+    _controller.removeListener(_syncZoomState);
     _animation?.dispose();
     _controller.dispose();
     super.dispose();
   }
+
+  /// Notify the parent only on an actual change, so the `PageView` physics
+  /// aren't rebuilt on every pan frame.
+  void _setZoomReported(bool zoomed) {
+    if (zoomed == _reportedZoomed) return;
+    _reportedZoomed = zoomed;
+    widget.onZoomChanged?.call(zoomed);
+  }
+
+  void _syncZoomState() => _setZoomReported(_isZoomedIn);
 
   bool get _isZoomedIn => _controller.value.getMaxScaleOnAxis() > 1.01;
 
@@ -490,6 +537,14 @@ class _ZoomableImageState extends State<_ZoomableImage>
       child: InteractiveViewer(
         transformationController: _controller,
         maxScale: 5,
+        // A second finger down means a pinch is starting — lock paging
+        // immediately, before the scale actually changes, so the PageView
+        // can't claim the horizontal drift first.
+        onInteractionStart: (details) {
+          if (details.pointerCount >= 2) _setZoomReported(true);
+        },
+        // Back to fit after the gesture → let paging resume.
+        onInteractionEnd: (_) => _setZoomReported(_isZoomedIn),
         child: Image.file(widget.file),
       ),
     );
