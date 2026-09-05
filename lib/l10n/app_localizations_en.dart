@@ -323,6 +323,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String statusesArchivedCount(int count) {
+    return 'Archived $count to the Library';
+  }
+
+  @override
   String get settingsTitle => 'Settings';
 
   @override
@@ -354,6 +359,25 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get clipboardAutoPasteSubtitle =>
       'Automatically fill in a supported link copied to the clipboard';
+
+  @override
+  String get whatsappSection => 'WhatsApp';
+
+  @override
+  String get statusArchiveTitle => 'Archive statuses';
+
+  @override
+  String get statusArchiveSubtitle =>
+      'Keep viewed statuses in the Library after WhatsApp deletes them';
+
+  @override
+  String get statusArchiveOff => 'Off';
+
+  @override
+  String get statusArchiveWeek => 'Keep for 1 week';
+
+  @override
+  String get statusArchiveMonth => 'Keep for 1 month';
 
   @override
   String get languageSection => 'Language';

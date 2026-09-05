@@ -324,6 +324,11 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String statusesArchivedCount(int count) {
+    return 'В Библиотеку добавлено: $count';
+  }
+
+  @override
   String get settingsTitle => 'Настройки';
 
   @override
@@ -355,6 +360,25 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get clipboardAutoPasteSubtitle =>
       'Автоматически подставлять поддерживаемую ссылку, скопированную в буфер обмена';
+
+  @override
+  String get whatsappSection => 'WhatsApp';
+
+  @override
+  String get statusArchiveTitle => 'Архивировать статусы';
+
+  @override
+  String get statusArchiveSubtitle =>
+      'Хранить просмотренные статусы в Библиотеке после того, как WhatsApp их удалит';
+
+  @override
+  String get statusArchiveOff => 'Выкл';
+
+  @override
+  String get statusArchiveWeek => 'Хранить неделю';
+
+  @override
+  String get statusArchiveMonth => 'Хранить месяц';
 
   @override
   String get languageSection => 'Язык';

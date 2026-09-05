@@ -156,6 +156,10 @@
   "@deleteFailed": {
     "placeholders": { "error": { "type": "String" } }
   },
+  "statusesArchivedCount": "Archived {count} to the Library",
+  "@statusesArchivedCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
 
   "settingsTitle": "Settings",
   "appearanceSection": "Appearance",
@@ -170,6 +174,12 @@
   "clipboardSection": "Clipboard",
   "clipboardAutoPasteTitle": "Auto-paste recognized links",
   "clipboardAutoPasteSubtitle": "Automatically fill in a supported link copied to the clipboard",
+  "whatsappSection": "WhatsApp",
+  "statusArchiveTitle": "Archive statuses",
+  "statusArchiveSubtitle": "Keep viewed statuses in the Library after WhatsApp deletes them",
+  "statusArchiveOff": "Off",
+  "statusArchiveWeek": "Keep for 1 week",
+  "statusArchiveMonth": "Keep for 1 month",
   "languageSection": "Language",
   "aboutSection": "About",
   "whatsNewTitle": "What's new",

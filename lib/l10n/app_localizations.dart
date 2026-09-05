@@ -640,6 +640,12 @@ abstract class AppLocalizations {
   /// **'Delete failed: {error}'**
   String deleteFailed(String error);
 
+  /// No description provided for @statusesArchivedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Archived {count} to the Library'**
+  String statusesArchivedCount(int count);
+
   /// No description provided for @settingsTitle.
   ///
   /// In en, this message translates to:
@@ -699,6 +705,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Automatically fill in a supported link copied to the clipboard'**
   String get clipboardAutoPasteSubtitle;
+
+  /// No description provided for @whatsappSection.
+  ///
+  /// In en, this message translates to:
+  /// **'WhatsApp'**
+  String get whatsappSection;
+
+  /// No description provided for @statusArchiveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive statuses'**
+  String get statusArchiveTitle;
+
+  /// No description provided for @statusArchiveSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep viewed statuses in the Library after WhatsApp deletes them'**
+  String get statusArchiveSubtitle;
+
+  /// No description provided for @statusArchiveOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get statusArchiveOff;
+
+  /// No description provided for @statusArchiveWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep for 1 week'**
+  String get statusArchiveWeek;
+
+  /// No description provided for @statusArchiveMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep for 1 month'**
+  String get statusArchiveMonth;
 
   /// No description provided for @languageSection.
   ///

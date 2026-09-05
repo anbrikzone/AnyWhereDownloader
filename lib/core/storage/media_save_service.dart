@@ -66,6 +66,22 @@ class MediaSaveService {
     }
   }
 
+  /// Silently deletes image/video files in the gallery album [album] older
+  /// than [olderThan] (WhatsApp status archive retention). Only touches rows
+  /// this app inserted — no system delete prompt. Returns how many were
+  /// removed; failures are swallowed (housekeeping must never error out).
+  Future<int> pruneAlbum(String album, Duration olderThan) async {
+    try {
+      final n = await _audioChannel.invokeMethod<int>('pruneAlbum', {
+        'album': album,
+        'olderThanMillis': olderThan.inMilliseconds,
+      });
+      return n ?? 0;
+    } catch (_) {
+      return 0;
+    }
+  }
+
   Future<String> _save(
     String filePath, {
     required String album,

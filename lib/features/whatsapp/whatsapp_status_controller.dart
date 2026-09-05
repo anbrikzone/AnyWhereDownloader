@@ -9,9 +9,11 @@ import 'package:share_plus/share_plus.dart';
 import '../../core/l10n/status_message.dart';
 import '../../core/notifications/media_notification_service.dart';
 import '../../core/notifications/notification_permission_service.dart';
+import '../../core/settings/app_settings_service.dart';
 import '../../core/storage/media_library_service.dart';
 import '../../core/storage/media_save_service.dart';
 import '../../core/storage/saf_service.dart';
+import '../../core/storage/status_archive_service.dart';
 import '../../services/whatsapp/whatsapp_status_reader.dart';
 
 const _prefsKey = 'whatsapp_status_folder';
@@ -77,6 +79,8 @@ class WhatsAppStatusController extends StateNotifier<WhatsAppStatusState> {
     MediaSaveService? mediaSaveService,
     MediaNotificationService? mediaNotificationService,
     NotificationPermissionService? notificationPermissionService,
+    StatusArchiveService? statusArchiveService,
+    AppSettingsService? appSettingsService,
   }) : _safService = safService ?? SafService(),
        _safStream = SafStream(),
        _mediaSaveService = mediaSaveService ?? MediaSaveService(),
@@ -84,6 +88,8 @@ class WhatsAppStatusController extends StateNotifier<WhatsAppStatusState> {
            mediaNotificationService ?? MediaNotificationService(),
        _notificationPermissionService =
            notificationPermissionService ?? NotificationPermissionService(),
+       _statusArchiveService = statusArchiveService ?? StatusArchiveService(),
+       _appSettingsService = appSettingsService ?? AppSettingsService(),
        super(const WhatsAppStatusState()) {
     _init();
   }
@@ -93,6 +99,8 @@ class WhatsAppStatusController extends StateNotifier<WhatsAppStatusState> {
   final MediaSaveService _mediaSaveService;
   final MediaNotificationService _mediaNotificationService;
   final NotificationPermissionService _notificationPermissionService;
+  final StatusArchiveService _statusArchiveService;
+  final AppSettingsService _appSettingsService;
 
   Future<void> _init() async {
     final uri = await _safService.getPersistedTreeUri(_prefsKey);
@@ -130,9 +138,31 @@ class WhatsAppStatusController extends StateNotifier<WhatsAppStatusState> {
       final files = await _safService.listFiles(treeUri);
       final statuses = WhatsAppStatusReader.filterStatusFiles(files);
       state = state.copyWith(items: AsyncValue.data(statuses));
+      await _runArchive(statuses);
     } catch (error, stackTrace) {
       state = state.copyWith(items: AsyncValue.error(error, stackTrace));
     }
+  }
+
+  /// Opportunistic WhatsApp-status archiving + retention cleanup — runs on
+  /// every folder refresh when the user has opted in (Settings → WhatsApp).
+  /// Wrapped so a failure here never disturbs the status list that already
+  /// loaded.
+  Future<void> _runArchive(List<StatusItem> statuses) async {
+    try {
+      final retention = await _appSettingsService.getStatusArchiveRetention();
+      if (retention == StatusArchiveRetention.off) return;
+      final archived = await _statusArchiveService.archiveNew(statuses);
+      if (archived > 0) {
+        state = state.copyWith(
+          lastResultMessage: StatusMessage(
+            StatusMessageKey.statusesArchived,
+            count: archived,
+          ),
+        );
+      }
+      await _statusArchiveService.pruneExpired(retention.duration);
+    } catch (_) {}
   }
 
   void enterSelectionMode() {

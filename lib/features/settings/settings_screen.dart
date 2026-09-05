@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/changelog/changelog.dart';
 import '../../core/extraction/media_extractor.dart';
+import '../../core/settings/app_settings_service.dart';
 import '../../core/settings/settings_providers.dart';
 import '../../core/update/update_providers.dart';
 import '../../l10n/app_localizations.dart';
@@ -20,6 +21,7 @@ class SettingsScreen extends ConsumerWidget {
     final enabledServices = ref.watch(enabledServicesProvider);
     final clipboardAutoPaste = ref.watch(clipboardAutoPasteEnabledProvider);
     final locale = ref.watch(localeProvider);
+    final statusArchive = ref.watch(statusArchiveRetentionProvider);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settingsTitle)),
@@ -58,6 +60,23 @@ class SettingsScreen extends ConsumerWidget {
             onChanged: (enabled) => ref
                 .read(clipboardAutoPasteEnabledProvider.notifier)
                 .setEnabled(enabled),
+          ),
+          const Divider(),
+          _SectionHeader(l10n.whatsappSection),
+          ListTile(
+            title: Text(l10n.statusArchiveTitle),
+            subtitle: Text(l10n.statusArchiveSubtitle),
+            trailing: _Dropdown<StatusArchiveRetention>(
+              value: statusArchive,
+              items: {
+                StatusArchiveRetention.off: l10n.statusArchiveOff,
+                StatusArchiveRetention.oneWeek: l10n.statusArchiveWeek,
+                StatusArchiveRetention.oneMonth: l10n.statusArchiveMonth,
+              },
+              onChanged: (value) => ref
+                  .read(statusArchiveRetentionProvider.notifier)
+                  .setRetention(value),
+            ),
           ),
           const Divider(),
           ListTile(

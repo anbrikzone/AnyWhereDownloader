@@ -120,3 +120,29 @@ class LocaleController extends StateNotifier<Locale?> {
 final localeProvider = StateNotifierProvider<LocaleController, Locale?>(
   (ref) => LocaleController(),
 );
+
+/// Persisted WhatsApp status auto-archive retention. Starts [off] (opt-in)
+/// and loads the persisted value asynchronously — same pattern as the rest.
+class StatusArchiveController extends StateNotifier<StatusArchiveRetention> {
+  StatusArchiveController({AppSettingsService? settingsService})
+    : _settingsService = settingsService ?? AppSettingsService(),
+      super(StatusArchiveRetention.off) {
+    _init();
+  }
+
+  final AppSettingsService _settingsService;
+
+  Future<void> _init() async {
+    state = await _settingsService.getStatusArchiveRetention();
+  }
+
+  Future<void> setRetention(StatusArchiveRetention value) async {
+    state = value;
+    await _settingsService.setStatusArchiveRetention(value);
+  }
+}
+
+final statusArchiveRetentionProvider =
+    StateNotifierProvider<StatusArchiveController, StatusArchiveRetention>(
+      (ref) => StatusArchiveController(),
+    );

@@ -324,6 +324,11 @@ class AppLocalizationsKk extends AppLocalizations {
   }
 
   @override
+  String statusesArchivedCount(int count) {
+    return 'Кітапханаға қосылды: $count';
+  }
+
+  @override
   String get settingsTitle => 'Параметрлер';
 
   @override
@@ -355,6 +360,25 @@ class AppLocalizationsKk extends AppLocalizations {
   @override
   String get clipboardAutoPasteSubtitle =>
       'Алмасу буферіне көшірілген қолдау көрсетілетін сілтемені автоматты түрде қою';
+
+  @override
+  String get whatsappSection => 'WhatsApp';
+
+  @override
+  String get statusArchiveTitle => 'Статустарды мұрағаттау';
+
+  @override
+  String get statusArchiveSubtitle =>
+      'WhatsApp жойғаннан кейін көрілген статустарды Кітапханада сақтау';
+
+  @override
+  String get statusArchiveOff => 'Өшірулі';
+
+  @override
+  String get statusArchiveWeek => 'Бір апта сақтау';
+
+  @override
+  String get statusArchiveMonth => 'Бір ай сақтау';
 
   @override
   String get languageSection => 'Тіл';

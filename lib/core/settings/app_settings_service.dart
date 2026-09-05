@@ -1,7 +1,24 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../extraction/media_extractor.dart';
+
+/// How long auto-archived WhatsApp statuses are kept before the opportunistic
+/// cleanup (on WhatsApp-screen refresh) deletes them. [off] disables the
+/// whole feature.
+enum StatusArchiveRetention {
+  off,
+  oneWeek,
+  oneMonth;
+
+  Duration get duration => switch (this) {
+        StatusArchiveRetention.off => Duration.zero,
+        StatusArchiveRetention.oneWeek => const Duration(days: 7),
+        StatusArchiveRetention.oneMonth => const Duration(days: 30),
+      };
+}
 
 /// Thin wrapper around `shared_preferences` for user-facing settings —
 /// mirrors `SafService`'s style (isolates the plugin behind plain get/set
@@ -13,6 +30,8 @@ class AppSettingsService {
   static const _clipboardAutoPasteKey = 'settings_clipboard_auto_paste';
   static const _localeKey = 'settings_locale';
   static const _lastUpdateCheckKey = 'settings_last_update_check_ms';
+  static const _statusArchiveRetentionKey = 'settings_status_archive_retention';
+  static const _archivedStatusLedgerKey = 'settings_archived_status_ledger';
 
   Future<ThemeMode> getThemeMode() async {
     final prefs = await SharedPreferences.getInstance();
@@ -83,5 +102,39 @@ class AppSettingsService {
   Future<void> setLastUpdateCheck(DateTime when) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_lastUpdateCheckKey, when.millisecondsSinceEpoch);
+  }
+
+  /// WhatsApp status auto-archive retention. Defaults to [off] — opt-in.
+  Future<StatusArchiveRetention> getStatusArchiveRetention() async {
+    final prefs = await SharedPreferences.getInstance();
+    final stored = prefs.getString(_statusArchiveRetentionKey);
+    return StatusArchiveRetention.values.firstWhere(
+      (v) => v.name == stored,
+      orElse: () => StatusArchiveRetention.off,
+    );
+  }
+
+  Future<void> setStatusArchiveRetention(StatusArchiveRetention value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_statusArchiveRetentionKey, value.name);
+  }
+
+  /// Dedup ledger for the archiver: status filename -> epoch millis it was
+  /// archived. JSON-encoded to a single string.
+  Future<Map<String, int>> getArchivedStatusLedger() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_archivedStatusLedgerKey);
+    if (raw == null || raw.isEmpty) return {};
+    try {
+      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      return decoded.map((k, v) => MapEntry(k, (v as num).toInt()));
+    } catch (_) {
+      return {};
+    }
+  }
+
+  Future<void> setArchivedStatusLedger(Map<String, int> ledger) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_archivedStatusLedgerKey, jsonEncode(ledger));
   }
 }
