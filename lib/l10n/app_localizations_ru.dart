@@ -156,6 +156,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get audioOriginalLabel => 'Оригинал (M4A)';
 
   @override
+  String get formatSectionVideo => 'Видео';
+
+  @override
+  String get formatSectionAudio => 'Аудио';
+
+  @override
   String itemsSelectedCount(int count) {
     return 'Выбрано: $count';
   }

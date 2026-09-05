@@ -156,6 +156,12 @@ class AppLocalizationsKk extends AppLocalizations {
   String get audioOriginalLabel => 'Түпнұсқа (M4A)';
 
   @override
+  String get formatSectionVideo => 'Бейне';
+
+  @override
+  String get formatSectionAudio => 'Аудио';
+
+  @override
   String itemsSelectedCount(int count) {
     return 'Таңдалды: $count';
   }

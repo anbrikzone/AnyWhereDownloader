@@ -155,6 +155,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get audioOriginalLabel => 'Original (M4A)';
 
   @override
+  String get formatSectionVideo => 'Video';
+
+  @override
+  String get formatSectionAudio => 'Audio';
+
+  @override
   String itemsSelectedCount(int count) {
     return '$count selected';
   }

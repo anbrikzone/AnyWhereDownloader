@@ -71,6 +71,8 @@
   },
   "convertingAudioIndeterminate": "Converting audio…",
   "audioOriginalLabel": "Original (M4A)",
+  "formatSectionVideo": "Video",
+  "formatSectionAudio": "Audio",
 
   "itemsSelectedCount": "{count} selected",
   "@itemsSelectedCount": {

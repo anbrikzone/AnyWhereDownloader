@@ -20,8 +20,17 @@ bool isSingleImageDownload(MediaInfo info) =>
     info.variants.length == 1 &&
     info.variants.single.type == MediaVariantType.image;
 
+/// Fixed order the sheet groups variants in.
+const _typeOrder = [
+  MediaVariantType.video,
+  MediaVariantType.audio,
+  MediaVariantType.image,
+];
+
 /// Generic bottom sheet for picking one [MediaVariant] out of several.
-/// Not YouTube-specific — reusable once Instagram/X also offer variants.
+/// Not YouTube-specific. Capped at ~55% of the screen and scrollable —
+/// YouTube now offers a long list (many resolutions + audio options) —
+/// with a labelled section per media type when more than one is present.
 Future<FormatSelectionResult?> showFormatSelectionSheet({
   required BuildContext context,
   required String title,
@@ -30,49 +39,57 @@ Future<FormatSelectionResult?> showFormatSelectionSheet({
   return showModalBottomSheet<FormatSelectionResult>(
     context: context,
     isScrollControlled: true,
+    showDragHandle: true,
     builder: (context) {
+      final l10n = AppLocalizations.of(context)!;
+      final theme = Theme.of(context);
+
+      final groups = <MediaVariantType, List<MediaVariant>>{};
+      for (final v in variants) {
+        (groups[v.type] ??= <MediaVariant>[]).add(v);
+      }
+      final presentTypes =
+          _typeOrder.where(groups.containsKey).toList(growable: false);
+      final showHeaders = presentTypes.length > 1;
+
       return SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.55,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                 child: Text(
                   title,
-                  style: Theme.of(context).textTheme.titleMedium,
+                  style: theme.textTheme.titleMedium,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const Divider(height: 16),
+              const Divider(height: 1),
               Flexible(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: variants.length,
-                  itemBuilder: (context, index) {
-                    final variant = variants[index];
-                    return ListTile(
-                      leading: Icon(_iconFor(variant.type)),
-                      title: Text(_title(context, variant)),
-                      subtitle: Text(_subtitle(context, variant)),
-                      trailing: IconButton(
-                        tooltip: AppLocalizations.of(context)!.renameTooltip,
-                        icon: const Icon(Icons.edit_outlined),
-                        onPressed: () => Navigator.of(context).pop(
-                          FormatSelectionResult(
-                            variant: variant,
-                            rename: true,
+                child: ListView(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  children: [
+                    for (final type in presentTypes) ...[
+                      if (showHeaders)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+                          child: Text(
+                            _sectionLabel(l10n, type),
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: theme.colorScheme.primary,
+                            ),
                           ),
                         ),
-                      ),
-                      onTap: () => Navigator.of(context).pop(
-                        FormatSelectionResult(variant: variant, rename: false),
-                      ),
-                    );
-                  },
+                      for (final variant in groups[type]!)
+                        _VariantRow(variant: variant),
+                    ],
+                  ],
                 ),
               ),
             ],
@@ -81,6 +98,42 @@ Future<FormatSelectionResult?> showFormatSelectionSheet({
       );
     },
   );
+}
+
+class _VariantRow extends StatelessWidget {
+  const _VariantRow({required this.variant});
+
+  final MediaVariant variant;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Icon(_iconFor(variant.type)),
+      title: Text(_title(context, variant)),
+      subtitle: Text(_subtitle(context, variant)),
+      trailing: IconButton(
+        tooltip: AppLocalizations.of(context)!.renameTooltip,
+        icon: const Icon(Icons.edit_outlined),
+        onPressed: () => Navigator.of(context).pop(
+          FormatSelectionResult(variant: variant, rename: true),
+        ),
+      ),
+      onTap: () => Navigator.of(context).pop(
+        FormatSelectionResult(variant: variant, rename: false),
+      ),
+    );
+  }
+}
+
+String _sectionLabel(AppLocalizations l10n, MediaVariantType type) {
+  switch (type) {
+    case MediaVariantType.video:
+      return l10n.formatSectionVideo;
+    case MediaVariantType.audio:
+      return l10n.formatSectionAudio;
+    case MediaVariantType.image:
+      return l10n.imageLabel;
+  }
 }
 
 String _title(BuildContext context, MediaVariant variant) {

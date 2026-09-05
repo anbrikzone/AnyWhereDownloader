@@ -50,6 +50,8 @@
   "convertingAudioPercent": "Конвертация аудио… {percent}%",
   "convertingAudioIndeterminate": "Конвертация аудио…",
   "audioOriginalLabel": "Оригинал (M4A)",
+  "formatSectionVideo": "Видео",
+  "formatSectionAudio": "Аудио",
 
   "itemsSelectedCount": "Выбрано: {count}",
   "cancelSelectionTooltip": "Отменить выбор",

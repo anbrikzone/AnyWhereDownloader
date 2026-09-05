@@ -189,9 +189,9 @@ class _LibraryPreviewItemState extends State<_LibraryPreviewItem> {
 
   // Shared by both the initial load and stuck-recovery paths, so the two
   // can't drift apart (autoplay/looping/volume/mute-watchdog setup).
-  void _attachController(VideoPlayerController controller) {
+  void _attachController(VideoPlayerController controller, {bool loop = true}) {
     controller
-      ..setLooping(true)
+      ..setLooping(loop)
       ..setVolume(1)
       ..play();
     // Watchdog: a controller started while another is still tearing down
@@ -222,19 +222,51 @@ class _LibraryPreviewItemState extends State<_LibraryPreviewItem> {
   }
 
   Future<void> _load() async {
+    final type = widget.asset.type;
+
+    if (type == AssetType.audio) {
+      // MediaStore audio is flaky to resolve to a local File on the first
+      // open (the tap-to-open path hit exactly this) — play from the
+      // content:// URI, falling back to a File only if there's no URL.
+      final url = await widget.asset.getMediaUrl();
+      final file = url == null ? await widget.asset.file : null;
+      if (!mounted) return;
+      if (url == null && file == null) {
+        setState(() => _loading = false);
+        return;
+      }
+      final controller = url != null
+          ? VideoPlayerController.contentUri(Uri.parse(url))
+          : VideoPlayerController.file(file!);
+      try {
+        await controller.initialize();
+      } catch (_) {
+        await controller.dispose();
+        if (mounted) setState(() => _loading = false);
+        return;
+      }
+      if (!mounted) {
+        await controller.dispose();
+        return;
+      }
+      _attachController(controller, loop: false);
+      setState(() {
+        _videoController = controller;
+        _loading = false;
+      });
+      return;
+    }
+
     final file = await widget.asset.file;
     if (!mounted) return;
     if (file == null) {
       setState(() => _loading = false);
       return;
     }
-    final type = widget.asset.type;
-    if (type == AssetType.video || type == AssetType.audio) {
+    if (type == AssetType.video) {
       // Play straight from the MediaStore-backed file — an earlier local
       // copy step was measured to dominate open time (~3.5s of ~3.7s for a
       // 547MB video) and wasn't what fixed the mute bug (the watchdog is).
-      // ExoPlayer plays an audio-only file the same way; the UI just shows a
-      // music-note placeholder instead of a video surface.
       final controller = VideoPlayerController.file(file);
       await controller.initialize();
       if (!mounted) {
@@ -295,6 +327,7 @@ class _LibraryPreviewItemState extends State<_LibraryPreviewItem> {
     }
     final controller = _videoController;
     if (controller != null && controller.value.isInitialized) {
+      if (_isAudio) return _buildAudioPlayer(controller);
       return GestureDetector(
         onTap: () {
           // On resume, hide controls immediately (not after the usual delay)
@@ -319,24 +352,10 @@ class _LibraryPreviewItemState extends State<_LibraryPreviewItem> {
             // Non-positioned so the Stack sizes to it (a Positioned.fill
             // child doesn't drive the Stack's size — that regressed every
             // preview to the tiny play-icon size).
-            if (_isAudio)
-              const SizedBox.expand(
-                child: ColoredBox(
-                  color: Colors.black,
-                  child: Center(
-                    child: Icon(
-                      Icons.music_note,
-                      color: Colors.white24,
-                      size: 96,
-                    ),
-                  ),
-                ),
-              )
-            else
-              AspectRatio(
-                aspectRatio: controller.value.aspectRatio,
-                child: VideoPlayer(controller),
-              ),
+            AspectRatio(
+              aspectRatio: controller.value.aspectRatio,
+              child: VideoPlayer(controller),
+            ),
             ValueListenableBuilder<VideoPlayerValue>(
               valueListenable: controller,
               builder: (context, value, _) {
@@ -460,6 +479,53 @@ class _LibraryPreviewItemState extends State<_LibraryPreviewItem> {
       Icons.broken_image_outlined,
       color: Colors.white54,
       size: 64,
+    );
+  }
+
+  /// Audio has no video surface, so instead of the video Stack (whose scrub
+  /// bar would sit pinned to the very bottom edge, hard to reach) it gets a
+  /// music-player layout: art placeholder, then time + scrub bar +
+  /// play/pause centred where a thumb can actually reach them.
+  Widget _buildAudioPlayer(VideoPlayerController controller) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.music_note, size: 120, color: Colors.white24),
+          const SizedBox(height: 48),
+          ValueListenableBuilder<VideoPlayerValue>(
+            valueListenable: controller,
+            builder: (context, value, _) => Text(
+              '${_formatDuration(_previewPosition ?? value.position)} / '
+              '${_formatDuration(value.duration)}',
+              style: const TextStyle(color: Colors.white70, fontSize: 13),
+            ),
+          ),
+          const SizedBox(height: 4),
+          _ScrubBar(
+            controller: controller,
+            onPositionPreview: (position) =>
+                setState(() => _previewPosition = position),
+            onScrubEnd: () {},
+          ),
+          const SizedBox(height: 16),
+          ValueListenableBuilder<VideoPlayerValue>(
+            valueListenable: controller,
+            builder: (context, value, _) => IconButton(
+              iconSize: 64,
+              color: Colors.white,
+              icon: Icon(
+                value.isPlaying
+                    ? Icons.pause_circle_filled
+                    : Icons.play_circle_filled,
+              ),
+              onPressed: () =>
+                  value.isPlaying ? controller.pause() : controller.play(),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -811,16 +877,26 @@ class _LibraryPeekPreviewState extends State<LibraryPeekPreview> {
 
   Future<void> _load() async {
     if (widget.asset.type == AssetType.video || _isAudio) {
-      final file = await widget.asset.file;
-      if (!mounted || file == null) return;
-      final controller = VideoPlayerController.file(file);
+      final VideoPlayerController controller;
+      if (_isAudio) {
+        final url = await widget.asset.getMediaUrl();
+        final file = url == null ? await widget.asset.file : null;
+        if (!mounted || (url == null && file == null)) return;
+        controller = url != null
+            ? VideoPlayerController.contentUri(Uri.parse(url))
+            : VideoPlayerController.file(file!);
+      } else {
+        final file = await widget.asset.file;
+        if (!mounted || file == null) return;
+        controller = VideoPlayerController.file(file);
+      }
       await controller.initialize();
       if (!mounted) {
         await controller.dispose();
         return;
       }
       controller
-        ..setLooping(true)
+        ..setLooping(!_isAudio)
         ..setVolume(1)
         ..play();
       // Same watchdog as the full preview pages — a freshly-started

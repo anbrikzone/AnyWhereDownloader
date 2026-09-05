@@ -508,10 +508,15 @@ class _LibraryTileState extends State<_LibraryTile> {
   @override
   void initState() {
     super.initState();
-    _thumbnail = _thumbnailCache.putIfAbsent(
-      '${widget.asset.id}_240',
-      () => widget.asset.thumbnailDataWithSize(const ThumbnailSize(240, 240)),
-    );
+    // Audio has no meaningful thumbnail — MediaStore returned garbled bytes
+    // for it. Skip the fetch and let the fallback icon stand in.
+    _thumbnail = widget.asset.type == AssetType.audio
+        ? Future<Uint8List?>.value(null)
+        : _thumbnailCache.putIfAbsent(
+            '${widget.asset.id}_240',
+            () => widget.asset
+                .thumbnailDataWithSize(const ThumbnailSize(240, 240)),
+          );
   }
 
   void _openPeek() {
@@ -543,6 +548,9 @@ class _LibraryTileState extends State<_LibraryTile> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      // opaque so a tap anywhere on the tile registers, not just where a
+      // hit-testable child happens to be painted.
+      behavior: HitTestBehavior.opaque,
       onTap: widget.onTap,
       onLongPressStart: (_) => _openPeek(),
       onLongPressEnd: (_) => _closePeek(),
@@ -568,15 +576,6 @@ class _LibraryTileState extends State<_LibraryTile> {
               alignment: Alignment.center,
               child: Icon(
                 Icons.play_circle_fill,
-                color: Colors.white70,
-                size: 32,
-              ),
-            ),
-          if (widget.asset.type == AssetType.audio)
-            const Align(
-              alignment: Alignment.center,
-              child: Icon(
-                Icons.music_note,
                 color: Colors.white70,
                 size: 32,
               ),

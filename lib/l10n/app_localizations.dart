@@ -364,6 +364,18 @@ abstract class AppLocalizations {
   /// **'Original (M4A)'**
   String get audioOriginalLabel;
 
+  /// No description provided for @formatSectionVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Video'**
+  String get formatSectionVideo;
+
+  /// No description provided for @formatSectionAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio'**
+  String get formatSectionAudio;
+
   /// No description provided for @itemsSelectedCount.
   ///
   /// In en, this message translates to:

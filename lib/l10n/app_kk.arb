@@ -50,6 +50,8 @@
   "convertingAudioPercent": "Аудио түрлендірілуде… {percent}%",
   "convertingAudioIndeterminate": "Аудио түрлендірілуде…",
   "audioOriginalLabel": "Түпнұсқа (M4A)",
+  "formatSectionVideo": "Бейне",
+  "formatSectionAudio": "Аудио",
 
   "itemsSelectedCount": "Таңдалды: {count}",
   "cancelSelectionTooltip": "Таңдауды болдырмау",
