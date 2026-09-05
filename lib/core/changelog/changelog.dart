@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 /// changelog entry's version. Keep this in sync with `pubspec.yaml`'s
 /// `version:` field and the top entry of both [kChangelog] and the
 /// project-root `CHANGELOG.md`.
-const String kAppVersion = '0.3.3';
+const String kAppVersion = '0.3.4';
 
 /// The kind of change a changelog line describes. Rendered as a small
 /// section header ("Added" / "Changed" / "Fixed"); a kind with no lines is
@@ -40,6 +40,30 @@ class ChangelogEntry {
 /// new" screen renders; the project-root `CHANGELOG.md` mirrors it for
 /// people reading the repo. Update both together on every release.
 const List<ChangelogEntry> kChangelog = [
+  ChangelogEntry(
+    version: '0.3.4',
+    date: '2026-09-05',
+    notes: {
+      'en': {
+        ChangeKind.added: [
+          'Pinch and double-tap to zoom photos in the WhatsApp status viewer, and swipe between statuses — same as the Library viewer.',
+          'Optional WhatsApp status archive (Settings → WhatsApp): keep viewed statuses for 1 week or 1 month. They are copied into the Library so they survive WhatsApp deleting them.',
+        ],
+      },
+      'ru': {
+        ChangeKind.added: [
+          'Масштабирование фото щипком и двойным касанием в просмотре статусов WhatsApp, а также перелистывание между статусами — как в просмотрщике Библиотеки.',
+          'Необязательный архив статусов WhatsApp (Настройки → WhatsApp): хранить просмотренные статусы неделю или месяц. Они копируются в Библиотеку и остаются после того, как WhatsApp их удалит.',
+        ],
+      },
+      'kk': {
+        ChangeKind.added: [
+          'WhatsApp статустарын қараушыда фотоны шымшу және қос түртумен масштабтау, сондай-ақ статустар арасында сырғыту — Кітапхана қараушысындағыдай.',
+          'WhatsApp статустарының қосымша мұрағаты (Параметрлер → WhatsApp): көрілген статустарды бір апта немесе бір ай сақтау. Олар Кітапханаға көшіріліп, WhatsApp жойғаннан кейін де қалады.',
+        ],
+      },
+    },
+  ),
   ChangelogEntry(
     version: '0.3.3',
     date: '2026-09-05',
