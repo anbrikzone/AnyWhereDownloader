@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 /// changelog entry's version. Keep this in sync with `pubspec.yaml`'s
 /// `version:` field and the top entry of both [kChangelog] and the
 /// project-root `CHANGELOG.md`.
-const String kAppVersion = '0.2.0';
+const String kAppVersion = '0.3.0';
 
 /// One released version's worth of user-facing notes, in every supported
 /// language. Plain feature descriptions — what changed and why a user
@@ -33,6 +33,24 @@ class ChangelogEntry {
 /// new" screen renders; the project-root `CHANGELOG.md` mirrors it for
 /// people reading the repo. Update both together on every release.
 const List<ChangelogEntry> kChangelog = [
+  ChangelogEntry(
+    version: '0.3.0',
+    date: '2026-09-05',
+    notes: {
+      'en': [
+        'The app can now update itself: Settings → About → Check for updates downloads and installs the newest version for you.',
+        'It also checks quietly in the background once a day and shows a dot on the settings icon when an update is ready.',
+      ],
+      'ru': [
+        'Приложение теперь умеет обновляться само: «Настройки → О приложении → Проверить обновления» скачает и установит новую версию за вас.',
+        'Раз в день оно также тихо проверяет обновления в фоне и показывает точку на значке настроек, когда обновление готово.',
+      ],
+      'kk': [
+        'Қолданба енді өзін-өзі жаңарта алады: «Параметрлер → Қолданба туралы → Жаңартуларды тексеру» жаңа нұсқаны жүктеп, орнатады.',
+        'Сондай-ақ ол күніне бір рет фонда үнсіз тексеріп, жаңарту дайын болғанда параметрлер белгішесінде нүкте көрсетеді.',
+      ],
+    },
+  ),
   ChangelogEntry(
     version: '0.2.0',
     date: '2026-09-05',
