@@ -165,6 +165,9 @@
   "languageSection": "Language",
   "aboutSection": "About",
   "whatsNewTitle": "What's new",
+  "changelogAdded": "Added",
+  "changelogChanged": "Changed",
+  "changelogFixed": "Fixed",
   "versionLabel": "Version {version}",
   "@versionLabel": {
     "placeholders": { "version": { "type": "String" } }

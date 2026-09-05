@@ -349,6 +349,15 @@ class AppLocalizationsRu extends AppLocalizations {
   String get whatsNewTitle => 'Что нового';
 
   @override
+  String get changelogAdded => 'Добавлено';
+
+  @override
+  String get changelogChanged => 'Изменено';
+
+  @override
+  String get changelogFixed => 'Исправлено';
+
+  @override
   String versionLabel(String version) {
     return 'Версия $version';
   }

@@ -108,6 +108,9 @@
   "languageSection": "Тіл",
   "aboutSection": "Қолданба туралы",
   "whatsNewTitle": "Не жаңалық",
+  "changelogAdded": "Қосылды",
+  "changelogChanged": "Өзгертілді",
+  "changelogFixed": "Түзетілді",
   "versionLabel": "{version} нұсқасы",
 
   "checkForUpdatesTitle": "Жаңартуларды тексеру",

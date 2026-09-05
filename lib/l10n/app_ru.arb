@@ -108,6 +108,9 @@
   "languageSection": "Язык",
   "aboutSection": "О приложении",
   "whatsNewTitle": "Что нового",
+  "changelogAdded": "Добавлено",
+  "changelogChanged": "Изменено",
+  "changelogFixed": "Исправлено",
   "versionLabel": "Версия {version}",
 
   "checkForUpdatesTitle": "Проверить обновления",

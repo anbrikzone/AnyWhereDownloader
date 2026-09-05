@@ -45,6 +45,15 @@ class _EntryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final grouped = entry.notesFor(localeCode);
+
+    String labelFor(ChangeKind kind) => switch (kind) {
+          ChangeKind.added => l10n.changelogAdded,
+          ChangeKind.changed => l10n.changelogChanged,
+          ChangeKind.fixed => l10n.changelogFixed,
+        };
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -55,20 +64,30 @@ class _EntryCard extends StatelessWidget {
             color: theme.colorScheme.primary,
           ),
         ),
-        const SizedBox(height: 10),
-        for (final note in entry.notesFor(localeCode))
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('•  ', style: theme.textTheme.bodyMedium),
-                Expanded(
-                  child: Text(note, style: theme.textTheme.bodyMedium),
-                ),
-              ],
+        for (final kind in ChangeKind.values)
+          if ((grouped[kind] ?? const []).isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              labelFor(kind),
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
-          ),
+            const SizedBox(height: 6),
+            for (final note in grouped[kind]!)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('•  ', style: theme.textTheme.bodyMedium),
+                    Expanded(
+                      child: Text(note, style: theme.textTheme.bodyMedium),
+                    ),
+                  ],
+                ),
+              ),
+          ],
       ],
     );
   }

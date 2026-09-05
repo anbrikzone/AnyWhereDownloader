@@ -688,6 +688,24 @@ abstract class AppLocalizations {
   /// **'What\'s new'**
   String get whatsNewTitle;
 
+  /// No description provided for @changelogAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Added'**
+  String get changelogAdded;
+
+  /// No description provided for @changelogChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Changed'**
+  String get changelogChanged;
+
+  /// No description provided for @changelogFixed.
+  ///
+  /// In en, this message translates to:
+  /// **'Fixed'**
+  String get changelogFixed;
+
   /// No description provided for @versionLabel.
   ///
   /// In en, this message translates to:

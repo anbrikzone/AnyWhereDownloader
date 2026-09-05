@@ -349,6 +349,15 @@ class AppLocalizationsKk extends AppLocalizations {
   String get whatsNewTitle => 'Не жаңалық';
 
   @override
+  String get changelogAdded => 'Қосылды';
+
+  @override
+  String get changelogChanged => 'Өзгертілді';
+
+  @override
+  String get changelogFixed => 'Түзетілді';
+
+  @override
   String versionLabel(String version) {
     return '$version нұсқасы';
   }

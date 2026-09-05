@@ -2,7 +2,38 @@
 
 User-facing notes for each released version of AnyWhere Downloader. Newest first.
 This file mirrors the in-app **Settings → About → What's new** screen; the two are
-updated together.
+updated together. Notes are grouped **Added / Changed / Fixed**.
+
+---
+
+## 0.3.1 — 2026-09-05
+
+### English
+
+**Added**
+- Pinch and double-tap to zoom photos in the full-screen viewer.
+
+**Changed**
+- Saving a single photo no longer shows a one-item chooser — it downloads right away.
+- The per-service on/off switches moved to their own screen, opened from a single Settings row.
+
+### Русский
+
+**Добавлено**
+- Масштабирование фото щипком и двойным касанием в полноэкранном просмотре.
+
+**Изменено**
+- Сохранение одиночного фото больше не показывает выбор из одного пункта — загрузка начинается сразу.
+- Переключатели сервисов вынесены на отдельный экран, который открывается одной строкой в настройках.
+
+### Қазақша
+
+**Қосылды**
+- Толық экранды қараушыда фотоны шымшу және қос түртумен масштабтау.
+
+**Өзгертілді**
+- Жалғыз фотоны сақтау енді бір тармақты таңдауды көрсетпейді — жүктеу бірден басталады.
+- Қызметтердің қосу/өшіру ауыстырғыштары бөлек экранға шығарылды, ол параметрлердегі бір жолмен ашылады.
 
 ---
 
@@ -10,16 +41,19 @@ updated together.
 
 ### English
 
+**Added**
 - The app can now update itself: Settings → About → Check for updates downloads and installs the newest version for you.
 - It also checks quietly in the background once a day and shows a dot on the settings icon when an update is ready.
 
 ### Русский
 
+**Добавлено**
 - Приложение теперь умеет обновляться само: «Настройки → О приложении → Проверить обновления» скачает и установит новую версию за вас.
 - Раз в день оно также тихо проверяет обновления в фоне и показывает точку на значке настроек, когда обновление готово.
 
 ### Қазақша
 
+**Қосылды**
 - Қолданба енді өзін-өзі жаңарта алады: «Параметрлер → Қолданба туралы → Жаңартуларды тексеру» жаңа нұсқаны жүктеп, орнатады.
 - Сондай-ақ ол күніне бір рет фонда үнсіз тексеріп, жаңарту дайын болғанда параметрлер белгішесінде нүкте көрсетеді.
 
@@ -29,24 +63,33 @@ updated together.
 
 ### English
 
+**Added**
 - LinkedIn is now supported: paste a link to a public post or feed video to download it.
 - Photos as well as videos: single-image posts from Instagram, X (Twitter) and LinkedIn can now be downloaded.
 - The Library tab refreshes on its own when you switch back to it, so files you just downloaded show up without a manual refresh.
-- Fixed a problem where some downloads whose title contained a "#" failed to save to the gallery.
+
+**Fixed**
+- Some downloads whose title contained a "#" failed to save to the gallery.
 
 ### Русский
 
+**Добавлено**
 - Добавлена поддержка LinkedIn: вставьте ссылку на публичный пост или видео из ленты, чтобы скачать его.
 - Не только видео, но и фото: теперь можно скачивать одиночные изображения из постов Instagram, X (Twitter) и LinkedIn.
 - Вкладка «Библиотека» обновляется сама при возврате на неё — только что скачанные файлы появляются без ручного обновления.
-- Исправлена ошибка, из-за которой некоторые загрузки с символом «#» в названии не сохранялись в галерею.
+
+**Исправлено**
+- Некоторые загрузки с символом «#» в названии не сохранялись в галерею.
 
 ### Қазақша
 
+**Қосылды**
 - LinkedIn қолдауы қосылды: жүктеу үшін ашық жазбаға немесе таспадағы бейнеге сілтемені қойыңыз.
 - Тек бейне ғана емес, фото да: енді Instagram, X (Twitter) және LinkedIn жазбаларынан жеке суреттерді жүктеуге болады.
 - «Кітапхана» қойындысы оған қайта ауысқанда өзі жаңарады — жаңа ғана жүктелген файлдар қолмен жаңартусыз көрінеді.
-- Атауында «#» таңбасы бар кейбір жүктеулердің галереяға сақталмауына әкелген қате түзетілді.
+
+**Түзетілді**
+- Атауында «#» таңбасы бар кейбір жүктеулер галереяға сақталмайтын.
 
 ---
 
@@ -54,6 +97,7 @@ updated together.
 
 ### English
 
+**Added**
 - Paste a link — or let the app pick it up from your clipboard — to download videos from YouTube, TikTok, X (Twitter) and Instagram.
 - Choose the quality before downloading, and rename the file first if you want.
 - YouTube downloads can go above 360p and can be paused and resumed. A notification shows progress while a download runs.
@@ -66,6 +110,7 @@ updated together.
 
 ### Русский
 
+**Добавлено**
 - Вставьте ссылку — или дайте приложению взять её из буфера обмена — чтобы скачивать видео с YouTube, TikTok, X (Twitter) и Instagram.
 - Выбор качества перед загрузкой и переименование файла по желанию.
 - Загрузки с YouTube поддерживают качество выше 360p, паузу и продолжение. Во время загрузки прогресс виден в уведомлении.
@@ -78,6 +123,7 @@ updated together.
 
 ### Қазақша
 
+**Қосылды**
 - Сілтемені қойыңыз — немесе қолданбаға оны алмасу буферінен алуға рұқсат етіңіз — YouTube, TikTok, X (Twitter) және Instagram бейнелерін жүктеу үшін.
 - Жүктеу алдында сапаны таңдау және қаласаңыз файл атауын алдын ала өзгерту.
 - YouTube жүктеулері 360p-дан жоғары сапаны, кідірту мен жалғастыруды қолдайды. Жүктеу кезінде орындалу барысы хабарландыруда көрінеді.

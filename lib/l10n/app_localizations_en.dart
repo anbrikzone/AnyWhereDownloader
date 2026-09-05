@@ -348,6 +348,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get whatsNewTitle => 'What\'s new';
 
   @override
+  String get changelogAdded => 'Added';
+
+  @override
+  String get changelogChanged => 'Changed';
+
+  @override
+  String get changelogFixed => 'Fixed';
+
+  @override
   String versionLabel(String version) {
     return 'Version $version';
   }
