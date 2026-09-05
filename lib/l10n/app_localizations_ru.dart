@@ -145,6 +145,17 @@ class AppLocalizationsRu extends AppLocalizations {
   String get mergingIndeterminate => 'Объединение видео и аудио…';
 
   @override
+  String convertingAudioPercent(String percent) {
+    return 'Конвертация аудио… $percent%';
+  }
+
+  @override
+  String get convertingAudioIndeterminate => 'Конвертация аудио…';
+
+  @override
+  String get audioOriginalLabel => 'Оригинал (M4A)';
+
+  @override
   String itemsSelectedCount(int count) {
     return 'Выбрано: $count';
   }

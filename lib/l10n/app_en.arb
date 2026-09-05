@@ -65,6 +65,12 @@
     "placeholders": { "percent": { "type": "String" } }
   },
   "mergingIndeterminate": "Merging video and audio…",
+  "convertingAudioPercent": "Converting audio… {percent}%",
+  "@convertingAudioPercent": {
+    "placeholders": { "percent": { "type": "String" } }
+  },
+  "convertingAudioIndeterminate": "Converting audio…",
+  "audioOriginalLabel": "Original (M4A)",
 
   "itemsSelectedCount": "{count} selected",
   "@itemsSelectedCount": {

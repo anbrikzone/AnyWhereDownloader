@@ -145,6 +145,17 @@ class AppLocalizationsKk extends AppLocalizations {
   String get mergingIndeterminate => 'Бейне мен аудио біріктірілуде…';
 
   @override
+  String convertingAudioPercent(String percent) {
+    return 'Аудио түрлендірілуде… $percent%';
+  }
+
+  @override
+  String get convertingAudioIndeterminate => 'Аудио түрлендірілуде…';
+
+  @override
+  String get audioOriginalLabel => 'Түпнұсқа (M4A)';
+
+  @override
   String itemsSelectedCount(int count) {
     return 'Таңдалды: $count';
   }

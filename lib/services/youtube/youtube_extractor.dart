@@ -93,11 +93,45 @@ class YouTubeExtractor implements MediaExtractor {
     }
 
     entries.sort((a, b) => b.$1.compareTo(a.$1));
+    final variants = entries.map((e) => e.$2).toList();
+
+    // Audio-only options, appended after the video rows. Downloaded via
+    // yt-dlp's own execute() (`-x --audio-format …`) in a foreground
+    // service — the same path the adaptive-video merge uses.
+    final hasAnyAudio = info.formats.any((f) => f.hasAudio);
+    if (hasAnyAudio) {
+      for (final kbps in const [320, 192, 128]) {
+        variants.add(
+          MediaVariant(
+            type: MediaVariantType.audio,
+            resolutionLabel: null,
+            container: 'mp3',
+            approxSizeBytes: duration > 0
+                ? (kbps * 1000 ~/ 8) * duration
+                : null,
+            sourceUrl: url,
+            durationSeconds: duration > 0 ? duration : null,
+            audioSpec: AudioSpec(format: 'mp3', qualityKbps: kbps),
+          ),
+        );
+      }
+      variants.add(
+        MediaVariant(
+          type: MediaVariantType.audio,
+          resolutionLabel: null,
+          container: 'm4a',
+          approxSizeBytes: bestAudioSize,
+          sourceUrl: url,
+          durationSeconds: duration > 0 ? duration : null,
+          audioSpec: const AudioSpec(format: 'm4a'),
+        ),
+      );
+    }
 
     return MediaInfo(
       title: info.title ?? 'YouTube video',
       thumbnailUrl: info.thumbnailUrl,
-      variants: entries.map((e) => e.$2).toList(),
+      variants: variants,
     );
   }
 }

@@ -228,10 +228,13 @@ class _LibraryPreviewItemState extends State<_LibraryPreviewItem> {
       setState(() => _loading = false);
       return;
     }
-    if (widget.asset.type == AssetType.video) {
+    final type = widget.asset.type;
+    if (type == AssetType.video || type == AssetType.audio) {
       // Play straight from the MediaStore-backed file — an earlier local
       // copy step was measured to dominate open time (~3.5s of ~3.7s for a
       // 547MB video) and wasn't what fixed the mute bug (the watchdog is).
+      // ExoPlayer plays an audio-only file the same way; the UI just shows a
+      // music-note placeholder instead of a video surface.
       final controller = VideoPlayerController.file(file);
       await controller.initialize();
       if (!mounted) {
@@ -252,6 +255,8 @@ class _LibraryPreviewItemState extends State<_LibraryPreviewItem> {
       });
     }
   }
+
+  bool get _isAudio => widget.asset.type == AssetType.audio;
 
   @override
   void dispose() {
@@ -311,9 +316,24 @@ class _LibraryPreviewItemState extends State<_LibraryPreviewItem> {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            AspectRatio(
-              aspectRatio: controller.value.aspectRatio,
-              child: VideoPlayer(controller),
+            Positioned.fill(
+              child: _isAudio
+                  ? const ColoredBox(
+                      color: Colors.black,
+                      child: Center(
+                        child: Icon(
+                          Icons.music_note,
+                          color: Colors.white24,
+                          size: 96,
+                        ),
+                      ),
+                    )
+                  : Center(
+                      child: AspectRatio(
+                        aspectRatio: controller.value.aspectRatio,
+                        child: VideoPlayer(controller),
+                      ),
+                    ),
             ),
             ValueListenableBuilder<VideoPlayerValue>(
               valueListenable: controller,
@@ -785,8 +805,10 @@ class _LibraryPeekPreviewState extends State<LibraryPeekPreview> {
     _load();
   }
 
+  bool get _isAudio => widget.asset.type == AssetType.audio;
+
   Future<void> _load() async {
-    if (widget.asset.type == AssetType.video) {
+    if (widget.asset.type == AssetType.video || _isAudio) {
       final file = await widget.asset.file;
       if (!mounted || file == null) return;
       final controller = VideoPlayerController.file(file);
@@ -845,6 +867,9 @@ class _LibraryPeekPreviewState extends State<LibraryPeekPreview> {
     }
     final controller = _videoController;
     if (controller != null && controller.value.isInitialized) {
+      if (_isAudio) {
+        return const Icon(Icons.music_note, color: Colors.white24, size: 96);
+      }
       return AspectRatio(
         aspectRatio: controller.value.aspectRatio,
         child: VideoPlayer(controller),

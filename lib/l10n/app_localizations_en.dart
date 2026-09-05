@@ -144,6 +144,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mergingIndeterminate => 'Merging video and audio…';
 
   @override
+  String convertingAudioPercent(String percent) {
+    return 'Converting audio… $percent%';
+  }
+
+  @override
+  String get convertingAudioIndeterminate => 'Converting audio…';
+
+  @override
+  String get audioOriginalLabel => 'Original (M4A)';
+
+  @override
   String itemsSelectedCount(int count) {
     return '$count selected';
   }

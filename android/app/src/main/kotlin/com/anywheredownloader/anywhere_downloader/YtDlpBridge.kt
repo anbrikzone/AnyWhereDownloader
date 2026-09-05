@@ -60,6 +60,30 @@ class YtDlpBridge(private val appContext: Context) {
                 result.success(null)
             }
 
+            "startAudioDownload" -> {
+                val url = call.argument<String>("url")
+                val audioFormat = call.argument<String>("audioFormat")
+                val audioQuality = call.argument<Int>("audioQuality") ?: 0
+                val outputPath = call.argument<String>("outputPath")
+                val processId = call.argument<String>("processId")
+                val durationSeconds = call.argument<Int>("durationSeconds") ?: 0
+                if (url == null || audioFormat == null || outputPath == null || processId == null) {
+                    result.error("bad_args", "Missing arguments", null)
+                    return
+                }
+                val intent = Intent(appContext, YtDlpDownloadService::class.java).apply {
+                    putExtra(YtDlpDownloadService.EXTRA_MODE, "audio")
+                    putExtra(YtDlpDownloadService.EXTRA_URL, url)
+                    putExtra(YtDlpDownloadService.EXTRA_AUDIO_FORMAT, audioFormat)
+                    putExtra(YtDlpDownloadService.EXTRA_AUDIO_QUALITY, audioQuality)
+                    putExtra(YtDlpDownloadService.EXTRA_OUTPUT_PATH, outputPath)
+                    putExtra(YtDlpDownloadService.EXTRA_PROCESS_ID, processId)
+                    putExtra(YtDlpDownloadService.EXTRA_DURATION_SECONDS, durationSeconds)
+                }
+                ContextCompat.startForegroundService(appContext, intent)
+                result.success(null)
+            }
+
             "cancelDownload" -> {
                 val processId = call.argument<String>("processId")
                 if (processId == null) {

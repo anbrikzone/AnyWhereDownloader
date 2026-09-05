@@ -113,8 +113,9 @@ class RawVideoInfo {
   final String? directUrl;
 }
 
-/// Outcome of a merge download (adaptive video-only + audio-only, muxed by
-/// yt-dlp itself — see [YtDlpEngine.downloadMerge]).
+/// Outcome of a foreground-service yt-dlp `execute()` download — the merge
+/// path ([YtDlpEngine.downloadMerge]) and the audio-extract path
+/// ([YtDlpEngine.downloadAudio]) share this shape.
 class MergeDownloadResult {
   MergeDownloadResult({required this.status, this.path, this.error});
 
@@ -132,17 +133,15 @@ class MergeDownloadResult {
   final String? error;
 }
 
-/// One progress update for a merge download. A merge is really two
-/// sub-downloads (video, then audio) plus a final mux — [phase] tells the
-/// UI which part is currently running, and [progress] (0..1) is already
-/// combined into one continuous value across all of them on the native
-/// side, rather than resetting to 0 for each sub-download.
+/// One progress update for a foreground-service yt-dlp download. [progress]
+/// (0..1) is already combined into one continuous value on the native side.
+/// [phase] tells the UI which part is running:
+/// - merge path: `video`, `audio`, `merging`
+/// - audio-extract path: `audio`, `converting`
 class MergeProgress {
   MergeProgress({required this.progress, required this.phase});
 
   final double progress;
-
-  /// One of `video`, `audio`, `merging`.
   final String phase;
 }
 
@@ -202,6 +201,36 @@ class YtDlpEngine {
     await _channel.invokeMethod('startMergeDownload', {
       'url': url,
       'formatSelector': formatSelector,
+      'outputPath': outputPath,
+      'processId': processId,
+      'durationSeconds': durationSeconds ?? 0,
+    });
+    return completer.future;
+  }
+
+  /// Starts an audio-only download (yt-dlp `-x --audio-format …` inside the
+  /// same Android foreground service as [downloadMerge]) and returns once it
+  /// finishes. [audioFormat] is `mp3` or `m4a`; [audioQualityKbps] is the
+  /// target bitrate for an mp3 preset, or 0 to keep the source bitrate.
+  /// No pause/resume — only [cancelDownload].
+  Future<MergeDownloadResult> downloadAudio({
+    required String url,
+    required String audioFormat,
+    required int audioQualityKbps,
+    required String outputPath,
+    required String processId,
+    int? durationSeconds,
+    void Function(MergeProgress progress)? onProgress,
+  }) async {
+    final completer = Completer<MergeDownloadResult>();
+    _completers[processId] = completer;
+    if (onProgress != null) {
+      _progressCallbacks[processId] = onProgress;
+    }
+    await _channel.invokeMethod('startAudioDownload', {
+      'url': url,
+      'audioFormat': audioFormat,
+      'audioQuality': audioQualityKbps,
       'outputPath': outputPath,
       'processId': processId,
       'durationSeconds': durationSeconds ?? 0,

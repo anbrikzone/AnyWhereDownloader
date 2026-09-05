@@ -559,7 +559,7 @@ class _LibraryTileState extends State<_LibraryTile> {
                 if (bytes != null) {
                   return Image.memory(bytes, fit: BoxFit.cover);
                 }
-                return const _TileFallbackIcon();
+                return _TileFallbackIcon(type: widget.asset.type);
               },
             ),
           ),
@@ -568,6 +568,15 @@ class _LibraryTileState extends State<_LibraryTile> {
               alignment: Alignment.center,
               child: Icon(
                 Icons.play_circle_fill,
+                color: Colors.white70,
+                size: 32,
+              ),
+            ),
+          if (widget.asset.type == AssetType.audio)
+            const Align(
+              alignment: Alignment.center,
+              child: Icon(
+                Icons.music_note,
                 color: Colors.white70,
                 size: 32,
               ),
@@ -595,12 +604,19 @@ class _LibraryTileState extends State<_LibraryTile> {
 }
 
 class _TileFallbackIcon extends StatelessWidget {
-  const _TileFallbackIcon();
+  const _TileFallbackIcon({this.type});
+
+  final AssetType? type;
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Icon(Icons.insert_drive_file_outlined, color: Colors.white54),
+    return Center(
+      child: Icon(
+        type == AssetType.audio
+            ? Icons.audiotrack_outlined
+            : Icons.insert_drive_file_outlined,
+        color: Colors.white54,
+      ),
     );
   }
 }

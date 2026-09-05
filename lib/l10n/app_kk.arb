@@ -47,6 +47,9 @@
   "downloadingAudioPercent": "Аудио жүктелуде… {percent}%",
   "mergingPercent": "Бейне мен аудио біріктірілуде… {percent}%",
   "mergingIndeterminate": "Бейне мен аудио біріктірілуде…",
+  "convertingAudioPercent": "Аудио түрлендірілуде… {percent}%",
+  "convertingAudioIndeterminate": "Аудио түрлендірілуде…",
+  "audioOriginalLabel": "Түпнұсқа (M4A)",
 
   "itemsSelectedCount": "Таңдалды: {count}",
   "cancelSelectionTooltip": "Таңдауды болдырмау",

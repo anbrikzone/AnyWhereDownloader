@@ -29,8 +29,11 @@ import java.util.concurrent.Executors
  */
 class YtDlpDownloadService : Service() {
     companion object {
+        const val EXTRA_MODE = "mode" // "merge" (default) | "audio"
         const val EXTRA_URL = "url"
         const val EXTRA_FORMAT_SELECTOR = "formatSelector"
+        const val EXTRA_AUDIO_FORMAT = "audioFormat" // "mp3" | "m4a"
+        const val EXTRA_AUDIO_QUALITY = "audioQuality" // kbps; 0 = source bitrate
         const val EXTRA_OUTPUT_PATH = "outputPath"
         const val EXTRA_PROCESS_ID = "processId"
         const val EXTRA_DURATION_SECONDS = "durationSeconds"
@@ -52,17 +55,35 @@ class YtDlpDownloadService : Service() {
             return START_NOT_STICKY
         }
 
+        val mode = intent?.getStringExtra(EXTRA_MODE) ?: "merge"
         val url = intent?.getStringExtra(EXTRA_URL)
-        val formatSelector = intent?.getStringExtra(EXTRA_FORMAT_SELECTOR)
         val outputPath = intent?.getStringExtra(EXTRA_OUTPUT_PATH)
         val processId = intent?.getStringExtra(EXTRA_PROCESS_ID)
         val durationSeconds = intent?.getIntExtra(EXTRA_DURATION_SECONDS, 0) ?: 0
-        if (url == null || formatSelector == null || outputPath == null || processId == null) {
+        if (url == null || outputPath == null || processId == null) {
             stopSelf()
             return START_NOT_STICKY
         }
 
         ensureChannel()
+
+        if (mode == "audio") {
+            val audioFormat = intent.getStringExtra(EXTRA_AUDIO_FORMAT)
+            val audioQuality = intent.getIntExtra(EXTRA_AUDIO_QUALITY, 0)
+            if (audioFormat == null) {
+                stopSelf()
+                return START_NOT_STICKY
+            }
+            startForeground(NOTIFICATION_ID, buildNotification(processId, progress = 0, phase = "audio"))
+            runAudioDownload(url, audioFormat, audioQuality, outputPath, processId, durationSeconds)
+            return START_NOT_STICKY
+        }
+
+        val formatSelector = intent.getStringExtra(EXTRA_FORMAT_SELECTOR)
+        if (formatSelector == null) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
         startForeground(NOTIFICATION_ID, buildNotification(processId, progress = 0, phase = "video"))
         runDownload(url, formatSelector, outputPath, processId, durationSeconds)
         return START_NOT_STICKY
@@ -162,6 +183,90 @@ class YtDlpDownloadService : Service() {
         }
     }
 
+    private fun runAudioDownload(
+        url: String,
+        audioFormat: String,
+        audioQuality: Int,
+        outputPath: String,
+        processId: String,
+        durationSeconds: Int,
+    ) {
+        executor.execute {
+            try {
+                YtDlpCore.ensureInitialized(applicationContext)
+                // yt-dlp replaces %(ext)s with the post-processed audio ext,
+                // so name the output with the base only.
+                val base = outputPath.substringBeforeLast('.', outputPath)
+                val request = YoutubeDLRequest(url)
+                request.addOption(
+                    "-f",
+                    if (audioFormat == "m4a") "ba[ext=m4a]/ba/b" else "ba/b",
+                )
+                request.addOption("-x")
+                request.addOption("--audio-format", audioFormat)
+                if (audioQuality > 0) {
+                    request.addOption("--audio-quality", "${audioQuality}K")
+                }
+                request.addOption("-o", "$base.%(ext)s")
+
+                var finalPath: String? = null
+                var phase = "audio"
+                val extractDestRegex = Regex("\\[ExtractAudio\\]\\s*Destination:\\s*(.+)$")
+                val mergeTimeRegex = Regex("time=(\\d+):(\\d{2}):(\\d{2}\\.\\d+)")
+
+                YoutubeDL.getInstance().execute(request, processId) { progress, _, line ->
+                    if (line.contains("[ExtractAudio]")) phase = "converting"
+                    extractDestRegex.find(line)?.groupValues?.get(1)?.trim()?.let {
+                        finalPath = it
+                    }
+                    val combined = if (phase == "converting") {
+                        val elapsed = mergeTimeRegex.find(line)?.let { m ->
+                            val (h, min, s) = m.destructured
+                            h.toDouble() * 3600 + min.toDouble() * 60 + s.toDouble()
+                        }
+                        if (elapsed != null && durationSeconds > 0) {
+                            (96.0 + (elapsed / durationSeconds) * 3.0).coerceIn(96.0, 99.0)
+                        } else {
+                            97.0
+                        }
+                    } else {
+                        (progress * 0.95).coerceIn(0.0, 95.0)
+                    }
+                    updateNotification(processId, combined.toInt(), phase, durationSeconds > 0)
+                    NativeToDartChannel.invoke(
+                        "onDownloadProgress",
+                        mapOf(
+                            "processId" to processId,
+                            "progress" to combined,
+                            "phase" to phase,
+                        ),
+                    )
+                }
+                NativeToDartChannel.invoke(
+                    "onDownloadStatus",
+                    mapOf(
+                        "processId" to processId,
+                        "status" to "complete",
+                        "path" to (finalPath ?: "$base.$audioFormat"),
+                    ),
+                )
+            } catch (e: YoutubeDL.CanceledException) {
+                NativeToDartChannel.invoke(
+                    "onDownloadStatus",
+                    mapOf("processId" to processId, "status" to "canceled"),
+                )
+            } catch (e: Exception) {
+                NativeToDartChannel.invoke(
+                    "onDownloadStatus",
+                    mapOf("processId" to processId, "status" to "error", "error" to e.message),
+                )
+            } finally {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+                stopSelf()
+            }
+        }
+    }
+
     private fun ensureChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val manager = getSystemService(NotificationManager::class.java)
@@ -190,7 +295,7 @@ class YtDlpDownloadService : Service() {
         // Only shown as an indeterminate spinner when we truly have no way
         // to compute a real percentage (duration unknown) — otherwise the
         // merge phase now gets real progress from ffmpeg's own "time=" line.
-        val indeterminate = phase == "merging" && !knownDuration
+        val indeterminate = (phase == "merging" || phase == "converting") && !knownDuration
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(phaseLabel(phase))
             .setContentText(if (indeterminate) "" else "$progress%")
@@ -205,6 +310,7 @@ class YtDlpDownloadService : Service() {
         "video" -> "Downloading video"
         "audio" -> "Downloading audio"
         "merging" -> "Merging video and audio"
+        "converting" -> "Converting audio"
         else -> "Downloading"
     }
 

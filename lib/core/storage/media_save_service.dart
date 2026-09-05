@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:photo_manager/photo_manager.dart';
 
 /// Thrown when the file handed to [MediaSaveService] isn't actually the
@@ -26,12 +27,43 @@ class MediaSaveException implements Exception {
 /// `DIRECTORY_PICTURES` regardless of type); splitting videos into
 /// `Movies/` would fragment existing libraries for no gain.
 class MediaSaveService {
+  static const _audioChannel = MethodChannel('anywhere_downloader/media_save');
+
   Future<String> saveVideo(String filePath, {required String album}) {
     return _save(filePath, album: album, expected: 'video', isImage: false);
   }
 
   Future<String> saveImage(String filePath, {required String album}) {
     return _save(filePath, album: album, expected: 'image', isImage: true);
+  }
+
+  /// Saves an audio file into `Music/<album>/` via the native
+  /// `MediaSaveBridge` (`photo_manager` has no audio save API). Returns the
+  /// resulting `content://` URI (for the "tap to open" notification).
+  Future<String> saveAudio(
+    String filePath, {
+    required String album,
+    required bool isMp3,
+  }) async {
+    await _assertNotHtml(filePath, expected: 'audio');
+    // The temp file already carries the right `.mp3`/`.m4a` extension.
+    final title = _safeTitle(filePath, isImage: false);
+    try {
+      final uri = await _audioChannel.invokeMethod<String>('saveAudio', {
+        'path': filePath,
+        'album': album,
+        'title': title,
+        'mimeType': isMp3 ? 'audio/mpeg' : 'audio/mp4',
+      });
+      if (uri == null) {
+        throw MediaSaveException('The audio file could not be saved.');
+      }
+      return uri;
+    } on PlatformException catch (e) {
+      throw MediaSaveException(
+        'The audio file could not be saved${e.message != null ? ': ${e.message}' : ''}.',
+      );
+    }
   }
 
   Future<String> _save(

@@ -2,6 +2,23 @@ enum ServiceType { youtube, whatsapp, instagram, xTwitter, tiktok, linkedin }
 
 enum MediaVariantType { video, audio, image }
 
+/// How to produce an audio-only download. Present on a [MediaVariant] whose
+/// [MediaVariant.type] is [MediaVariantType.audio] — it can only be
+/// downloaded by yt-dlp's own `execute()` (`-x --audio-format …`), which
+/// extracts/transcodes the audio track inside a foreground service (same
+/// path as [MediaVariant.mergeFormatSelector]); no pause/resume, only cancel.
+class AudioSpec {
+  const AudioSpec({required this.format, this.qualityKbps});
+
+  /// yt-dlp `--audio-format` value: `mp3` (re-encoded) or `m4a` (extracted
+  /// as-is, no re-encode).
+  final String format;
+
+  /// Target bitrate for an mp3 preset (320/192/128); null means "keep the
+  /// source stream's bitrate" (the `m4a` extract-as-is case).
+  final int? qualityKbps;
+}
+
 class MediaVariant {
   MediaVariant({
     required this.type,
@@ -12,6 +29,7 @@ class MediaVariant {
     this.requestHeaders,
     this.mergeFormatSelector,
     this.durationSeconds,
+    this.audioSpec,
   });
 
   final MediaVariantType type;
@@ -46,6 +64,11 @@ class MediaVariant {
   /// to turn ffmpeg's own mux progress into a real percentage instead of an
   /// indeterminate spinner (see `YtDlpDownloadService.kt`).
   final int? durationSeconds;
+
+  /// Set when [type] is [MediaVariantType.audio] — how to extract/transcode
+  /// the audio. When set, [sourceUrl] holds the original watch URL (there's
+  /// no single direct URL for a to-be-transcoded track).
+  final AudioSpec? audioSpec;
 }
 
 class MediaInfo {

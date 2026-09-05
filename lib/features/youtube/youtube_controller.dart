@@ -193,6 +193,9 @@ class YouTubeController extends StateNotifier<YouTubeState> {
     // blocking the download itself over).
     unawaited(_notificationPermissionService.ensureRequested());
     final filename = '$baseFileName.${variant.container}';
+    if (variant.audioSpec != null) {
+      return _downloadViaAudio(variant, filename);
+    }
     if (variant.mergeFormatSelector != null) {
       return _downloadViaMerge(variant, filename);
     }
@@ -342,6 +345,81 @@ class YouTubeController extends StateNotifier<YouTubeState> {
     }
   }
 
+  /// Downloads an audio-only track (yt-dlp `-x --audio-format …`) via the
+  /// same Android foreground service as the merge path — no pause/resume,
+  /// only cancel. Saves the result into `Music/<album>/` (not the gallery).
+  Future<void> _downloadViaAudio(MediaVariant variant, String filename) async {
+    final spec = variant.audioSpec!;
+    final processId = DateTime.now().microsecondsSinceEpoch.toString();
+    final tempDir = await getTemporaryDirectory();
+    final outputPath = '${tempDir.path}/$filename';
+
+    state = state.copyWith(
+      downloading: true,
+      paused: false,
+      canPause: false,
+      progress: 0,
+      clearStatusMessage: true,
+      mergeProcessId: processId,
+      downloadPhase: 'audio',
+      mergeDurationKnown: (variant.durationSeconds ?? 0) > 0,
+    );
+
+    try {
+      final result = await _ytDlpEngine.downloadAudio(
+        url: variant.sourceUrl,
+        audioFormat: spec.format,
+        audioQualityKbps: spec.qualityKbps ?? 0,
+        outputPath: outputPath,
+        processId: processId,
+        durationSeconds: variant.durationSeconds,
+        onProgress: (update) => state = state.copyWith(
+          progress: update.progress,
+          downloadPhase: update.phase,
+        ),
+      );
+
+      switch (result.status) {
+        case 'complete':
+          final path = result.path ?? outputPath;
+          await _saveAudioAndNotify(path, filename, isMp3: spec.format == 'mp3');
+          state = state.copyWith(
+            downloading: false,
+            clearMergeProcessId: true,
+            clearDownloadPhase: true,
+            statusMessage: const StatusMessage(StatusMessageKey.saved),
+          );
+        case 'canceled':
+          state = state.copyWith(
+            downloading: false,
+            clearMergeProcessId: true,
+            clearDownloadPhase: true,
+            statusMessage: const StatusMessage(StatusMessageKey.downloadCanceled),
+          );
+        default:
+          state = state.copyWith(
+            downloading: false,
+            clearMergeProcessId: true,
+            clearDownloadPhase: true,
+            statusMessage: StatusMessage(
+              StatusMessageKey.downloadFailed,
+              error: result.error ?? result.status,
+            ),
+          );
+      }
+    } catch (error) {
+      state = state.copyWith(
+        downloading: false,
+        clearMergeProcessId: true,
+        clearDownloadPhase: true,
+        statusMessage: StatusMessage(
+          StatusMessageKey.downloadFailed,
+          error: error.toString(),
+        ),
+      );
+    }
+  }
+
   /// Saves the downloaded temp file to the gallery and posts a "download
   /// complete, tap to open" notification pointing at the saved item. A
   /// notification failure must never turn a successful save into a
@@ -360,6 +438,32 @@ class YouTubeController extends StateNotifier<YouTubeState> {
         title: filename,
         contentUri: contentUri,
         mimeType: 'video/*',
+      );
+    } catch (_) {}
+  }
+
+  /// Audio counterpart of [_saveAndNotify] — saves into `Music/<album>/` via
+  /// the native bridge (which returns the `content://` URI directly) instead
+  /// of `photo_manager`.
+  Future<void> _saveAudioAndNotify(
+    String path,
+    String filename, {
+    required bool isMp3,
+  }) async {
+    final contentUri = await _mediaSaveService.saveAudio(
+      path,
+      album: _galAlbum,
+      isMp3: isMp3,
+    );
+    final file = File(path);
+    if (await file.exists()) {
+      await file.delete();
+    }
+    try {
+      await _mediaNotificationService.notifyFileSaved(
+        title: filename,
+        contentUri: contentUri,
+        mimeType: 'audio/*',
       );
     } catch (_) {}
   }

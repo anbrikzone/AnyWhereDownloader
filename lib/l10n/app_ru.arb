@@ -47,6 +47,9 @@
   "downloadingAudioPercent": "Загрузка аудио… {percent}%",
   "mergingPercent": "Объединение видео и аудио… {percent}%",
   "mergingIndeterminate": "Объединение видео и аудио…",
+  "convertingAudioPercent": "Конвертация аудио… {percent}%",
+  "convertingAudioIndeterminate": "Конвертация аудио…",
+  "audioOriginalLabel": "Оригинал (M4A)",
 
   "itemsSelectedCount": "Выбрано: {count}",
   "cancelSelectionTooltip": "Отменить выбор",

@@ -56,11 +56,7 @@ Future<FormatSelectionResult?> showFormatSelectionSheet({
                     final variant = variants[index];
                     return ListTile(
                       leading: Icon(_iconFor(variant.type)),
-                      title: Text(
-                        variant.type == MediaVariantType.image
-                            ? AppLocalizations.of(context)!.imageLabel
-                            : variant.resolutionLabel ?? variant.container,
-                      ),
+                      title: Text(_title(context, variant)),
                       subtitle: Text(_subtitle(context, variant)),
                       trailing: IconButton(
                         tooltip: AppLocalizations.of(context)!.renameTooltip,
@@ -85,6 +81,19 @@ Future<FormatSelectionResult?> showFormatSelectionSheet({
       );
     },
   );
+}
+
+String _title(BuildContext context, MediaVariant variant) {
+  final l10n = AppLocalizations.of(context)!;
+  switch (variant.type) {
+    case MediaVariantType.image:
+      return l10n.imageLabel;
+    case MediaVariantType.audio:
+      final kbps = variant.audioSpec?.qualityKbps;
+      return kbps != null ? '$kbps kbps' : l10n.audioOriginalLabel;
+    case MediaVariantType.video:
+      return variant.resolutionLabel ?? variant.container;
+  }
 }
 
 IconData _iconFor(MediaVariantType type) {

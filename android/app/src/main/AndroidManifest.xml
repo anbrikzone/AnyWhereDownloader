@@ -12,6 +12,8 @@
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>
     <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED"/>
+    <!-- Library lists downloaded MP3/M4A audio (YouTube audio-only downloads). -->
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO"/>
     <!-- In-app self-update: download a newer release APK and fire the
          system package installer for it (Settings → About → Check for
          updates). -->

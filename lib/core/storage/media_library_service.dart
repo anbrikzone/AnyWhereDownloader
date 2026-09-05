@@ -56,7 +56,11 @@ class MediaLibraryService {
   Future<List<LibraryItem>> loadDownloadedAssets() async {
     final paths = await PhotoManager.getAssetPathList(
       hasAll: false,
-      type: RequestType.common,
+      // common (image + video) plus audio — YouTube audio-only downloads
+      // land in `Music/AnyWhereDownloader - YouTube/`, which `photo_manager`
+      // groups by bucket name the same as image/video, so the album-name
+      // filter below picks them up with no other change.
+      type: RequestType.common + RequestType.audio,
     );
     final matching = paths.where(
       (p) =>

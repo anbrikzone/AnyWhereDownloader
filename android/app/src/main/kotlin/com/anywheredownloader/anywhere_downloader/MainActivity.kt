@@ -8,6 +8,7 @@ class MainActivity : FlutterActivity() {
     private val channelName = "anywhere_downloader/yt_dlp"
     private val notificationsChannelName = "anywhere_downloader/media_notifications"
     private val updateInstallChannelName = "anywhere_downloader/update_install"
+    private val mediaSaveChannelName = "anywhere_downloader/media_save"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -28,6 +29,13 @@ class MainActivity : FlutterActivity() {
             MethodChannel(flutterEngine.dartExecutor.binaryMessenger, updateInstallChannelName)
         updateInstallChannel.setMethodCallHandler { call, result ->
             updateInstallBridge.handle(call, result)
+        }
+
+        val mediaSaveBridge = MediaSaveBridge(applicationContext)
+        val mediaSaveChannel =
+            MethodChannel(flutterEngine.dartExecutor.binaryMessenger, mediaSaveChannelName)
+        mediaSaveChannel.setMethodCallHandler { call, result ->
+            mediaSaveBridge.handle(call, result)
         }
     }
 }

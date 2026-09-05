@@ -346,6 +346,24 @@ abstract class AppLocalizations {
   /// **'Merging video and audio…'**
   String get mergingIndeterminate;
 
+  /// No description provided for @convertingAudioPercent.
+  ///
+  /// In en, this message translates to:
+  /// **'Converting audio… {percent}%'**
+  String convertingAudioPercent(String percent);
+
+  /// No description provided for @convertingAudioIndeterminate.
+  ///
+  /// In en, this message translates to:
+  /// **'Converting audio…'**
+  String get convertingAudioIndeterminate;
+
+  /// No description provided for @audioOriginalLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Original (M4A)'**
+  String get audioOriginalLabel;
+
   /// No description provided for @itemsSelectedCount.
   ///
   /// In en, this message translates to:
