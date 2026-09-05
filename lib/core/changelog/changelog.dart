@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 /// changelog entry's version. Keep this in sync with `pubspec.yaml`'s
 /// `version:` field and the top entry of both [kChangelog] and the
 /// project-root `CHANGELOG.md`.
-const String kAppVersion = '0.3.2';
+const String kAppVersion = '0.3.3';
 
 /// The kind of change a changelog line describes. Rendered as a small
 /// section header ("Added" / "Changed" / "Fixed"); a kind with no lines is
@@ -40,6 +40,39 @@ class ChangelogEntry {
 /// new" screen renders; the project-root `CHANGELOG.md` mirrors it for
 /// people reading the repo. Update both together on every release.
 const List<ChangelogEntry> kChangelog = [
+  ChangelogEntry(
+    version: '0.3.3',
+    date: '2026-09-05',
+    notes: {
+      'en': {
+        ChangeKind.changed: [
+          'The quality chooser is now a compact, scrollable sheet with separate Video and Audio sections.',
+        ],
+        ChangeKind.fixed: [
+          'Photos and videos opened tiny in the full-screen viewer.',
+          'Downloaded audio: tapping the Library tile now opens the player, the seek bar is within thumb reach, and the broken cover image is gone.',
+        ],
+      },
+      'ru': {
+        ChangeKind.changed: [
+          'Выбор качества теперь компактный прокручиваемый список с отдельными разделами «Видео» и «Аудио».',
+        ],
+        ChangeKind.fixed: [
+          'Фото и видео открывались крохотными в полноэкранном просмотре.',
+          'Скачанное аудио: тап по плитке в Библиотеке открывает плеер, ползунок перемотки в зоне досягаемости пальца, битая обложка убрана.',
+        ],
+      },
+      'kk': {
+        ChangeKind.changed: [
+          'Сапаны таңдау енді бөлек «Бейне» және «Аудио» бөлімдері бар ықшам, айналдырылатын тізім.',
+        ],
+        ChangeKind.fixed: [
+          'Фото мен бейне толық экранды қараушыда өте кішкентай ашылатын.',
+          'Жүктелген аудио: Кітапханадағы тақтайшаны түрткенде плеер ашылады, айналдыру жолағы саусақ жететін жерде, бұзылған мұқаба суреті жойылды.',
+        ],
+      },
+    },
+  ),
   ChangelogEntry(
     version: '0.3.2',
     date: '2026-09-05',

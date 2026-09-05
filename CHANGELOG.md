@@ -6,6 +6,37 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 
 ---
 
+## 0.3.3 — 2026-09-05
+
+### English
+
+**Changed**
+- The quality chooser is now a compact, scrollable sheet with separate Video and Audio sections.
+
+**Fixed**
+- Photos and videos opened tiny in the full-screen viewer.
+- Downloaded audio: tapping the Library tile now opens the player, the seek bar is within thumb reach, and the broken cover image is gone.
+
+### Русский
+
+**Изменено**
+- Выбор качества теперь компактный прокручиваемый список с отдельными разделами «Видео» и «Аудио».
+
+**Исправлено**
+- Фото и видео открывались крохотными в полноэкранном просмотре.
+- Скачанное аудио: тап по плитке в Библиотеке открывает плеер, ползунок перемотки в зоне досягаемости пальца, битая обложка убрана.
+
+### Қазақша
+
+**Өзгертілді**
+- Сапаны таңдау енді бөлек «Бейне» және «Аудио» бөлімдері бар ықшам, айналдырылатын тізім.
+
+**Түзетілді**
+- Фото мен бейне толық экранды қараушыда өте кішкентай ашылатын.
+- Жүктелген аудио: Кітапханадағы тақтайшаны түрткенде плеер ашылады, айналдыру жолағы саусақ жететін жерде, бұзылған мұқаба суреті жойылды.
+
+---
+
 ## 0.3.2 — 2026-09-05
 
 ### English
