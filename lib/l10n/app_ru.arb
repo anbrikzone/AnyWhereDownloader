@@ -101,6 +101,7 @@
   "lightThemeOption": "Светлая",
   "darkThemeOption": "Тёмная",
   "servicesSection": "Сервисы",
+  "servicesEnabledSubtitle": "Включено: {enabled} из {total}",
   "clipboardSection": "Буфер обмена",
   "clipboardAutoPasteTitle": "Автовставка распознанных ссылок",
   "clipboardAutoPasteSubtitle": "Автоматически подставлять поддерживаемую ссылку, скопированную в буфер обмена",

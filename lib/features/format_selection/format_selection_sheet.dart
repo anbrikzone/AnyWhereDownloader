@@ -13,6 +13,13 @@ class FormatSelectionResult {
   final bool rename;
 }
 
+/// True when [info] offers no real choice to make — exactly one variant and
+/// it's an image. Callers skip [showFormatSelectionSheet] and download that
+/// variant directly (a single-image post has nothing to pick).
+bool isSingleImageDownload(MediaInfo info) =>
+    info.variants.length == 1 &&
+    info.variants.single.type == MediaVariantType.image;
+
 /// Generic bottom sheet for picking one [MediaVariant] out of several.
 /// Not YouTube-specific — reusable once Instagram/X also offer variants.
 Future<FormatSelectionResult?> showFormatSelectionSheet({

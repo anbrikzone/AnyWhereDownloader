@@ -155,6 +155,10 @@
   "lightThemeOption": "Light",
   "darkThemeOption": "Dark",
   "servicesSection": "Services",
+  "servicesEnabledSubtitle": "{enabled} of {total} enabled",
+  "@servicesEnabledSubtitle": {
+    "placeholders": { "enabled": { "type": "int" }, "total": { "type": "int" } }
+  },
   "clipboardSection": "Clipboard",
   "clipboardAutoPasteTitle": "Auto-paste recognized links",
   "clipboardAutoPasteSubtitle": "Automatically fill in a supported link copied to the clipboard",

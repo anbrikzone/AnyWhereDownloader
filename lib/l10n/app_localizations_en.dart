@@ -324,6 +324,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get servicesSection => 'Services';
 
   @override
+  String servicesEnabledSubtitle(int enabled, int total) {
+    return '$enabled of $total enabled';
+  }
+
+  @override
   String get clipboardSection => 'Clipboard';
 
   @override

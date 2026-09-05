@@ -97,6 +97,13 @@ class _InstagramScreenState extends ConsumerState<InstagramScreen>
 
     final suggestedName = InstagramController.suggestedFileName(info.title);
 
+    // A single image variant is not a choice — download it straight away
+    // instead of showing a one-row format sheet.
+    if (isSingleImageDownload(info)) {
+      await controller.downloadVariant(info.variants.single, suggestedName);
+      return;
+    }
+
     // Loop rather than a single pass: cancelling the rename dialog should
     // return to the format sheet, not abandon the whole flow.
     while (true) {

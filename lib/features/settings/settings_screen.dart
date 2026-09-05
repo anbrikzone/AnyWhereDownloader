@@ -7,16 +7,8 @@ import '../../core/settings/settings_providers.dart';
 import '../../core/update/update_providers.dart';
 import '../../l10n/app_localizations.dart';
 import 'changelog_screen.dart';
+import 'services_screen.dart';
 import 'update_sheet.dart';
-
-const _serviceLabels = {
-  ServiceType.youtube: 'YouTube',
-  ServiceType.whatsapp: 'WhatsApp',
-  ServiceType.tiktok: 'TikTok',
-  ServiceType.xTwitter: 'X / Twitter',
-  ServiceType.instagram: 'Instagram',
-  ServiceType.linkedin: 'LinkedIn',
-};
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -46,15 +38,17 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           const Divider(),
-          _SectionHeader(l10n.servicesSection),
-          for (final service in ServiceType.values)
-            SwitchListTile(
-              title: Text(_serviceLabels[service] ?? service.name),
-              value: enabledServices[service] ?? true,
-              onChanged: (enabled) => ref
-                  .read(enabledServicesProvider.notifier)
-                  .setEnabled(service, enabled),
+          ListTile(
+            title: Text(l10n.servicesSection),
+            subtitle: Text(l10n.servicesEnabledSubtitle(
+              ServiceType.values.where((s) => enabledServices[s] ?? true).length,
+              ServiceType.values.length,
+            )),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const ServicesScreen()),
             ),
+          ),
           const Divider(),
           _SectionHeader(l10n.clipboardSection),
           SwitchListTile(

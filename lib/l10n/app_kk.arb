@@ -101,6 +101,7 @@
   "lightThemeOption": "Ашық",
   "darkThemeOption": "Қараңғы",
   "servicesSection": "Қызметтер",
+  "servicesEnabledSubtitle": "{total} ішінен {enabled} қосулы",
   "clipboardSection": "Алмасу буфері",
   "clipboardAutoPasteTitle": "Танылған сілтемелерді автоматты қою",
   "clipboardAutoPasteSubtitle": "Алмасу буферіне көшірілген қолдау көрсетілетін сілтемені автоматты түрде қою",

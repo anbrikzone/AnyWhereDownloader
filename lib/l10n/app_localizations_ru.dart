@@ -325,6 +325,11 @@ class AppLocalizationsRu extends AppLocalizations {
   String get servicesSection => 'Сервисы';
 
   @override
+  String servicesEnabledSubtitle(int enabled, int total) {
+    return 'Включено: $enabled из $total';
+  }
+
+  @override
   String get clipboardSection => 'Буфер обмена';
 
   @override

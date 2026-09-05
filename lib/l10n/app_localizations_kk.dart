@@ -325,6 +325,11 @@ class AppLocalizationsKk extends AppLocalizations {
   String get servicesSection => 'Қызметтер';
 
   @override
+  String servicesEnabledSubtitle(int enabled, int total) {
+    return '$total ішінен $enabled қосулы';
+  }
+
+  @override
   String get clipboardSection => 'Алмасу буфері';
 
   @override

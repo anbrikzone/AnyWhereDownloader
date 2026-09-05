@@ -88,6 +88,13 @@ class _LinkedInScreenState extends ConsumerState<LinkedInScreen>
 
     final suggestedName = LinkedInController.suggestedFileName(info.title);
 
+    // A single image variant is not a choice — download it straight away
+    // instead of showing a one-row format sheet.
+    if (isSingleImageDownload(info)) {
+      await controller.downloadVariant(info.variants.single, suggestedName);
+      return;
+    }
+
     // Loop so cancelling the rename dialog returns to the format sheet.
     while (true) {
       if (!mounted) return;

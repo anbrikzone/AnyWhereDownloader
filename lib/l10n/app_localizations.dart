@@ -646,6 +646,12 @@ abstract class AppLocalizations {
   /// **'Services'**
   String get servicesSection;
 
+  /// No description provided for @servicesEnabledSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{enabled} of {total} enabled'**
+  String servicesEnabledSubtitle(int enabled, int total);
+
   /// No description provided for @clipboardSection.
   ///
   /// In en, this message translates to:
