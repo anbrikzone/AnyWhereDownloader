@@ -407,12 +407,91 @@ class _LibraryPreviewItemState extends State<_LibraryPreviewItem> {
       );
     }
     if (_file != null) {
-      return InteractiveViewer(child: Image.file(_file!));
+      return _ZoomableImage(file: _file!);
     }
     return const Icon(
       Icons.broken_image_outlined,
       color: Colors.white54,
       size: 64,
+    );
+  }
+}
+
+/// An image with pinch-zoom (`InteractiveViewer`) plus double-tap zoom:
+/// first double-tap zooms in centred on the tapped point, a second one
+/// (while zoomed) resets to fit. Lives inside the preview `PageView` — at
+/// scale 1 the `InteractiveViewer` doesn't consume horizontal drags so
+/// page swiping still works; once zoomed it pans instead.
+class _ZoomableImage extends StatefulWidget {
+  const _ZoomableImage({required this.file});
+
+  final File file;
+
+  @override
+  State<_ZoomableImage> createState() => _ZoomableImageState();
+}
+
+class _ZoomableImageState extends State<_ZoomableImage>
+    with SingleTickerProviderStateMixin {
+  static const _zoomScale = 2.5;
+
+  final _controller = TransformationController();
+  Offset? _doubleTapPosition;
+  AnimationController? _animation;
+
+  @override
+  void dispose() {
+    _animation?.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  bool get _isZoomedIn => _controller.value.getMaxScaleOnAxis() > 1.01;
+
+  void _handleDoubleTap() {
+    final position = _doubleTapPosition;
+    final Matrix4 target;
+    if (_isZoomedIn || position == null) {
+      target = Matrix4.identity();
+    } else {
+      // Keep the tapped point fixed while scaling up (works because we only
+      // ever zoom in from the identity/fit state).
+      target = Matrix4.identity()
+        ..translateByDouble(
+          -position.dx * (_zoomScale - 1),
+          -position.dy * (_zoomScale - 1),
+          0,
+          1,
+        )
+        ..scaleByDouble(_zoomScale, _zoomScale, _zoomScale, 1);
+    }
+    _animateTo(target);
+  }
+
+  void _animateTo(Matrix4 target) {
+    _animation?.dispose();
+    final animation = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+    final tween = Matrix4Tween(begin: _controller.value, end: target).animate(
+      CurvedAnimation(parent: animation, curve: Curves.easeOut),
+    );
+    tween.addListener(() => _controller.value = tween.value);
+    _animation = animation;
+    animation.forward();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onDoubleTapDown: (details) => _doubleTapPosition = details.localPosition,
+      onDoubleTap: _handleDoubleTap,
+      child: InteractiveViewer(
+        transformationController: _controller,
+        maxScale: 5,
+        child: Image.file(widget.file),
+      ),
     );
   }
 }
