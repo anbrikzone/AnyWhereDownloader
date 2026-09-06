@@ -49,6 +49,7 @@ class _VideoPlayerViewState extends State<VideoPlayerView>
   );
   bool _seekFxLeft = true;
   Offset? _doubleTapLocal;
+  bool _wasPlaying = false;
 
   VideoPlayerController get _c => widget.controller;
 
@@ -80,11 +81,17 @@ class _VideoPlayerViewState extends State<VideoPlayerView>
   }
 
   void _onTick() {
+    if (!mounted) return;
     // Keep the controls up once playback ends so the replay button is
     // reachable; otherwise let the auto-hide timer run.
-    if (_c.value.isCompleted && !_controlsVisible && mounted) {
+    if (_c.value.isCompleted && !_controlsVisible) {
       setState(() => _controlsVisible = true);
     }
+    // Playback just started (e.g. the host activated this page after a
+    // swipe settled) — begin the auto-hide countdown.
+    final playing = _c.value.isPlaying;
+    if (playing && !_wasPlaying) _restartHideTimer();
+    _wasPlaying = playing;
   }
 
   void _restartHideTimer() {

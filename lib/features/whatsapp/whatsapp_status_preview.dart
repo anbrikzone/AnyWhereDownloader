@@ -44,6 +44,10 @@ class _StatusPreviewPageState extends State<StatusPreviewPage> {
   // `library_preview.dart`.
   bool _pageLocked = false;
 
+  // True while a swipe is in flight — a page's video only autoplays once
+  // it's current AND the swipe has settled (see `library_preview.dart`).
+  bool _scrolling = false;
+
   @override
   void dispose() {
     _pageController.dispose();
@@ -64,22 +68,34 @@ class _StatusPreviewPageState extends State<StatusPreviewPage> {
               )
             : null,
       ),
-      body: PageView.builder(
-        controller: _pageController,
-        itemCount: widget.items.length,
-        physics: _pageLocked
-            ? const NeverScrollableScrollPhysics()
-            : const PageScrollPhysics(),
-        onPageChanged: (index) => setState(() {
-          _currentIndex = index;
-          _pageLocked = false;
-        }),
-        itemBuilder: (context, index) => _StatusPreviewItem(
-          key: ValueKey(widget.items[index].uri),
-          item: widget.items[index],
-          onZoomChanged: (zoomed) {
-            if (zoomed != _pageLocked) setState(() => _pageLocked = zoomed);
-          },
+      body: NotificationListener<ScrollNotification>(
+        onNotification: (n) {
+          if (n is ScrollStartNotification && !_scrolling) {
+            setState(() => _scrolling = true);
+          } else if (n is ScrollEndNotification && _scrolling) {
+            setState(() => _scrolling = false);
+          }
+          return false;
+        },
+        child: PageView.builder(
+          controller: _pageController,
+          itemCount: widget.items.length,
+          physics: _pageLocked
+              ? const NeverScrollableScrollPhysics()
+              : const PageScrollPhysics(),
+          onPageChanged: (index) => setState(() {
+            _currentIndex = index;
+            _pageLocked = false;
+          }),
+          itemBuilder: (context, index) => _StatusPreviewItem(
+            key: ValueKey(widget.items[index].uri),
+            item: widget.items[index],
+            isCurrent: index == _currentIndex,
+            settled: !_scrolling,
+            onZoomChanged: (zoomed) {
+              if (zoomed != _pageLocked) setState(() => _pageLocked = zoomed);
+            },
+          ),
         ),
       ),
     );
@@ -94,10 +110,19 @@ class _StatusPreviewItem extends StatefulWidget {
   const _StatusPreviewItem({
     super.key,
     required this.item,
+    required this.isCurrent,
+    required this.settled,
     this.onZoomChanged,
   });
 
   final StatusItem item;
+
+  /// This page is the one the `PageView` is centred on.
+  final bool isCurrent;
+
+  /// No swipe is in flight. [isCurrent] && [settled] ⇒ this page's video
+  /// should be playing; otherwise it must be paused.
+  final bool settled;
 
   /// Fired by the zoomable image when it zooms in/out (or a pinch starts/
   /// ends) so the parent can freeze/unfreeze page swiping.
@@ -183,23 +208,45 @@ class _StatusPreviewItemState extends State<_StatusPreviewItem> {
     }
   }
 
+  /// This page is centred and the swipe has settled — its video should be
+  /// playing.
+  bool get _active => widget.isCurrent && widget.settled;
+
   // See `LibraryPreviewPage` for the full rationale — ported as-is.
+  // Playback is started separately, only when [_active].
   void _attachController(VideoPlayerController controller) {
     controller
       ..setLooping(true)
-      ..setVolume(1)
-      ..play();
+      ..setVolume(1);
     controller.addListener(() {
       if (controller.value.volume == 0 && !controller.value.isCompleted) {
         controller.setVolume(1);
       }
     });
+    if (_active) controller.play();
   }
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void didUpdateWidget(_StatusPreviewItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final c = _videoController;
+    if (c == null || !c.value.isInitialized) return;
+    final wasActive = oldWidget.isCurrent && oldWidget.settled;
+    if (_active && !wasActive) {
+      c.play();
+    } else if (!_active && wasActive) {
+      c.pause();
+    }
+    if (!widget.isCurrent && oldWidget.isCurrent) {
+      c.pause();
+      c.seekTo(Duration.zero);
+    }
   }
 
   Future<void> _load() async {

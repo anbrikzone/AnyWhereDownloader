@@ -36,6 +36,12 @@ class _LibraryPreviewPageState extends State<LibraryPreviewPage> {
   // instead of flicking to the next item.
   bool _pageLocked = false;
 
+  // True while a swipe is in flight (finger down or settling). A page's
+  // video only autoplays once it's the current page AND the swipe has
+  // settled — otherwise the lazily-built next page starts playing
+  // (overlapping audio) before the user has even let go.
+  bool _scrolling = false;
+
   @override
   void dispose() {
     _pageController.dispose();
@@ -56,22 +62,34 @@ class _LibraryPreviewPageState extends State<LibraryPreviewPage> {
               )
             : null,
       ),
-      body: PageView.builder(
-        controller: _pageController,
-        itemCount: widget.assets.length,
-        physics: _pageLocked
-            ? const NeverScrollableScrollPhysics()
-            : const PageScrollPhysics(),
-        onPageChanged: (index) => setState(() {
-          _currentIndex = index;
-          _pageLocked = false;
-        }),
-        itemBuilder: (context, index) => _LibraryPreviewItem(
-          key: ValueKey(widget.assets[index].id),
-          asset: widget.assets[index],
-          onZoomChanged: (zoomed) {
-            if (zoomed != _pageLocked) setState(() => _pageLocked = zoomed);
-          },
+      body: NotificationListener<ScrollNotification>(
+        onNotification: (n) {
+          if (n is ScrollStartNotification && !_scrolling) {
+            setState(() => _scrolling = true);
+          } else if (n is ScrollEndNotification && _scrolling) {
+            setState(() => _scrolling = false);
+          }
+          return false;
+        },
+        child: PageView.builder(
+          controller: _pageController,
+          itemCount: widget.assets.length,
+          physics: _pageLocked
+              ? const NeverScrollableScrollPhysics()
+              : const PageScrollPhysics(),
+          onPageChanged: (index) => setState(() {
+            _currentIndex = index;
+            _pageLocked = false;
+          }),
+          itemBuilder: (context, index) => _LibraryPreviewItem(
+            key: ValueKey(widget.assets[index].id),
+            asset: widget.assets[index],
+            isCurrent: index == _currentIndex,
+            settled: !_scrolling,
+            onZoomChanged: (zoomed) {
+              if (zoomed != _pageLocked) setState(() => _pageLocked = zoomed);
+            },
+          ),
         ),
       ),
     );
@@ -83,10 +101,19 @@ class _LibraryPreviewItem extends StatefulWidget {
   const _LibraryPreviewItem({
     super.key,
     required this.asset,
+    required this.isCurrent,
+    required this.settled,
     this.onZoomChanged,
   });
 
   final AssetEntity asset;
+
+  /// This page is the one the `PageView` is centred on.
+  final bool isCurrent;
+
+  /// No swipe is in flight. [isCurrent] && [settled] ⇒ this page's video
+  /// should be playing; otherwise it must be paused.
+  final bool settled;
 
   /// Fired by the zoomable image when it zooms in/out (or a pinch starts/
   /// ends) so the parent can freeze/unfreeze page swiping.
@@ -165,13 +192,17 @@ class _LibraryPreviewItemState extends State<_LibraryPreviewItem> {
     }
   }
 
+  /// This page is centred and the swipe has settled — its video should be
+  /// playing.
+  bool get _active => widget.isCurrent && widget.settled;
+
   // Shared by both the initial load and stuck-recovery paths, so the two
-  // can't drift apart (autoplay/looping/volume/mute-watchdog setup).
+  // can't drift apart (looping / volume / mute-watchdog setup). Playback is
+  // started separately, only when [_active].
   void _attachController(VideoPlayerController controller, {bool loop = true}) {
     controller
       ..setLooping(loop)
-      ..setVolume(1)
-      ..play();
+      ..setVolume(1);
     // Watchdog: a controller started while another is still tearing down
     // its audio session can get silently ducked to volume 0 on real
     // devices. This page never plays muted, so force it back. (CLAUDE.md
@@ -181,12 +212,31 @@ class _LibraryPreviewItemState extends State<_LibraryPreviewItem> {
         controller.setVolume(1);
       }
     });
+    if (_active) controller.play();
   }
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void didUpdateWidget(_LibraryPreviewItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final c = _videoController;
+    if (c == null || !c.value.isInitialized) return;
+    final wasActive = oldWidget.isCurrent && oldWidget.settled;
+    if (_active && !wasActive) {
+      c.play();
+    } else if (!_active && wasActive) {
+      c.pause();
+    }
+    // Leaving this page entirely → rewind so it starts fresh next time.
+    if (!widget.isCurrent && oldWidget.isCurrent) {
+      c.pause();
+      c.seekTo(Duration.zero);
+    }
   }
 
   Future<void> _load() async {
