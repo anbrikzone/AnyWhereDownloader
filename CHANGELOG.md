@@ -13,18 +13,21 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 **Changed**
 - Rebuilt the full-screen video player (Library and WhatsApp status viewers): tap anywhere to show or hide the controls — only the centre button plays/pauses; double-tap the left or right side to skip 10 seconds; a chunkier progress bar with a round grab handle that highlights while dragged; and a 1× / 1.5× / 2× speed button. Rotate the phone to landscape for a true fullscreen view.
 - Status messages (like "Saved") now appear as a small banner at the top instead of a bottom bar that could sit over the navigation.
+- The screen stays awake while a video or audio file is playing in the viewer.
 
 ### Русский
 
 **Изменено**
 - Переработан полноэкранный видеоплеер (просмотр в Библиотеке и статусов WhatsApp): тап в любом месте показывает/скрывает управление — воспроизведение переключает только центральная кнопка; двойной тап слева или справа — перемотка на 10 секунд; более толстая полоса прогресса с круглым бегунком, который подсвечивается при перетаскивании; кнопка скорости 1× / 1.5× / 2×. Поверните телефон в горизонтальный режим для полноэкранного просмотра.
 - Сообщения (например «Сохранено») теперь показываются небольшим баннером сверху, а не полосой снизу, которая могла перекрывать навигацию.
+- Экран не гаснет, пока в просмотрщике играет видео или аудио.
 
 ### Қазақша
 
 **Өзгертілді**
 - Толық экранды бейне ойнатқыш қайта жасалды (Кітапхана мен WhatsApp статустарын қарауда): кез келген жерді түрту басқаруды көрсетеді/жасырады — ойнатуды тек ортаңғы түйме ауыстырады; сол не оң жақты қос түрту — 10 секундқа айналдыру; дөңгелек, сүйрегенде ерекшеленетін тұтқасы бар қалыңдау прогресс жолағы; 1× / 1.5× / 2× жылдамдық түймесі. Толық экран үшін телефонды көлденең күйге бұрыңыз.
 - Хабарлар (мысалы «Сақталды») енді навигацияны жауып тұратын төменгі жолақтың орнына жоғарыда шағын баннер түрінде көрсетіледі.
+- Қараушыда бейне немесе аудио ойнап тұрғанда экран сөнбейді.
 
 ---
 

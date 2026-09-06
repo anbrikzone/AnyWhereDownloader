@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 /// WhatsApp-style full-screen player controls over an already-initialized
 /// [controller]. Shared by the Library and WhatsApp-status preview pages —
@@ -32,7 +33,7 @@ class VideoPlayerView extends StatefulWidget {
 }
 
 class _VideoPlayerViewState extends State<VideoPlayerView>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   static const _speeds = <double>[1.0, 1.5, 2.0];
   static const _autoHide = Duration(seconds: 3);
   static const _seekStep = Duration(seconds: 10);
@@ -51,13 +52,38 @@ class _VideoPlayerViewState extends State<VideoPlayerView>
   Offset? _doubleTapLocal;
   bool _wasPlaying = false;
 
+  /// Whether this widget currently holds the screen-awake lock (so it only
+  /// toggles it on a real change, and releases exactly what it acquired).
+  bool _awake = false;
+
   VideoPlayerController get _c => widget.controller;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _c.addListener(_onTick);
     _restartHideTimer();
+    _syncWakelock();
+  }
+
+  /// Keep the screen on while media is actually playing; let it sleep as
+  /// soon as it pauses / ends / this page goes away.
+  void _syncWakelock({bool? force}) {
+    final want = force ?? (mounted && _c.value.isPlaying);
+    if (want == _awake) return;
+    _awake = want;
+    WakelockPlus.toggle(enable: want);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Never leave the wakelock held while backgrounded.
+    if (state != AppLifecycleState.resumed) {
+      _syncWakelock(force: false);
+    } else {
+      _syncWakelock();
+    }
   }
 
   @override
@@ -74,9 +100,11 @@ class _VideoPlayerViewState extends State<VideoPlayerView>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _c.removeListener(_onTick);
     _hideTimer?.cancel();
     _seekFx.dispose();
+    _syncWakelock(force: false);
     super.dispose();
   }
 
@@ -92,6 +120,7 @@ class _VideoPlayerViewState extends State<VideoPlayerView>
     final playing = _c.value.isPlaying;
     if (playing && !_wasPlaying) _restartHideTimer();
     _wasPlaying = playing;
+    _syncWakelock();
   }
 
   void _restartHideTimer() {
