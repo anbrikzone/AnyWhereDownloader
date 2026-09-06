@@ -86,10 +86,65 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get youtubeUrlHint => 'Paste a YouTube video link.';
+  String get youtubeUrlHint => 'Paste a YouTube video or playlist link.';
 
   @override
   String get youtubeUrlLabel => 'YouTube URL';
+
+  @override
+  String get playlistPickerTitle => 'Playlist';
+
+  @override
+  String playlistVideosCount(int count) {
+    return '$count videos';
+  }
+
+  @override
+  String playlistSelectedCount(int selected, int total) {
+    return '$selected of $total selected';
+  }
+
+  @override
+  String get playlistSelectAll => 'All';
+
+  @override
+  String get playlistSelectNone => 'None';
+
+  @override
+  String get playlistQualityHeading => 'Quality (applied to every video)';
+
+  @override
+  String playlistDownloadButton(int count) {
+    return 'Download ($count)';
+  }
+
+  @override
+  String playlistProgressLabel(int done, int total) {
+    return 'Playlist: $done / $total';
+  }
+
+  @override
+  String playlistSavedResult(int saved, int failed) {
+    return 'Playlist: saved $saved, $failed failed';
+  }
+
+  @override
+  String couldNotFetchPlaylist(String error) {
+    return 'Could not load this playlist: $error';
+  }
+
+  @override
+  String get playlistLinkDialogTitle => 'This link is a playlist';
+
+  @override
+  String get playlistLinkDialogBody =>
+      'Download the whole playlist, or just this one video?';
+
+  @override
+  String get playlistLinkWhole => 'Whole playlist';
+
+  @override
+  String get playlistLinkThisVideo => 'This video';
 
   @override
   String get tiktokUrlHint => 'Paste a TikTok video link.';

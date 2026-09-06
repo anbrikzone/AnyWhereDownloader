@@ -253,7 +253,7 @@ abstract class AppLocalizations {
   /// No description provided for @youtubeUrlHint.
   ///
   /// In en, this message translates to:
-  /// **'Paste a YouTube video link.'**
+  /// **'Paste a YouTube video or playlist link.'**
   String get youtubeUrlHint;
 
   /// No description provided for @youtubeUrlLabel.
@@ -261,6 +261,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'YouTube URL'**
   String get youtubeUrlLabel;
+
+  /// No description provided for @playlistPickerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlist'**
+  String get playlistPickerTitle;
+
+  /// No description provided for @playlistVideosCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} videos'**
+  String playlistVideosCount(int count);
+
+  /// No description provided for @playlistSelectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{selected} of {total} selected'**
+  String playlistSelectedCount(int selected, int total);
+
+  /// No description provided for @playlistSelectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get playlistSelectAll;
+
+  /// No description provided for @playlistSelectNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get playlistSelectNone;
+
+  /// No description provided for @playlistQualityHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Quality (applied to every video)'**
+  String get playlistQualityHeading;
+
+  /// No description provided for @playlistDownloadButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Download ({count})'**
+  String playlistDownloadButton(int count);
+
+  /// No description provided for @playlistProgressLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlist: {done} / {total}'**
+  String playlistProgressLabel(int done, int total);
+
+  /// No description provided for @playlistSavedResult.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlist: saved {saved}, {failed} failed'**
+  String playlistSavedResult(int saved, int failed);
+
+  /// No description provided for @couldNotFetchPlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load this playlist: {error}'**
+  String couldNotFetchPlaylist(String error);
+
+  /// No description provided for @playlistLinkDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This link is a playlist'**
+  String get playlistLinkDialogTitle;
+
+  /// No description provided for @playlistLinkDialogBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Download the whole playlist, or just this one video?'**
+  String get playlistLinkDialogBody;
+
+  /// No description provided for @playlistLinkWhole.
+  ///
+  /// In en, this message translates to:
+  /// **'Whole playlist'**
+  String get playlistLinkWhole;
+
+  /// No description provided for @playlistLinkThisVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'This video'**
+  String get playlistLinkThisVideo;
 
   /// No description provided for @tiktokUrlHint.
   ///

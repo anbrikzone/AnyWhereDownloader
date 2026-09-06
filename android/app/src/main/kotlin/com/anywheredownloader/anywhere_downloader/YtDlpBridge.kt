@@ -39,6 +39,45 @@ class YtDlpBridge(private val appContext: Context) {
                 getInfo(url, result)
             }
 
+            "getPlaylistInfo" -> {
+                val url = call.argument<String>("url")
+                if (url == null) {
+                    result.error("bad_args", "Missing 'url' argument", null)
+                    return
+                }
+                getPlaylistInfo(url, result)
+            }
+
+            "startPlaylistDownload" -> {
+                val url = call.argument<String>("url")
+                val formatSelector = call.argument<String>("formatSelector")
+                val audioFormat = call.argument<String>("audioFormat")
+                val audioQuality = call.argument<Int>("audioQuality") ?: 0
+                val playlistItems = call.argument<String>("playlistItems")
+                val expectedCount = call.argument<Int>("expectedCount") ?: 0
+                val outputDir = call.argument<String>("outputDir")
+                val processId = call.argument<String>("processId")
+                if (url == null || outputDir == null || processId == null ||
+                    (formatSelector == null && audioFormat == null)
+                ) {
+                    result.error("bad_args", "Missing arguments", null)
+                    return
+                }
+                val intent = Intent(appContext, YtDlpDownloadService::class.java).apply {
+                    putExtra(YtDlpDownloadService.EXTRA_MODE, "playlist")
+                    putExtra(YtDlpDownloadService.EXTRA_URL, url)
+                    formatSelector?.let { putExtra(YtDlpDownloadService.EXTRA_FORMAT_SELECTOR, it) }
+                    audioFormat?.let { putExtra(YtDlpDownloadService.EXTRA_AUDIO_FORMAT, it) }
+                    putExtra(YtDlpDownloadService.EXTRA_AUDIO_QUALITY, audioQuality)
+                    playlistItems?.let { putExtra(YtDlpDownloadService.EXTRA_PLAYLIST_ITEMS, it) }
+                    putExtra(YtDlpDownloadService.EXTRA_EXPECTED_COUNT, expectedCount)
+                    putExtra(YtDlpDownloadService.EXTRA_OUTPUT_DIR, outputDir)
+                    putExtra(YtDlpDownloadService.EXTRA_PROCESS_ID, processId)
+                }
+                ContextCompat.startForegroundService(appContext, intent)
+                result.success(null)
+            }
+
             "startMergeDownload" -> {
                 val url = call.argument<String>("url")
                 val formatSelector = call.argument<String>("formatSelector")
@@ -130,6 +169,57 @@ class YtDlpBridge(private val appContext: Context) {
                     }
                 }
                 val map = videoInfoToMap(info)
+                mainHandler.post { result.success(map) }
+            } catch (e: YoutubeDLException) {
+                mainHandler.post { result.error("yt_dlp_error", e.message, null) }
+            } catch (e: Exception) {
+                mainHandler.post { result.error("unknown_error", e.message, null) }
+            }
+        }
+    }
+
+    /**
+     * Enumerates a playlist's entries cheaply with `--flat-playlist
+     * --dump-single-json` (no per-video extraction) and returns a title +
+     * lightweight entry list. Parsed straight from yt-dlp's JSON here — the
+     * youtubedl-android `VideoInfo` mapper models a single video only and
+     * silently drops a playlist's `entries`.
+     */
+    private fun getPlaylistInfo(url: String, result: MethodChannel.Result) {
+        executor.execute {
+            try {
+                YtDlpCore.ensureInitialized(appContext)
+                val request = YoutubeDLRequest(url)
+                request.addOption("--flat-playlist")
+                request.addOption("--dump-single-json")
+                val response = YoutubeDL.getInstance().execute(request)
+                val json = org.json.JSONObject(response.out)
+                val entriesJson = json.optJSONArray("entries") ?: org.json.JSONArray()
+                val entries = ArrayList<Map<String, Any?>>()
+                for (i in 0 until entriesJson.length()) {
+                    val e = entriesJson.optJSONObject(i) ?: continue
+                    val id = e.optString("id", "")
+                    var entryUrl = e.optString("url", "")
+                    if (entryUrl.isEmpty() && id.isNotEmpty()) {
+                        entryUrl = "https://www.youtube.com/watch?v=$id"
+                    }
+                    entries.add(
+                        mapOf(
+                            "position" to (i + 1),
+                            "id" to id,
+                            "title" to e.optString("title", ""),
+                            "url" to entryUrl,
+                            "duration" to
+                                if (e.isNull("duration")) null
+                                else e.optDouble("duration", 0.0).toInt(),
+                        ),
+                    )
+                }
+                val map = mapOf(
+                    "title" to json.optString("title", ""),
+                    "count" to entries.size,
+                    "entries" to entries,
+                )
                 mainHandler.post { result.success(map) }
             } catch (e: YoutubeDLException) {
                 mainHandler.post { result.error("yt_dlp_error", e.message, null) }

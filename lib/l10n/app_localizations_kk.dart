@@ -87,10 +87,66 @@ class AppLocalizationsKk extends AppLocalizations {
   }
 
   @override
-  String get youtubeUrlHint => 'YouTube бейнесінің сілтемесін қойыңыз.';
+  String get youtubeUrlHint =>
+      'YouTube бейнесінің немесе ойнату тізімінің сілтемесін қойыңыз.';
 
   @override
   String get youtubeUrlLabel => 'YouTube сілтемесі';
+
+  @override
+  String get playlistPickerTitle => 'Ойнату тізімі';
+
+  @override
+  String playlistVideosCount(int count) {
+    return 'Бейне: $count';
+  }
+
+  @override
+  String playlistSelectedCount(int selected, int total) {
+    return '$total ішінен $selected таңдалды';
+  }
+
+  @override
+  String get playlistSelectAll => 'Барлығы';
+
+  @override
+  String get playlistSelectNone => 'Алып тастау';
+
+  @override
+  String get playlistQualityHeading => 'Сапасы (барлық бейне үшін)';
+
+  @override
+  String playlistDownloadButton(int count) {
+    return 'Жүктеу ($count)';
+  }
+
+  @override
+  String playlistProgressLabel(int done, int total) {
+    return 'Ойнату тізімі: $done / $total';
+  }
+
+  @override
+  String playlistSavedResult(int saved, int failed) {
+    return 'Ойнату тізімі: $saved сақталды, $failed қате';
+  }
+
+  @override
+  String couldNotFetchPlaylist(String error) {
+    return 'Ойнату тізімін жүктеу мүмкін болмады: $error';
+  }
+
+  @override
+  String get playlistLinkDialogTitle => 'Бұл — ойнату тізімінің сілтемесі';
+
+  @override
+  String get playlistLinkDialogBody =>
+      'Бүкіл ойнату тізімін жүктеу керек пе, әлде тек осы бейнені ме?';
+
+  @override
+  String get playlistLinkWhole => 'Бүкіл тізім';
+
+  @override
+  String get playlistLinkThisVideo => 'Тек бейне';
 
   @override
   String get tiktokUrlHint => 'TikTok бейнесінің сілтемесін қойыңыз.';

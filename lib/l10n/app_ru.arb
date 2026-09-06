@@ -30,8 +30,40 @@
   "serviceDisabledLabel": "Отключено",
   "serviceDisabledSnack": "{service} отключён — включите его в настройках",
 
-  "youtubeUrlHint": "Вставьте ссылку на видео YouTube.",
+  "youtubeUrlHint": "Вставьте ссылку на видео или плейлист YouTube.",
   "youtubeUrlLabel": "Ссылка YouTube",
+  "playlistPickerTitle": "Плейлист",
+  "playlistVideosCount": "Видео: {count}",
+  "@playlistVideosCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "playlistSelectedCount": "Выбрано {selected} из {total}",
+  "@playlistSelectedCount": {
+    "placeholders": { "selected": { "type": "int" }, "total": { "type": "int" } }
+  },
+  "playlistSelectAll": "Все",
+  "playlistSelectNone": "Снять",
+  "playlistQualityHeading": "Качество (для всех видео)",
+  "playlistDownloadButton": "Скачать ({count})",
+  "@playlistDownloadButton": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "playlistProgressLabel": "Плейлист: {done} / {total}",
+  "@playlistProgressLabel": {
+    "placeholders": { "done": { "type": "int" }, "total": { "type": "int" } }
+  },
+  "playlistSavedResult": "Плейлист: сохранено {saved}, ошибок {failed}",
+  "@playlistSavedResult": {
+    "placeholders": { "saved": { "type": "int" }, "failed": { "type": "int" } }
+  },
+  "couldNotFetchPlaylist": "Не удалось загрузить плейлист: {error}",
+  "@couldNotFetchPlaylist": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "playlistLinkDialogTitle": "Это ссылка на плейлист",
+  "playlistLinkDialogBody": "Скачать весь плейлист или только это видео?",
+  "playlistLinkWhole": "Весь плейлист",
+  "playlistLinkThisVideo": "Только видео",
   "tiktokUrlHint": "Вставьте ссылку на видео TikTok.",
   "tiktokUrlLabel": "Ссылка TikTok",
   "xTwitterUrlHint": "Вставьте ссылку на пост X/Twitter.",

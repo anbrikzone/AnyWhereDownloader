@@ -14,6 +14,7 @@ import '../../core/storage/media_library_service.dart';
 import '../../core/storage/media_save_service.dart';
 import '../../core/yt_dlp_engine/yt_dlp_engine.dart';
 import '../../services/youtube/youtube_extractor.dart';
+import '../../services/youtube/youtube_playlist.dart';
 
 final _galAlbum = albumNameForSource('YouTube');
 
@@ -29,6 +30,9 @@ class YouTubeState {
     this.mergeProcessId,
     this.downloadPhase,
     this.mergeDurationKnown = false,
+    this.playlistTotal,
+    this.playlistSaved = 0,
+    this.playlistFailed = 0,
   });
 
   final bool fetching;
@@ -63,6 +67,12 @@ class YouTubeState {
   /// indeterminate spinner.
   final bool mergeDurationKnown;
 
+  /// Playlist download (`downloadPhase == 'playlist'`): how many items were
+  /// selected, and how many have been saved / failed so far.
+  final int? playlistTotal;
+  final int playlistSaved;
+  final int playlistFailed;
+
   bool get busy => fetching || downloading;
 
   YouTubeState copyWith({
@@ -80,6 +90,10 @@ class YouTubeState {
     String? downloadPhase,
     bool clearDownloadPhase = false,
     bool? mergeDurationKnown,
+    int? playlistTotal,
+    bool clearPlaylist = false,
+    int? playlistSaved,
+    int? playlistFailed,
   }) {
     return YouTubeState(
       fetching: fetching ?? this.fetching,
@@ -98,6 +112,13 @@ class YouTubeState {
           ? null
           : (downloadPhase ?? this.downloadPhase),
       mergeDurationKnown: mergeDurationKnown ?? this.mergeDurationKnown,
+      playlistTotal: clearPlaylist
+          ? null
+          : (playlistTotal ?? this.playlistTotal),
+      playlistSaved: clearPlaylist ? 0 : (playlistSaved ?? this.playlistSaved),
+      playlistFailed: clearPlaylist
+          ? 0
+          : (playlistFailed ?? this.playlistFailed),
     );
   }
 }
@@ -164,6 +185,199 @@ class YouTubeController extends StateNotifier<YouTubeState> {
               ),
       );
       return null;
+    }
+  }
+
+  /// Enumerates a playlist's entries for the picker screen. Returns null
+  /// (and sets an error status) on failure or an empty playlist.
+  Future<PlaylistInfoResult?> fetchPlaylist(String url) async {
+    final trimmed = url.trim();
+    if (trimmed.isEmpty) return null;
+    if (state.busy) {
+      state = state.copyWith(
+        statusMessage: const StatusMessage(
+          StatusMessageKey.downloadAlreadyInProgress,
+        ),
+      );
+      return null;
+    }
+
+    state = state.copyWith(fetching: true, clearStatusMessage: true);
+    try {
+      final info = await _ytDlpEngine.getPlaylistInfo(trimmed);
+      state = state.copyWith(fetching: false);
+      if (info.entries.isEmpty) {
+        state = state.copyWith(
+          statusMessage: const StatusMessage(
+            StatusMessageKey.couldNotFetchPlaylist,
+            error: 'empty',
+          ),
+        );
+        return null;
+      }
+      return info;
+    } catch (error) {
+      state = state.copyWith(
+        fetching: false,
+        statusMessage: StatusMessage(
+          StatusMessageKey.couldNotFetchPlaylist,
+          error: error.toString(),
+        ),
+      );
+      return null;
+    }
+  }
+
+  /// Downloads [selectedPositions] (1-based) of a playlist at one shared
+  /// [quality], via a single foreground-service yt-dlp run. Each finished
+  /// item is saved to the standard YouTube album as it lands; a summary
+  /// notification is posted at the end.
+  Future<void> downloadPlaylist({
+    required String playlistUrl,
+    required List<int> selectedPositions,
+    required int totalInPlaylist,
+    required PlaylistQuality quality,
+    required String playlistTitle,
+  }) async {
+    if (state.busy) {
+      state = state.copyWith(
+        statusMessage: const StatusMessage(
+          StatusMessageKey.downloadAlreadyInProgress,
+        ),
+      );
+      return;
+    }
+    if (selectedPositions.isEmpty) return;
+    unawaited(_notificationPermissionService.ensureRequested());
+
+    final processId = DateTime.now().microsecondsSinceEpoch.toString();
+    final tempDir = await getTemporaryDirectory();
+    final outputDir = Directory('${tempDir.path}/playlist_$processId');
+    await outputDir.create(recursive: true);
+    final targetCount = selectedPositions.length;
+
+    state = state.copyWith(
+      downloading: true,
+      paused: false,
+      canPause: false,
+      progress: 0,
+      clearStatusMessage: true,
+      mergeProcessId: processId,
+      downloadPhase: 'playlist',
+      mergeDurationKnown: false,
+      playlistTotal: targetCount,
+      playlistSaved: 0,
+      playlistFailed: 0,
+    );
+
+    final pendingSaves = <Future<void>>[];
+    var saved = 0;
+    var failed = 0;
+
+    Future<void> saveItem(PlaylistItemDone item) async {
+      try {
+        if (quality.isAudio) {
+          await _mediaSaveService.saveAudio(
+            item.path,
+            album: _galAlbum,
+            isMp3: true,
+          );
+        } else {
+          await _mediaSaveService.saveVideo(item.path, album: _galAlbum);
+        }
+        saved++;
+      } catch (_) {
+        failed++;
+      } finally {
+        final f = File(item.path);
+        if (await f.exists()) await f.delete();
+        state = state.copyWith(playlistSaved: saved, playlistFailed: failed);
+      }
+    }
+
+    try {
+      final result = await _ytDlpEngine.downloadPlaylist(
+        url: playlistUrl,
+        outputDir: outputDir.path,
+        processId: processId,
+        formatSelector: quality.formatSelector,
+        audioFormat: quality.audioFormat,
+        audioQualityKbps: quality.audioQualityKbps,
+        playlistItems: YouTubePlaylistUrl.itemsSpec(
+          selectedPositions,
+          totalInPlaylist,
+        ),
+        expectedCount: targetCount,
+        onProgress: (update) =>
+            state = state.copyWith(progress: update.progress),
+        onItem: (item) => pendingSaves.add(saveItem(item)),
+      );
+
+      await Future.wait(pendingSaves);
+      try {
+        await outputDir.delete(recursive: true);
+      } catch (_) {}
+
+      try {
+        await _mediaNotificationService.notifySummary(
+          title: 'YouTube',
+          text: 'Playlist "$playlistTitle": saved $saved of $targetCount',
+        );
+      } catch (_) {}
+
+      if (result.status == 'canceled') {
+        state = state.copyWith(
+          downloading: false,
+          clearMergeProcessId: true,
+          clearDownloadPhase: true,
+          clearPlaylist: true,
+          statusMessage: saved > 0
+              ? StatusMessage(
+                  StatusMessageKey.playlistSaved,
+                  count: saved,
+                  failedCount: failed,
+                )
+              : const StatusMessage(StatusMessageKey.downloadCanceled),
+        );
+      } else if (result.status == 'complete' || saved > 0) {
+        state = state.copyWith(
+          downloading: false,
+          clearMergeProcessId: true,
+          clearDownloadPhase: true,
+          clearPlaylist: true,
+          statusMessage: StatusMessage(
+            StatusMessageKey.playlistSaved,
+            count: saved,
+            failedCount: failed,
+          ),
+        );
+      } else {
+        state = state.copyWith(
+          downloading: false,
+          clearMergeProcessId: true,
+          clearDownloadPhase: true,
+          clearPlaylist: true,
+          statusMessage: StatusMessage(
+            StatusMessageKey.downloadFailed,
+            error: result.error ?? result.status,
+          ),
+        );
+      }
+    } catch (error) {
+      await Future.wait(pendingSaves);
+      try {
+        await outputDir.delete(recursive: true);
+      } catch (_) {}
+      state = state.copyWith(
+        downloading: false,
+        clearMergeProcessId: true,
+        clearDownloadPhase: true,
+        clearPlaylist: true,
+        statusMessage: StatusMessage(
+          StatusMessageKey.downloadFailed,
+          error: error.toString(),
+        ),
+      );
     }
   }
 

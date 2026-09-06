@@ -7,8 +7,10 @@ import '../../core/l10n/status_message.dart';
 import '../../core/settings/settings_providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/youtube/youtube_extractor.dart';
+import '../../services/youtube/youtube_playlist.dart';
 import '../format_selection/format_selection_sheet.dart';
 import '../format_selection/rename_dialog.dart';
+import 'playlist_screen.dart';
 import 'youtube_controller.dart';
 
 class YouTubeScreen extends ConsumerStatefulWidget {
@@ -94,6 +96,69 @@ class _YouTubeScreenState extends ConsumerState<YouTubeScreen>
   }
 
   Future<void> _onFetchPressed() async {
+    final url = _urlController.text.trim();
+    if (url.isEmpty) return;
+
+    if (YouTubePlaylistUrl.isPurePlaylistUrl(url)) {
+      await _startPlaylist(url);
+      return;
+    }
+    if (YouTubePlaylistUrl.isVideoInPlaylistUrl(url)) {
+      final choice = await _askVideoOrPlaylist();
+      if (!mounted || choice == null) return;
+      if (choice == _UrlChoice.playlist) {
+        await _startPlaylist(url);
+        return;
+      }
+      // choice == video → fall through to the single-video flow
+    }
+    await _fetchSingleVideo();
+  }
+
+  Future<_UrlChoice?> _askVideoOrPlaylist() {
+    final l10n = AppLocalizations.of(context)!;
+    return showDialog<_UrlChoice>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.playlistLinkDialogTitle),
+        content: Text(l10n.playlistLinkDialogBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(_UrlChoice.video),
+            child: Text(l10n.playlistLinkThisVideo),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(_UrlChoice.playlist),
+            child: Text(l10n.playlistLinkWhole),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _startPlaylist(String url) async {
+    final controller = ref.read(youTubeControllerProvider.notifier);
+    final info = await controller.fetchPlaylist(url);
+    if (info == null || !mounted) return;
+    final pick = await Navigator.of(context).push<PlaylistPick>(
+      MaterialPageRoute(
+        builder: (_) => PlaylistScreen(
+          playlistTitle: info.title,
+          entries: info.entries,
+        ),
+      ),
+    );
+    if (pick == null || !mounted || pick.positions.isEmpty) return;
+    await controller.downloadPlaylist(
+      playlistUrl: url,
+      selectedPositions: pick.positions,
+      totalInPlaylist: info.entries.length,
+      quality: pick.quality,
+      playlistTitle: info.title,
+    );
+  }
+
+  Future<void> _fetchSingleVideo() async {
     final controller = ref.read(youTubeControllerProvider.notifier);
     final info = await controller.fetchInfo(_urlController.text);
     if (info == null || !mounted) return;
@@ -237,10 +302,17 @@ class _YouTubeScreenState extends ConsumerState<YouTubeScreen>
   }
 }
 
+enum _UrlChoice { video, playlist }
+
 String _progressLabel(AppLocalizations l10n, YouTubeState state) {
   final percent = (state.progress * 100).toStringAsFixed(0);
   if (state.paused) return l10n.pausedPercent(percent);
   switch (state.downloadPhase) {
+    case 'playlist':
+      return l10n.playlistProgressLabel(
+        state.playlistSaved,
+        state.playlistTotal ?? 0,
+      );
     case 'video':
       return l10n.downloadingVideoPercent(percent);
     case 'audio':

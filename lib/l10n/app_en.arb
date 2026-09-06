@@ -33,8 +33,40 @@
     "placeholders": { "service": { "type": "String" } }
   },
 
-  "youtubeUrlHint": "Paste a YouTube video link.",
+  "youtubeUrlHint": "Paste a YouTube video or playlist link.",
   "youtubeUrlLabel": "YouTube URL",
+  "playlistPickerTitle": "Playlist",
+  "playlistVideosCount": "{count} videos",
+  "@playlistVideosCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "playlistSelectedCount": "{selected} of {total} selected",
+  "@playlistSelectedCount": {
+    "placeholders": { "selected": { "type": "int" }, "total": { "type": "int" } }
+  },
+  "playlistSelectAll": "All",
+  "playlistSelectNone": "None",
+  "playlistQualityHeading": "Quality (applied to every video)",
+  "playlistDownloadButton": "Download ({count})",
+  "@playlistDownloadButton": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "playlistProgressLabel": "Playlist: {done} / {total}",
+  "@playlistProgressLabel": {
+    "placeholders": { "done": { "type": "int" }, "total": { "type": "int" } }
+  },
+  "playlistSavedResult": "Playlist: saved {saved}, {failed} failed",
+  "@playlistSavedResult": {
+    "placeholders": { "saved": { "type": "int" }, "failed": { "type": "int" } }
+  },
+  "couldNotFetchPlaylist": "Could not load this playlist: {error}",
+  "@couldNotFetchPlaylist": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "playlistLinkDialogTitle": "This link is a playlist",
+  "playlistLinkDialogBody": "Download the whole playlist, or just this one video?",
+  "playlistLinkWhole": "Whole playlist",
+  "playlistLinkThisVideo": "This video",
   "tiktokUrlHint": "Paste a TikTok video link.",
   "tiktokUrlLabel": "TikTok URL",
   "xTwitterUrlHint": "Paste an X/Twitter post link.",

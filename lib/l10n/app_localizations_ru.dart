@@ -87,10 +87,65 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
-  String get youtubeUrlHint => 'Вставьте ссылку на видео YouTube.';
+  String get youtubeUrlHint => 'Вставьте ссылку на видео или плейлист YouTube.';
 
   @override
   String get youtubeUrlLabel => 'Ссылка YouTube';
+
+  @override
+  String get playlistPickerTitle => 'Плейлист';
+
+  @override
+  String playlistVideosCount(int count) {
+    return 'Видео: $count';
+  }
+
+  @override
+  String playlistSelectedCount(int selected, int total) {
+    return 'Выбрано $selected из $total';
+  }
+
+  @override
+  String get playlistSelectAll => 'Все';
+
+  @override
+  String get playlistSelectNone => 'Снять';
+
+  @override
+  String get playlistQualityHeading => 'Качество (для всех видео)';
+
+  @override
+  String playlistDownloadButton(int count) {
+    return 'Скачать ($count)';
+  }
+
+  @override
+  String playlistProgressLabel(int done, int total) {
+    return 'Плейлист: $done / $total';
+  }
+
+  @override
+  String playlistSavedResult(int saved, int failed) {
+    return 'Плейлист: сохранено $saved, ошибок $failed';
+  }
+
+  @override
+  String couldNotFetchPlaylist(String error) {
+    return 'Не удалось загрузить плейлист: $error';
+  }
+
+  @override
+  String get playlistLinkDialogTitle => 'Это ссылка на плейлист';
+
+  @override
+  String get playlistLinkDialogBody =>
+      'Скачать весь плейлист или только это видео?';
+
+  @override
+  String get playlistLinkWhole => 'Весь плейлист';
+
+  @override
+  String get playlistLinkThisVideo => 'Только видео';
 
   @override
   String get tiktokUrlHint => 'Вставьте ссылку на видео TikTok.';

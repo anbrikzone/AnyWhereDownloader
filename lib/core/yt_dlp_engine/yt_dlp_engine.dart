@@ -138,11 +138,77 @@ class MergeDownloadResult {
 /// [phase] tells the UI which part is running:
 /// - merge path: `video`, `audio`, `merging`
 /// - audio-extract path: `audio`, `converting`
+/// - playlist path: `playlist`
 class MergeProgress {
   MergeProgress({required this.progress, required this.phase});
 
   final double progress;
   final String phase;
+}
+
+/// One lightweight playlist entry from `getPlaylistInfo` (a `--flat-playlist`
+/// enumeration — no formats/sizes, just enough to list and pick).
+class PlaylistEntryInfo {
+  PlaylistEntryInfo({
+    required this.position,
+    required this.id,
+    required this.title,
+    required this.url,
+    this.durationSeconds,
+  });
+
+  factory PlaylistEntryInfo.fromMap(Map<Object?, Object?> map) {
+    return PlaylistEntryInfo(
+      position: (map['position'] as num?)?.toInt() ?? 0,
+      id: map['id'] as String? ?? '',
+      title: (map['title'] as String? ?? '').trim(),
+      url: map['url'] as String? ?? '',
+      durationSeconds: (map['duration'] as num?)?.toInt(),
+    );
+  }
+
+  final int position;
+  final String id;
+  final String title;
+  final String url;
+  final int? durationSeconds;
+}
+
+class PlaylistInfoResult {
+  PlaylistInfoResult({required this.title, required this.entries});
+
+  factory PlaylistInfoResult.fromMap(Map<Object?, Object?> map) {
+    final raw = map['entries'];
+    final entries = <PlaylistEntryInfo>[];
+    if (raw is List) {
+      for (final e in raw) {
+        if (e is Map) {
+          entries.add(PlaylistEntryInfo.fromMap(e.cast<Object?, Object?>()));
+        }
+      }
+    }
+    return PlaylistInfoResult(
+      title: (map['title'] as String? ?? '').trim(),
+      entries: entries,
+    );
+  }
+
+  final String title;
+  final List<PlaylistEntryInfo> entries;
+}
+
+/// Fired once per playlist item that finished downloading — [path] is the
+/// final on-disk file, ready to be saved to MediaStore and then deleted.
+class PlaylistItemDone {
+  PlaylistItemDone({
+    required this.index,
+    required this.count,
+    required this.path,
+  });
+
+  final int index;
+  final int count;
+  final String path;
 }
 
 /// Thin wrapper over the native yt-dlp bridge (see
@@ -167,6 +233,7 @@ class YtDlpEngine {
 
   final _progressCallbacks = <String, void Function(MergeProgress)>{};
   final _completers = <String, Completer<MergeDownloadResult>>{};
+  final _playlistItemCallbacks = <String, void Function(PlaylistItemDone)>{};
 
   Future<RawVideoInfo> getInfo(String url) async {
     final result = await _channel.invokeMethod<Map<Object?, Object?>>(
@@ -177,6 +244,55 @@ class YtDlpEngine {
       throw StateError('yt-dlp returned no data for $url');
     }
     return RawVideoInfo.fromMap(result);
+  }
+
+  /// Enumerates a playlist's entries (`--flat-playlist`, no per-video
+  /// extraction — fast). Throws on failure.
+  Future<PlaylistInfoResult> getPlaylistInfo(String url) async {
+    final result = await _channel.invokeMethod<Map<Object?, Object?>>(
+      'getPlaylistInfo',
+      {'url': url},
+    );
+    if (result == null) {
+      throw StateError('yt-dlp returned no playlist data for $url');
+    }
+    return PlaylistInfoResult.fromMap(result);
+  }
+
+  /// Downloads a playlist (or the [playlistItems] subset — a yt-dlp
+  /// `--playlist-items` spec like `"1,3,5-7"`, or null for all) in one
+  /// foreground-service `execute()`. [onItem] fires as each entry's file
+  /// lands so the caller can save it and free the temp copy; [onProgress]
+  /// carries the overall item N-of-M progress. No pause — only
+  /// [cancelDownload]. Pass exactly one of [formatSelector] (video) or
+  /// [audioFormat] (`mp3`/`m4a`, audio-only).
+  Future<MergeDownloadResult> downloadPlaylist({
+    required String url,
+    required String outputDir,
+    required String processId,
+    String? formatSelector,
+    String? audioFormat,
+    int audioQualityKbps = 0,
+    String? playlistItems,
+    int expectedCount = 0,
+    void Function(MergeProgress progress)? onProgress,
+    void Function(PlaylistItemDone item)? onItem,
+  }) async {
+    final completer = Completer<MergeDownloadResult>();
+    _completers[processId] = completer;
+    if (onProgress != null) _progressCallbacks[processId] = onProgress;
+    if (onItem != null) _playlistItemCallbacks[processId] = onItem;
+    await _channel.invokeMethod('startPlaylistDownload', {
+      'url': url,
+      'outputDir': outputDir,
+      'processId': processId,
+      'formatSelector': formatSelector,
+      'audioFormat': audioFormat,
+      'audioQuality': audioQualityKbps,
+      'playlistItems': playlistItems,
+      'expectedCount': expectedCount,
+    });
+    return completer.future;
   }
 
   /// Starts a merge download (video-only + audio-only, combined by yt-dlp's
@@ -254,9 +370,21 @@ class YtDlpEngine {
         _progressCallbacks[processId]?.call(
           MergeProgress(progress: progress / 100.0, phase: phase),
         );
+      case 'onPlaylistItem':
+        final path = args!['path'] as String? ?? '';
+        if (path.isNotEmpty) {
+          _playlistItemCallbacks[processId]?.call(
+            PlaylistItemDone(
+              index: (args['index'] as num?)?.toInt() ?? 0,
+              count: (args['count'] as num?)?.toInt() ?? 0,
+              path: path,
+            ),
+          );
+        }
       case 'onDownloadStatus':
         final completer = _completers.remove(processId);
         _progressCallbacks.remove(processId);
+        _playlistItemCallbacks.remove(processId);
         completer?.complete(MergeDownloadResult.fromMap(args!));
     }
   }

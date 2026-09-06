@@ -29,12 +29,15 @@ import java.util.concurrent.Executors
  */
 class YtDlpDownloadService : Service() {
     companion object {
-        const val EXTRA_MODE = "mode" // "merge" (default) | "audio"
+        const val EXTRA_MODE = "mode" // "merge" (default) | "audio" | "playlist"
         const val EXTRA_URL = "url"
         const val EXTRA_FORMAT_SELECTOR = "formatSelector"
         const val EXTRA_AUDIO_FORMAT = "audioFormat" // "mp3" | "m4a"
         const val EXTRA_AUDIO_QUALITY = "audioQuality" // kbps; 0 = source bitrate
         const val EXTRA_OUTPUT_PATH = "outputPath"
+        const val EXTRA_OUTPUT_DIR = "outputDir" // playlist mode: dir for all items
+        const val EXTRA_PLAYLIST_ITEMS = "playlistItems" // yt-dlp --playlist-items spec; blank = all
+        const val EXTRA_EXPECTED_COUNT = "expectedCount" // playlist mode: how many items will be downloaded
         const val EXTRA_PROCESS_ID = "processId"
         const val EXTRA_DURATION_SECONDS = "durationSeconds"
         const val ACTION_CANCEL = "com.anywheredownloader.anywhere_downloader.ACTION_CANCEL"
@@ -57,15 +60,45 @@ class YtDlpDownloadService : Service() {
 
         val mode = intent?.getStringExtra(EXTRA_MODE) ?: "merge"
         val url = intent?.getStringExtra(EXTRA_URL)
-        val outputPath = intent?.getStringExtra(EXTRA_OUTPUT_PATH)
         val processId = intent?.getStringExtra(EXTRA_PROCESS_ID)
         val durationSeconds = intent?.getIntExtra(EXTRA_DURATION_SECONDS, 0) ?: 0
-        if (url == null || outputPath == null || processId == null) {
+        if (url == null || processId == null) {
             stopSelf()
             return START_NOT_STICKY
         }
 
         ensureChannel()
+
+        if (mode == "playlist") {
+            val outputDir = intent.getStringExtra(EXTRA_OUTPUT_DIR)
+            val playlistItems = intent.getStringExtra(EXTRA_PLAYLIST_ITEMS)
+            val playlistFormat = intent.getStringExtra(EXTRA_FORMAT_SELECTOR)
+            val playlistAudioFormat = intent.getStringExtra(EXTRA_AUDIO_FORMAT)
+            val playlistAudioQuality = intent.getIntExtra(EXTRA_AUDIO_QUALITY, 0)
+            val expectedCount = intent.getIntExtra(EXTRA_EXPECTED_COUNT, 0)
+            if (outputDir == null || (playlistFormat == null && playlistAudioFormat == null)) {
+                stopSelf()
+                return START_NOT_STICKY
+            }
+            startForeground(NOTIFICATION_ID, buildNotification(processId, progress = 0, phase = "playlist"))
+            runPlaylistDownload(
+                url,
+                playlistFormat,
+                playlistAudioFormat,
+                playlistAudioQuality,
+                playlistItems,
+                expectedCount,
+                outputDir,
+                processId,
+            )
+            return START_NOT_STICKY
+        }
+
+        val outputPath = intent.getStringExtra(EXTRA_OUTPUT_PATH)
+        if (outputPath == null) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
 
         if (mode == "audio") {
             val audioFormat = intent.getStringExtra(EXTRA_AUDIO_FORMAT)
@@ -267,6 +300,127 @@ class YtDlpDownloadService : Service() {
         }
     }
 
+    /**
+     * Downloads a whole YouTube playlist (or a `--playlist-items` subset) in
+     * one yt-dlp `execute()` — it iterates the entries itself. Each finished
+     * file's final path is emitted to Dart via `onPlaylistItem` (parsed from
+     * a `--print after_move:` line) so Dart can save it to MediaStore and
+     * delete the temp copy as it goes, rather than holding a multi-GB
+     * playlist on disk until the end. Overall progress is item N of M.
+     */
+    private fun runPlaylistDownload(
+        url: String,
+        formatSelector: String?,
+        audioFormat: String?,
+        audioQuality: Int,
+        playlistItems: String?,
+        expectedCount: Int,
+        outputDir: String,
+        processId: String,
+    ) {
+        executor.execute {
+            try {
+                YtDlpCore.ensureInitialized(applicationContext)
+                val request = YoutubeDLRequest(url)
+                if (audioFormat != null) {
+                    request.addOption(
+                        "-f",
+                        if (audioFormat == "m4a") "ba[ext=m4a]/ba/b" else "ba/b",
+                    )
+                    request.addOption("-x")
+                    request.addOption("--audio-format", audioFormat)
+                    if (audioQuality > 0) {
+                        request.addOption("--audio-quality", "${audioQuality}K")
+                    }
+                } else {
+                    request.addOption("-f", formatSelector!!)
+                    request.addOption("--merge-output-format", "mp4")
+                }
+                request.addOption(
+                    "-o",
+                    "$outputDir/%(playlist_index)03d - %(title).150B.%(ext)s",
+                )
+                request.addOption("--yes-playlist")
+                // Skip private/removed entries instead of aborting the batch.
+                request.addOption("--ignore-errors")
+                if (!playlistItems.isNullOrBlank()) {
+                    request.addOption("--playlist-items", playlistItems)
+                }
+                // Emit one machine-readable line per finished item: a marker,
+                // the 1-based index, the total, and the final on-disk path.
+                request.addOption("--no-simulate")
+                request.addOption(
+                    "--print",
+                    "after_move:@@AWD_ITEM@@\t%(playlist_index)s\t%(playlist_count)s\t%(filepath)s",
+                )
+
+                var currentIndex = 0
+                // Prefer the caller's expected count (the number of items
+                // actually being downloaded — a `--playlist-items` subset can
+                // be far smaller than yt-dlp's `playlist_count`).
+                var total = if (expectedCount > 0) expectedCount else 0
+                val itemMarkerRegex = Regex("Downloading item (\\d+) of (\\d+)")
+                val doneRegex = Regex("^@@AWD_ITEM@@\t(\\d+)\t(\\d*)\t(.+)$")
+
+                YoutubeDL.getInstance().execute(request, processId) { progress, _, line ->
+                    val trimmed = line.trim()
+                    val done = doneRegex.find(trimmed)
+                    if (done != null) {
+                        val idx = done.groupValues[1].toIntOrNull() ?: currentIndex
+                        NativeToDartChannel.invoke(
+                            "onPlaylistItem",
+                            mapOf(
+                                "processId" to processId,
+                                "index" to idx,
+                                "count" to total,
+                                "path" to done.groupValues[3].trim(),
+                            ),
+                        )
+                    } else {
+                        itemMarkerRegex.find(line)?.let { m ->
+                            currentIndex = m.groupValues[1].toIntOrNull() ?: currentIndex
+                            if (expectedCount <= 0) {
+                                total = m.groupValues[2].toIntOrNull() ?: total
+                            }
+                        }
+                        val combined = if (total > 0) {
+                            (((currentIndex - 1).coerceAtLeast(0) + progress / 100.0) /
+                                total * 100.0).coerceIn(0.0, 99.0)
+                        } else {
+                            0.0
+                        }
+                        updateNotification(processId, combined.toInt(), "playlist", false)
+                        NativeToDartChannel.invoke(
+                            "onDownloadProgress",
+                            mapOf(
+                                "processId" to processId,
+                                "progress" to combined,
+                                "phase" to "playlist",
+                            ),
+                        )
+                    }
+                }
+                NativeToDartChannel.invoke(
+                    "onDownloadStatus",
+                    mapOf("processId" to processId, "status" to "complete"),
+                )
+            } catch (e: YoutubeDL.CanceledException) {
+                NativeToDartChannel.invoke(
+                    "onDownloadStatus",
+                    mapOf("processId" to processId, "status" to "canceled"),
+                )
+            } catch (e: Exception) {
+                NativeToDartChannel.invoke(
+                    "onDownloadStatus",
+                    mapOf("processId" to processId, "status" to "error", "error" to e.message),
+                )
+            } finally {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+                stopSelf()
+            }
+        }
+    }
+
     private fun ensureChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val manager = getSystemService(NotificationManager::class.java)
@@ -311,6 +465,7 @@ class YtDlpDownloadService : Service() {
         "audio" -> "Downloading audio"
         "merging" -> "Merging video and audio"
         "converting" -> "Converting audio"
+        "playlist" -> "Downloading playlist"
         else -> "Downloading"
     }
 

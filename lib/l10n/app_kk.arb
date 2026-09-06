@@ -30,8 +30,40 @@
   "serviceDisabledLabel": "Өшірілген",
   "serviceDisabledSnack": "{service} өшірілген — оны параметрлерде қосыңыз",
 
-  "youtubeUrlHint": "YouTube бейнесінің сілтемесін қойыңыз.",
+  "youtubeUrlHint": "YouTube бейнесінің немесе ойнату тізімінің сілтемесін қойыңыз.",
   "youtubeUrlLabel": "YouTube сілтемесі",
+  "playlistPickerTitle": "Ойнату тізімі",
+  "playlistVideosCount": "Бейне: {count}",
+  "@playlistVideosCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "playlistSelectedCount": "{total} ішінен {selected} таңдалды",
+  "@playlistSelectedCount": {
+    "placeholders": { "selected": { "type": "int" }, "total": { "type": "int" } }
+  },
+  "playlistSelectAll": "Барлығы",
+  "playlistSelectNone": "Алып тастау",
+  "playlistQualityHeading": "Сапасы (барлық бейне үшін)",
+  "playlistDownloadButton": "Жүктеу ({count})",
+  "@playlistDownloadButton": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "playlistProgressLabel": "Ойнату тізімі: {done} / {total}",
+  "@playlistProgressLabel": {
+    "placeholders": { "done": { "type": "int" }, "total": { "type": "int" } }
+  },
+  "playlistSavedResult": "Ойнату тізімі: {saved} сақталды, {failed} қате",
+  "@playlistSavedResult": {
+    "placeholders": { "saved": { "type": "int" }, "failed": { "type": "int" } }
+  },
+  "couldNotFetchPlaylist": "Ойнату тізімін жүктеу мүмкін болмады: {error}",
+  "@couldNotFetchPlaylist": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "playlistLinkDialogTitle": "Бұл — ойнату тізімінің сілтемесі",
+  "playlistLinkDialogBody": "Бүкіл ойнату тізімін жүктеу керек пе, әлде тек осы бейнені ме?",
+  "playlistLinkWhole": "Бүкіл тізім",
+  "playlistLinkThisVideo": "Тек бейне",
   "tiktokUrlHint": "TikTok бейнесінің сілтемесін қойыңыз.",
   "tiktokUrlLabel": "TikTok сілтемесі",
   "xTwitterUrlHint": "X/Twitter жазбасының сілтемесін қойыңыз.",
