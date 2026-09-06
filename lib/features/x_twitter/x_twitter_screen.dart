@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/clipboard/clipboard_link_tracker.dart';
 import '../../core/l10n/status_message.dart';
 import '../../core/settings/settings_providers.dart';
+import '../../core/ui/app_toast.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/x_twitter/x_twitter_extractor.dart';
 import '../format_selection/format_selection_sheet.dart';
@@ -75,11 +76,7 @@ class _XTwitterScreenState extends ConsumerState<XTwitterScreen>
     ClipboardLinkTracker.instance.markHandled(text);
     if (!mounted) return;
     setState(() => _urlController.text = text);
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.clipboardLinkPasted)),
-      );
+    showAppToast(context, AppLocalizations.of(context)!.clipboardLinkPasted);
   }
 
   /// Clears the URL field and, since the system clipboard is what keeps
@@ -145,9 +142,7 @@ class _XTwitterScreenState extends ConsumerState<XTwitterScreen>
       final message = next.statusMessage;
       if (message != null && message != previous?.statusMessage) {
         final text = resolveStatusMessage(l10n, message);
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text(text)));
+        showAppToast(context, text);
       }
     });
 

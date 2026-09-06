@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/clipboard/clipboard_link_tracker.dart';
 import '../../core/l10n/status_message.dart';
 import '../../core/settings/settings_providers.dart';
+import '../../core/ui/app_toast.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/youtube/youtube_extractor.dart';
 import '../../services/youtube/youtube_playlist.dart';
@@ -75,11 +76,7 @@ class _YouTubeScreenState extends ConsumerState<YouTubeScreen>
     ClipboardLinkTracker.instance.markHandled(text);
     if (!mounted) return;
     setState(() => _urlController.text = text);
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.clipboardLinkPasted)),
-      );
+    showAppToast(context, AppLocalizations.of(context)!.clipboardLinkPasted);
   }
 
   /// Clears the URL field and, since the system clipboard is what keeps
@@ -203,9 +200,7 @@ class _YouTubeScreenState extends ConsumerState<YouTubeScreen>
       final message = next.statusMessage;
       if (message != null && message != previous?.statusMessage) {
         final text = resolveStatusMessage(l10n, message);
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text(text)));
+        showAppToast(context, text);
       }
     });
 

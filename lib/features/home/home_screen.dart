@@ -12,6 +12,7 @@ import '../../services/linkedin/linkedin_extractor.dart';
 import '../../services/tiktok/tiktok_extractor.dart';
 import '../../services/x_twitter/x_twitter_extractor.dart';
 import '../../services/youtube/youtube_extractor.dart';
+import '../../core/ui/app_toast.dart';
 import '../../l10n/app_localizations.dart';
 import '../instagram/instagram_screen.dart';
 import '../linkedin/linkedin_screen.dart';
@@ -178,11 +179,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       _urlController.text = text;
       _urlError = null;
     });
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.clipboardLinkPasted)),
-      );
+    showAppToast(context, AppLocalizations.of(context)!.clipboardLinkPasted);
   }
 
   /// Clears the URL field and, since the system clipboard is what keeps
@@ -349,15 +346,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   void _onTileTap(_ServiceEntry service) {
     if (!service.enabled || service.builder == null) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context)!.serviceDisabledSnack(service.title),
-            ),
-          ),
-        );
+      showAppToast(
+        context,
+        AppLocalizations.of(context)!.serviceDisabledSnack(service.title),
+      );
       return;
     }
     Navigator.of(context).push(MaterialPageRoute(builder: service.builder!));

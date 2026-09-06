@@ -380,9 +380,14 @@ class YtDlpDownloadService : Service() {
                 // subset can be far smaller than yt-dlp's `playlist_count`).
                 var total = if (expectedCount > 0) expectedCount else 0
                 val isAudioMode = audioFormat != null
-                // `[download] Destination:` lines seen for the current entry —
-                // 1st is the video stream, 2nd the audio stream (video mode).
+                // Which stream of the current entry we're on: 1 = video,
+                // 2 = audio (video mode). Bumped by a `[download] Destination:`
+                // line when we get one, and — since youtubedl-android's
+                // callback often only surfaces `[download] N%` lines, not the
+                // `Destination:` line — also inferred from the percent
+                // dropping back near 0 (a fresh stream starting).
                 var streamCount = 0
+                var lastItemProgress = 0f
                 var subPhase = if (isAudioMode) "audio" else "video"
                 val startRegex = Regex("^@@AWD_START@@\t(\\d*)\t(\\d*)$")
                 val doneRegex = Regex("^@@AWD_ITEM@@\t(\\d*)\t(.+)$")
@@ -420,6 +425,7 @@ class YtDlpDownloadService : Service() {
                     doneRegex.find(trimmed)?.let { m ->
                         completed++
                         streamCount = 0
+                        lastItemProgress = 0f
                         subPhase = if (isAudioMode) "audio" else "video"
                         m.groupValues[1].toIntOrNull()?.let { c ->
                             if (expectedCount <= 0 && c > 0) total = c
@@ -442,6 +448,7 @@ class YtDlpDownloadService : Service() {
                             m.groupValues[2].toIntOrNull()?.let { if (it > 0) total = it }
                         }
                         streamCount = 0
+                        lastItemProgress = 0f
                         subPhase = if (isAudioMode) "audio" else "video"
                         emitProgress(0.0)
                         return@execute
@@ -464,6 +471,7 @@ class YtDlpDownloadService : Service() {
                         if (!isAudioMode) {
                             subPhase = if (streamCount >= 2) "audio" else "video"
                         }
+                        lastItemProgress = 0f
                         emitProgress(0.0)
                         return@execute
                     }
@@ -473,6 +481,19 @@ class YtDlpDownloadService : Service() {
                     // value into `progress` on every `[download] N%` line;
                     // it's 0/-1 on non-download lines, so gate on > 0.
                     if (progress > 0f && progress <= 100f) {
+                        // A big drop back toward 0 while still in the same
+                        // entry = a new stream started (the `Destination:`
+                        // line for it didn't reach us). In video mode the 2nd
+                        // stream is the audio track.
+                        if (!isAudioMode &&
+                            streamCount < 2 &&
+                            progress < 12f &&
+                            lastItemProgress > 45f
+                        ) {
+                            streamCount = 2
+                            subPhase = "audio"
+                        }
+                        lastItemProgress = progress
                         emitProgress(progress.toDouble())
                     }
                 }

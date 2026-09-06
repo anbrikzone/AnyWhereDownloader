@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:saf_stream/saf_stream.dart';
 import 'package:video_player/video_player.dart';
@@ -48,26 +49,48 @@ class _StatusPreviewPageState extends State<StatusPreviewPage> {
   // it's current AND the swipe has settled (see `library_preview.dart`).
   bool _scrolling = false;
 
+  // Landscape → drop the app bar + system bars for a fullscreen video.
+  bool? _immersive;
+
+  void _applyImmersive(bool on) {
+    if (_immersive == on) return;
+    _immersive = on;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      SystemChrome.setEnabledSystemUIMode(
+        on ? SystemUiMode.immersiveSticky : SystemUiMode.edgeToEdge,
+      );
+    });
+  }
+
   @override
   void dispose() {
     _pageController.dispose();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final landscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
+    _applyImmersive(landscape);
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: widget.items.length > 1
-            ? Text(
-                '${_currentIndex + 1} / ${widget.items.length}',
-                style: const TextStyle(color: Colors.white70, fontSize: 14),
-              )
-            : null,
-      ),
+      appBar: landscape
+          ? null
+          : AppBar(
+              backgroundColor: Colors.black,
+              iconTheme: const IconThemeData(color: Colors.white),
+              title: widget.items.length > 1
+                  ? Text(
+                      '${_currentIndex + 1} / ${widget.items.length}',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                      ),
+                    )
+                  : null,
+            ),
       body: NotificationListener<ScrollNotification>(
         onNotification: (n) {
           if (n is ScrollStartNotification && !_scrolling) {

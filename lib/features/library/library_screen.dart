@@ -6,6 +6,7 @@ import 'package:photo_manager/photo_manager.dart';
 
 import '../../core/l10n/status_message.dart';
 import '../../core/storage/media_library_service.dart';
+import '../../core/ui/app_toast.dart';
 import '../../l10n/app_localizations.dart';
 import 'library_controller.dart';
 import 'library_preview.dart';
@@ -23,9 +24,7 @@ class LibraryScreen extends ConsumerWidget {
       final message = next.statusMessage;
       if (message != null && message != previous?.statusMessage) {
         final text = resolveStatusMessage(l10n, message);
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text(text)));
+        showAppToast(context, text);
       }
     });
 

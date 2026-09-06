@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../core/l10n/status_message.dart';
 import '../../core/storage/media_save_service.dart';
 import '../../core/storage/saf_service.dart';
+import '../../core/ui/app_toast.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/whatsapp/whatsapp_status_reader.dart';
 import 'whatsapp_status_controller.dart';
@@ -25,9 +26,7 @@ class WhatsAppStatusScreen extends ConsumerWidget {
       final message = next.lastResultMessage;
       if (message != null && message != previous?.lastResultMessage) {
         final text = resolveStatusMessage(l10n, message);
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text(text)));
+        showAppToast(context, text);
       }
     });
 
