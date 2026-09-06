@@ -100,18 +100,24 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Wrap(
-              spacing: 8,
-              children: [
-                for (final q in PlaylistQuality.values)
-                  ChoiceChip(
+          SizedBox(
+            height: 44,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              itemCount: PlaylistQuality.values.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
+              itemBuilder: (context, i) {
+                final q = PlaylistQuality.values[i];
+                return Align(
+                  alignment: Alignment.center,
+                  child: ChoiceChip(
                     label: Text(q.label),
                     selected: _quality == q,
                     onSelected: (_) => setState(() => _quality = q),
                   ),
-              ],
+                );
+              },
             ),
           ),
           const Divider(height: 16),

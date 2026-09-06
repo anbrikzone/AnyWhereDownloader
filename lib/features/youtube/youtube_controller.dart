@@ -35,6 +35,7 @@ class YouTubeState {
     this.playlistFailed = 0,
     this.playlistCurrentIndex = 0,
     this.playlistItemPhase,
+    this.playlistItemProgress = 0,
   });
 
   final bool fetching;
@@ -79,6 +80,9 @@ class YouTubeState {
   final int playlistCurrentIndex;
   final String? playlistItemPhase;
 
+  /// 0..1 progress of the current playlist entry's sub-download.
+  final double playlistItemProgress;
+
   bool get busy => fetching || downloading;
 
   YouTubeState copyWith({
@@ -102,6 +106,7 @@ class YouTubeState {
     int? playlistFailed,
     int? playlistCurrentIndex,
     String? playlistItemPhase,
+    double? playlistItemProgress,
   }) {
     return YouTubeState(
       fetching: fetching ?? this.fetching,
@@ -133,6 +138,9 @@ class YouTubeState {
       playlistItemPhase: clearPlaylist
           ? null
           : (playlistItemPhase ?? this.playlistItemPhase),
+      playlistItemProgress: clearPlaylist
+          ? 0
+          : (playlistItemProgress ?? this.playlistItemProgress),
     );
   }
 }
@@ -326,6 +334,8 @@ class YouTubeController extends StateNotifier<YouTubeState> {
           progress: update.progress,
           playlistItemPhase: update.subPhase,
           playlistCurrentIndex: update.itemIndex ?? state.playlistCurrentIndex,
+          playlistItemProgress:
+              update.itemProgress ?? state.playlistItemProgress,
         ),
         onItem: (item) => pendingSaves.add(saveItem(item)),
       );

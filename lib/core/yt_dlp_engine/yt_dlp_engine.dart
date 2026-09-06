@@ -146,6 +146,7 @@ class MergeProgress {
     required this.phase,
     this.subPhase,
     this.itemIndex,
+    this.itemProgress,
   });
 
   final double progress;
@@ -157,6 +158,9 @@ class MergeProgress {
 
   /// Playlist path only: 1-based index of the entry being processed.
   final int? itemIndex;
+
+  /// Playlist path only: 0..1 progress of the current entry's sub-download.
+  final double? itemProgress;
 }
 
 /// One lightweight playlist entry from `getPlaylistInfo` (a `--flat-playlist`
@@ -386,6 +390,9 @@ class YtDlpEngine {
             phase: phase,
             subPhase: args['subPhase'] as String?,
             itemIndex: (args['itemIndex'] as num?)?.toInt(),
+            itemProgress: (args['itemProgress'] as num?) == null
+                ? null
+                : (args['itemProgress'] as num).toDouble() / 100.0,
           ),
         );
       case 'onPlaylistItem':

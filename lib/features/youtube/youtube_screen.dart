@@ -309,18 +309,25 @@ String _progressLabel(AppLocalizations l10n, YouTubeState state) {
   if (state.paused) return l10n.pausedPercent(percent);
   switch (state.downloadPhase) {
     case 'playlist':
+      final total = state.playlistTotal ?? 0;
       final base = l10n.playlistProgressLabel(
-        state.playlistCurrentIndex.clamp(0, state.playlistTotal ?? 0),
-        state.playlistTotal ?? 0,
+        state.playlistCurrentIndex.clamp(0, total == 0 ? 0 : total),
+        total,
       );
-      final sub = switch (state.playlistItemPhase) {
+      final phase = state.playlistItemPhase;
+      final sub = switch (phase) {
         'video' => l10n.playlistPhaseVideo,
         'audio' => l10n.playlistPhaseAudio,
         'merging' => l10n.playlistPhaseMerging,
         'converting' => l10n.playlistPhaseConverting,
         _ => null,
       };
-      return sub == null ? base : '$base · $sub';
+      if (sub == null) return base;
+      // yt-dlp gives no % for the merge/convert step — show the phase alone.
+      final showPct = phase == 'video' || phase == 'audio';
+      if (!showPct) return '$base · $sub';
+      final pct = (state.playlistItemProgress * 100).toStringAsFixed(0);
+      return '$base · $sub $pct%';
     case 'video':
       return l10n.downloadingVideoPercent(percent);
     case 'audio':

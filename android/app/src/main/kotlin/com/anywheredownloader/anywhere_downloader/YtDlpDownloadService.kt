@@ -354,7 +354,10 @@ class YtDlpDownloadService : Service() {
                     "after_move:@@AWD_ITEM@@\t%(playlist_index)s\t%(playlist_count)s\t%(filepath)s",
                 )
 
-                var currentIndex = 0
+                // How many entries have fully finished (a `@@AWD_ITEM@@` line).
+                // Drives the "N of M" counter directly, so it doesn't depend
+                // on yt-dlp's log wording for "Downloading item N of M".
+                var completed = 0
                 // Prefer the caller's expected count (the number of items
                 // actually being downloaded — a `--playlist-items` subset can
                 // be far smaller than yt-dlp's `playlist_count`).
@@ -375,24 +378,24 @@ class YtDlpDownloadService : Service() {
                     val trimmed = line.trim()
                     val done = doneRegex.find(trimmed)
                     if (done != null) {
-                        val idx = done.groupValues[1].toIntOrNull() ?: currentIndex
+                        completed++
+                        // Next entry starts fresh.
+                        itemDestCount = 0
+                        subPhase = if (isAudioMode) "audio" else "video"
+                        done.groupValues[2].toIntOrNull()?.let { c ->
+                            if (expectedCount <= 0 && c > 0) total = c
+                        }
                         NativeToDartChannel.invoke(
                             "onPlaylistItem",
                             mapOf(
                                 "processId" to processId,
-                                "index" to idx,
+                                "index" to completed,
                                 "count" to total,
                                 "path" to done.groupValues[3].trim(),
                             ),
                         )
                     } else {
                         itemMarkerRegex.find(line)?.let { m ->
-                            val newIndex = m.groupValues[1].toIntOrNull() ?: currentIndex
-                            if (newIndex != currentIndex) {
-                                currentIndex = newIndex
-                                itemDestCount = 0
-                                subPhase = if (isAudioMode) "audio" else "video"
-                            }
                             if (expectedCount <= 0) {
                                 total = m.groupValues[2].toIntOrNull() ?: total
                             }
@@ -407,9 +410,13 @@ class YtDlpDownloadService : Service() {
                                 }
                             }
                         }
+                        // 1-based index of the entry currently being worked on.
+                        val workingIndex =
+                            if (total > 0) (completed + 1).coerceAtMost(total)
+                            else completed + 1
                         val combined = if (total > 0) {
-                            (((currentIndex - 1).coerceAtLeast(0) + progress / 100.0) /
-                                total * 100.0).coerceIn(0.0, 99.0)
+                            ((completed + progress / 100.0) / total * 100.0)
+                                .coerceIn(0.0, 99.0)
                         } else {
                             0.0
                         }
@@ -421,7 +428,11 @@ class YtDlpDownloadService : Service() {
                                 "progress" to combined,
                                 "phase" to "playlist",
                                 "subPhase" to subPhase,
-                                "itemIndex" to currentIndex,
+                                "itemIndex" to workingIndex,
+                                // Raw 0-100 of the current sub-download, so the
+                                // UI has visible movement even for a fast
+                                // single-format item with no merge step.
+                                "itemProgress" to progress,
                             ),
                         )
                     }
