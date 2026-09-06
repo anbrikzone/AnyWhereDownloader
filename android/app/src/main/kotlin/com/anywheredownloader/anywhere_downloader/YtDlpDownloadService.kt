@@ -359,8 +359,17 @@ class YtDlpDownloadService : Service() {
                 // actually being downloaded — a `--playlist-items` subset can
                 // be far smaller than yt-dlp's `playlist_count`).
                 var total = if (expectedCount > 0) expectedCount else 0
+                val isAudioMode = audioFormat != null
+                // Per-item sub-phase, so the UI can say what's happening to
+                // the current entry (download video / audio / merge / convert)
+                // instead of only "item N of M". Reset when the item advances.
+                var itemDestCount = 0
+                var subPhase = if (isAudioMode) "audio" else "video"
                 val itemMarkerRegex = Regex("Downloading item (\\d+) of (\\d+)")
                 val doneRegex = Regex("^@@AWD_ITEM@@\t(\\d+)\t(\\d*)\t(.+)$")
+                val destRegex = Regex("Destination:\\s")
+                val mergerRegex = Regex("\\[Merger]|Merging formats")
+                val extractRegex = Regex("\\[ExtractAudio]")
 
                 YoutubeDL.getInstance().execute(request, processId) { progress, _, line ->
                     val trimmed = line.trim()
@@ -378,9 +387,24 @@ class YtDlpDownloadService : Service() {
                         )
                     } else {
                         itemMarkerRegex.find(line)?.let { m ->
-                            currentIndex = m.groupValues[1].toIntOrNull() ?: currentIndex
+                            val newIndex = m.groupValues[1].toIntOrNull() ?: currentIndex
+                            if (newIndex != currentIndex) {
+                                currentIndex = newIndex
+                                itemDestCount = 0
+                                subPhase = if (isAudioMode) "audio" else "video"
+                            }
                             if (expectedCount <= 0) {
                                 total = m.groupValues[2].toIntOrNull() ?: total
+                            }
+                        }
+                        when {
+                            mergerRegex.containsMatchIn(line) -> subPhase = "merging"
+                            extractRegex.containsMatchIn(line) -> subPhase = "converting"
+                            destRegex.containsMatchIn(line) -> {
+                                itemDestCount++
+                                if (!isAudioMode) {
+                                    subPhase = if (itemDestCount >= 2) "audio" else "video"
+                                }
                             }
                         }
                         val combined = if (total > 0) {
@@ -396,6 +420,8 @@ class YtDlpDownloadService : Service() {
                                 "processId" to processId,
                                 "progress" to combined,
                                 "phase" to "playlist",
+                                "subPhase" to subPhase,
+                                "itemIndex" to currentIndex,
                             ),
                         )
                     }

@@ -309,10 +309,18 @@ String _progressLabel(AppLocalizations l10n, YouTubeState state) {
   if (state.paused) return l10n.pausedPercent(percent);
   switch (state.downloadPhase) {
     case 'playlist':
-      return l10n.playlistProgressLabel(
-        state.playlistSaved,
+      final base = l10n.playlistProgressLabel(
+        state.playlistCurrentIndex.clamp(0, state.playlistTotal ?? 0),
         state.playlistTotal ?? 0,
       );
+      final sub = switch (state.playlistItemPhase) {
+        'video' => l10n.playlistPhaseVideo,
+        'audio' => l10n.playlistPhaseAudio,
+        'merging' => l10n.playlistPhaseMerging,
+        'converting' => l10n.playlistPhaseConverting,
+        _ => null,
+      };
+      return sub == null ? base : '$base · $sub';
     case 'video':
       return l10n.downloadingVideoPercent(percent);
     case 'audio':

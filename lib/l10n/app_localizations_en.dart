@@ -124,6 +124,18 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get playlistPhaseVideo => 'downloading video';
+
+  @override
+  String get playlistPhaseAudio => 'downloading audio';
+
+  @override
+  String get playlistPhaseMerging => 'merging';
+
+  @override
+  String get playlistPhaseConverting => 'converting audio';
+
+  @override
   String playlistSavedResult(int saved, int failed) {
     return 'Playlist: saved $saved, $failed failed';
   }

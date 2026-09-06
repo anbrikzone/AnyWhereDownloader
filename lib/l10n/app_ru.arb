@@ -52,6 +52,10 @@
   "@playlistProgressLabel": {
     "placeholders": { "done": { "type": "int" }, "total": { "type": "int" } }
   },
+  "playlistPhaseVideo": "скачивание видео",
+  "playlistPhaseAudio": "скачивание аудио",
+  "playlistPhaseMerging": "объединение",
+  "playlistPhaseConverting": "конвертация аудио",
   "playlistSavedResult": "Плейлист: сохранено {saved}, ошибок {failed}",
   "@playlistSavedResult": {
     "placeholders": { "saved": { "type": "int" }, "failed": { "type": "int" } }

@@ -126,6 +126,18 @@ class AppLocalizationsKk extends AppLocalizations {
   }
 
   @override
+  String get playlistPhaseVideo => 'бейне жүктелуде';
+
+  @override
+  String get playlistPhaseAudio => 'аудио жүктелуде';
+
+  @override
+  String get playlistPhaseMerging => 'біріктірілуде';
+
+  @override
+  String get playlistPhaseConverting => 'аудио түрлендірілуде';
+
+  @override
   String playlistSavedResult(int saved, int failed) {
     return 'Ойнату тізімі: $saved сақталды, $failed қате';
   }

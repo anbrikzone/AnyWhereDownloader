@@ -52,6 +52,10 @@
   "@playlistProgressLabel": {
     "placeholders": { "done": { "type": "int" }, "total": { "type": "int" } }
   },
+  "playlistPhaseVideo": "бейне жүктелуде",
+  "playlistPhaseAudio": "аудио жүктелуде",
+  "playlistPhaseMerging": "біріктірілуде",
+  "playlistPhaseConverting": "аудио түрлендірілуде",
   "playlistSavedResult": "Ойнату тізімі: {saved} сақталды, {failed} қате",
   "@playlistSavedResult": {
     "placeholders": { "saved": { "type": "int" }, "failed": { "type": "int" } }

@@ -33,6 +33,8 @@ class YouTubeState {
     this.playlistTotal,
     this.playlistSaved = 0,
     this.playlistFailed = 0,
+    this.playlistCurrentIndex = 0,
+    this.playlistItemPhase,
   });
 
   final bool fetching;
@@ -68,10 +70,14 @@ class YouTubeState {
   final bool mergeDurationKnown;
 
   /// Playlist download (`downloadPhase == 'playlist'`): how many items were
-  /// selected, and how many have been saved / failed so far.
+  /// selected, how many have been saved / failed so far, which entry is
+  /// being processed now (1-based) and what's happening to it
+  /// (`video` / `audio` / `merging` / `converting`).
   final int? playlistTotal;
   final int playlistSaved;
   final int playlistFailed;
+  final int playlistCurrentIndex;
+  final String? playlistItemPhase;
 
   bool get busy => fetching || downloading;
 
@@ -94,6 +100,8 @@ class YouTubeState {
     bool clearPlaylist = false,
     int? playlistSaved,
     int? playlistFailed,
+    int? playlistCurrentIndex,
+    String? playlistItemPhase,
   }) {
     return YouTubeState(
       fetching: fetching ?? this.fetching,
@@ -119,6 +127,12 @@ class YouTubeState {
       playlistFailed: clearPlaylist
           ? 0
           : (playlistFailed ?? this.playlistFailed),
+      playlistCurrentIndex: clearPlaylist
+          ? 0
+          : (playlistCurrentIndex ?? this.playlistCurrentIndex),
+      playlistItemPhase: clearPlaylist
+          ? null
+          : (playlistItemPhase ?? this.playlistItemPhase),
     );
   }
 }
@@ -308,8 +322,11 @@ class YouTubeController extends StateNotifier<YouTubeState> {
           totalInPlaylist,
         ),
         expectedCount: targetCount,
-        onProgress: (update) =>
-            state = state.copyWith(progress: update.progress),
+        onProgress: (update) => state = state.copyWith(
+          progress: update.progress,
+          playlistItemPhase: update.subPhase,
+          playlistCurrentIndex: update.itemIndex ?? state.playlistCurrentIndex,
+        ),
         onItem: (item) => pendingSaves.add(saveItem(item)),
       );
 

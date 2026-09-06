@@ -310,6 +310,30 @@ abstract class AppLocalizations {
   /// **'Playlist: {done} / {total}'**
   String playlistProgressLabel(int done, int total);
 
+  /// No description provided for @playlistPhaseVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'downloading video'**
+  String get playlistPhaseVideo;
+
+  /// No description provided for @playlistPhaseAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'downloading audio'**
+  String get playlistPhaseAudio;
+
+  /// No description provided for @playlistPhaseMerging.
+  ///
+  /// In en, this message translates to:
+  /// **'merging'**
+  String get playlistPhaseMerging;
+
+  /// No description provided for @playlistPhaseConverting.
+  ///
+  /// In en, this message translates to:
+  /// **'converting audio'**
+  String get playlistPhaseConverting;
+
   /// No description provided for @playlistSavedResult.
   ///
   /// In en, this message translates to:

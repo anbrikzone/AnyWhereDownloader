@@ -55,6 +55,10 @@
   "@playlistProgressLabel": {
     "placeholders": { "done": { "type": "int" }, "total": { "type": "int" } }
   },
+  "playlistPhaseVideo": "downloading video",
+  "playlistPhaseAudio": "downloading audio",
+  "playlistPhaseMerging": "merging",
+  "playlistPhaseConverting": "converting audio",
   "playlistSavedResult": "Playlist: saved {saved}, {failed} failed",
   "@playlistSavedResult": {
     "placeholders": { "saved": { "type": "int" }, "failed": { "type": "int" } }

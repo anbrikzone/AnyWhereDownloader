@@ -125,6 +125,18 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String get playlistPhaseVideo => 'скачивание видео';
+
+  @override
+  String get playlistPhaseAudio => 'скачивание аудио';
+
+  @override
+  String get playlistPhaseMerging => 'объединение';
+
+  @override
+  String get playlistPhaseConverting => 'конвертация аудио';
+
+  @override
   String playlistSavedResult(int saved, int failed) {
     return 'Плейлист: сохранено $saved, ошибок $failed';
   }

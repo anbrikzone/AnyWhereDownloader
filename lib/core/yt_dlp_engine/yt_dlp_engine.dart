@@ -138,12 +138,25 @@ class MergeDownloadResult {
 /// [phase] tells the UI which part is running:
 /// - merge path: `video`, `audio`, `merging`
 /// - audio-extract path: `audio`, `converting`
-/// - playlist path: `playlist`
+/// - playlist path: `playlist` (with [subPhase] / [itemIndex] filled in for
+///   the current entry)
 class MergeProgress {
-  MergeProgress({required this.progress, required this.phase});
+  MergeProgress({
+    required this.progress,
+    required this.phase,
+    this.subPhase,
+    this.itemIndex,
+  });
 
   final double progress;
   final String phase;
+
+  /// Playlist path only: what's happening to the current entry —
+  /// `video` / `audio` / `merging` / `converting`.
+  final String? subPhase;
+
+  /// Playlist path only: 1-based index of the entry being processed.
+  final int? itemIndex;
 }
 
 /// One lightweight playlist entry from `getPlaylistInfo` (a `--flat-playlist`
@@ -368,7 +381,12 @@ class YtDlpEngine {
         final progress = (args!['progress'] as num?)?.toDouble() ?? 0;
         final phase = args['phase'] as String? ?? 'video';
         _progressCallbacks[processId]?.call(
-          MergeProgress(progress: progress / 100.0, phase: phase),
+          MergeProgress(
+            progress: progress / 100.0,
+            phase: phase,
+            subPhase: args['subPhase'] as String?,
+            itemIndex: (args['itemIndex'] as num?)?.toInt(),
+          ),
         );
       case 'onPlaylistItem':
         final path = args!['path'] as String? ?? '';
