@@ -8,6 +8,7 @@ import 'package:video_player/video_player.dart';
 
 import '../../core/storage/saf_service.dart';
 import '../../services/whatsapp/whatsapp_status_reader.dart';
+import '../preview/video_player_view.dart';
 
 /// Full-screen preview, pushed on tap — same UX as `LibraryPreviewPage`
 /// (skip buttons, time label, show-controls-on-touch with auto-hide, and —
@@ -125,32 +126,6 @@ class _StatusPreviewItemState extends State<_StatusPreviewItem> {
   bool _loading = true;
   bool _failed = false;
 
-  // See `LibraryPreviewPage` for the full rationale — ported as-is
-  // (controls start hidden, only appear on touch, rather than flashing on
-  // open).
-  bool _controlsVisible = false;
-  Timer? _hideControlsTimer;
-
-  // See `LibraryPreviewPage`'s field comment for the full story (a real
-  // logcat-confirmed MediaCodec flush-storm root cause, not a Flutter-level
-  // state bug — two earlier reactive-watchdog attempts didn't fix it).
-  // Fixed the same way here: `_ScrubBar` replaces `VideoProgressIndicator`
-  // with throttled seeks, ported as-is.
-  Duration? _previewPosition;
-
-  // See `LibraryPreviewPage` for the full rationale — ported as-is.
-  bool _pauseFlashVisible = false;
-  Timer? _pauseFlashTimer;
-
-  void _flashPauseIcon() {
-    _pauseFlashTimer?.cancel();
-    setState(() => _pauseFlashVisible = true);
-    _pauseFlashTimer = Timer(const Duration(milliseconds: 150), () {
-      if (!mounted) return;
-      setState(() => _pauseFlashVisible = false);
-    });
-  }
-
   // See `LibraryPreviewPage` for the full rationale — ported as-is. The
   // recovery target here is `_tempPath` (already a local file, unlike
   // Library's MediaStore-backed `AssetEntity.file`) rather than a separate
@@ -217,16 +192,6 @@ class _StatusPreviewItemState extends State<_StatusPreviewItem> {
     controller.addListener(() {
       if (controller.value.volume == 0 && !controller.value.isCompleted) {
         controller.setVolume(1);
-      }
-    });
-  }
-
-  void _scheduleAutoHideControls() {
-    _hideControlsTimer?.cancel();
-    _hideControlsTimer = Timer(const Duration(seconds: 1), () {
-      if (!mounted) return;
-      if (_videoController?.value.isPlaying == true) {
-        setState(() => _controlsVisible = false);
       }
     });
   }
@@ -318,8 +283,6 @@ class _StatusPreviewItemState extends State<_StatusPreviewItem> {
 
   @override
   void dispose() {
-    _hideControlsTimer?.cancel();
-    _pauseFlashTimer?.cancel();
     _stuckCheckTimer?.cancel();
     _videoController?.dispose();
     final tempPath = _tempPath;
@@ -331,188 +294,36 @@ class _StatusPreviewItemState extends State<_StatusPreviewItem> {
     super.dispose();
   }
 
-  Future<void> _seekBy(VideoPlayerController controller, Duration offset) {
-    final duration = controller.value.duration;
-    var target = controller.value.position + offset;
-    if (target < Duration.zero) target = Duration.zero;
-    if (target > duration) target = duration;
-    return controller.seekTo(target);
-  }
-
-  static String _formatDuration(Duration d) {
-    final hours = d.inHours;
-    final minutes = d.inMinutes.remainder(60);
-    final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return hours > 0
-        ? '$hours:${minutes.toString().padLeft(2, '0')}:$seconds'
-        : '$minutes:$seconds';
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Center(child: _buildContent());
-  }
-
-  Widget _buildContent() {
     if (_loading) {
-      return const CircularProgressIndicator(color: Colors.white);
+      return const Center(child: CircularProgressIndicator(color: Colors.white));
     }
     if (_failed) {
-      return const Icon(
-        Icons.broken_image_outlined,
-        color: Colors.white54,
-        size: 64,
+      return const Center(
+        child: Icon(
+          Icons.broken_image_outlined,
+          color: Colors.white54,
+          size: 64,
+        ),
       );
     }
     final controller = _videoController;
     if (controller != null && controller.value.isInitialized) {
-      return GestureDetector(
-        onTap: () {
-          // See `LibraryPreviewPage` for why resuming hides immediately
-          // instead of scheduling the usual 1s delay — ported as-is.
-          final wasPlaying = controller.value.isPlaying;
-          setState(() {
-            if (wasPlaying) {
-              controller.pause();
-              _controlsVisible = true;
-            } else {
-              controller.play();
-              _controlsVisible = false;
-            }
-          });
-          _hideControlsTimer?.cancel();
-          if (!wasPlaying) _flashPauseIcon();
-        },
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            AspectRatio(
-              aspectRatio: controller.value.aspectRatio,
-              child: VideoPlayer(controller),
-            ),
-            ValueListenableBuilder<VideoPlayerValue>(
-              valueListenable: controller,
-              builder: (context, value, _) {
-                if (value.isPlaying) return const SizedBox.shrink();
-                return Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: const BoxDecoration(
-                    color: Colors.black45,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.play_arrow,
-                    color: Colors.white,
-                    size: 48,
-                  ),
-                );
-              },
-            ),
-            // See `LibraryPreviewPage` for the full rationale — ported
-            // as-is.
-            IgnorePointer(
-              child: AnimatedOpacity(
-                opacity: _pauseFlashVisible ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 500),
-                curve: Curves.easeOut,
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: const BoxDecoration(
-                    color: Colors.black45,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.pause,
-                    color: Colors.white,
-                    size: 48,
-                  ),
-                ),
-              ),
-            ),
-            if (_controlsVisible)
-              Positioned.fill(
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Center(
-                        child: _SeekButton(
-                          icon: Icons.replay_10,
-                          onPressed: () {
-                            _seekBy(controller, const Duration(seconds: -10));
-                            _scheduleAutoHideControls();
-                          },
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Center(
-                        child: _SeekButton(
-                          icon: Icons.forward_10,
-                          onPressed: () {
-                            _seekBy(controller, const Duration(seconds: 10));
-                            _scheduleAutoHideControls();
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            if (_controlsVisible)
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ValueListenableBuilder<VideoPlayerValue>(
-                      valueListenable: controller,
-                      builder: (context, value, _) => Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black54,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            '${_formatDuration(_previewPosition ?? value.position)} / '
-                            '${_formatDuration(value.duration)}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    _ScrubBar(
-                      controller: controller,
-                      onPositionPreview: (position) =>
-                          setState(() => _previewPosition = position),
-                      onScrubEnd: _scheduleAutoHideControls,
-                    ),
-                  ],
-                ),
-              ),
-          ],
-        ),
+      return SizedBox.expand(
+        child: VideoPlayerView(controller: controller),
       );
     }
     if (_imagePath != null) {
-      return _ZoomableImage(
-        file: File(_imagePath!),
-        onZoomChanged: widget.onZoomChanged,
+      return Center(
+        child: _ZoomableImage(
+          file: File(_imagePath!),
+          onZoomChanged: widget.onZoomChanged,
+        ),
       );
     }
-    return const Icon(
-      Icons.broken_image_outlined,
-      color: Colors.white54,
-      size: 64,
+    return const Center(
+      child: Icon(Icons.broken_image_outlined, color: Colors.white54, size: 64),
     );
   }
 }
@@ -676,218 +487,6 @@ class _ZoomableImageState extends State<_ZoomableImage>
         },
         onInteractionEnd: (_) => _setZoomReported(_isZoomedIn),
         child: Image.file(widget.file),
-      ),
-    );
-  }
-}
-
-/// Replaces `VideoProgressIndicator(allowScrubbing: true)` — see
-/// `LibraryPreviewPage`'s identical widget for the full rationale (a real
-/// logcat-confirmed MediaCodec flush-storm caused by the package's own
-/// unthrottled `VideoScrubber`), ported here directly rather than shared,
-/// same as `_SeekButton` below.
-class _ScrubBar extends StatefulWidget {
-  const _ScrubBar({
-    required this.controller,
-    required this.onPositionPreview,
-    required this.onScrubEnd,
-  });
-
-  final VideoPlayerController controller;
-  final ValueChanged<Duration?> onPositionPreview;
-  final VoidCallback onScrubEnd;
-
-  @override
-  State<_ScrubBar> createState() => _ScrubBarState();
-}
-
-class _ScrubBarState extends State<_ScrubBar> {
-  static const _throttle = Duration(milliseconds: 400);
-  static const _thumbWidth = 4.0;
-  static const _thumbHeight = 16.0;
-
-  Duration? _dragPosition;
-  DateTime? _lastSeekAt;
-  Timer? _pendingSeek;
-  bool _wasPlaying = false;
-
-  Duration _positionFromDx(double dx, double width) {
-    final duration = widget.controller.value.duration;
-    if (width <= 0 || duration == Duration.zero) return Duration.zero;
-    final fraction = (dx / width).clamp(0.0, 1.0);
-    return duration * fraction;
-  }
-
-  void _throttledSeek(Duration target) {
-    final now = DateTime.now();
-    final lastSeekAt = _lastSeekAt;
-    final elapsed = lastSeekAt == null ? _throttle : now.difference(lastSeekAt);
-    if (elapsed >= _throttle) {
-      _pendingSeek?.cancel();
-      _lastSeekAt = now;
-      widget.controller.seekTo(target);
-      return;
-    }
-    _pendingSeek?.cancel();
-    _pendingSeek = Timer(_throttle - elapsed, () {
-      _lastSeekAt = DateTime.now();
-      widget.controller.seekTo(target);
-    });
-  }
-
-  void _onDragStart(double dx, double width) {
-    _wasPlaying = widget.controller.value.isPlaying;
-    widget.controller.pause();
-    final target = _positionFromDx(dx, width);
-    setState(() => _dragPosition = target);
-    widget.onPositionPreview(target);
-    _throttledSeek(target);
-  }
-
-  void _onDragUpdate(double dx, double width) {
-    final target = _positionFromDx(dx, width);
-    setState(() => _dragPosition = target);
-    widget.onPositionPreview(target);
-    _throttledSeek(target);
-  }
-
-  Future<void> _onDragEnd() async {
-    _pendingSeek?.cancel();
-    final target = _dragPosition;
-    if (target != null) {
-      await widget.controller.seekTo(target);
-    }
-    if (!mounted) return;
-    setState(() => _dragPosition = null);
-    widget.onPositionPreview(null);
-    if (_wasPlaying) {
-      await widget.controller.play();
-      widget.onScrubEnd();
-    }
-  }
-
-  @override
-  void dispose() {
-    _pendingSeek?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final width = constraints.maxWidth;
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapDown: (details) => _throttledSeek(
-              _positionFromDx(details.localPosition.dx, width),
-            ),
-            onHorizontalDragStart: (details) =>
-                _onDragStart(details.localPosition.dx, width),
-            onHorizontalDragUpdate: (details) =>
-                _onDragUpdate(details.localPosition.dx, width),
-            onHorizontalDragEnd: (_) => _onDragEnd(),
-            onHorizontalDragCancel: _onDragEnd,
-            child: SizedBox(
-              width: width,
-              height: _thumbHeight,
-              child: ValueListenableBuilder<VideoPlayerValue>(
-                valueListenable: widget.controller,
-                builder: (context, value, _) {
-                  final duration = value.duration;
-                  final position = _dragPosition ?? value.position;
-                  final playedFraction = duration == Duration.zero
-                      ? 0.0
-                      : (position.inMilliseconds / duration.inMilliseconds)
-                          .clamp(0.0, 1.0);
-                  final maxThumbLeft = width > _thumbWidth
-                      ? width - _thumbWidth
-                      : 0.0;
-                  final thumbLeft = (playedFraction * width - _thumbWidth / 2)
-                      .clamp(0.0, maxThumbLeft);
-                  return Stack(
-                    children: [
-                      Align(
-                        alignment: Alignment.center,
-                        child: SizedBox(
-                          width: width,
-                          height: 3,
-                          // See `LibraryPreviewPage` for the full rationale
-                          // — `StackFit.expand` is load-bearing, ported
-                          // as-is (a childless `ColoredBox` collapses to
-                          // zero under the default loose Stack constraints,
-                          // which is why the track was invisible before).
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              const ColoredBox(color: Colors.white12),
-                              FractionallySizedBox(
-                                widthFactor: playedFraction,
-                                alignment: Alignment.centerLeft,
-                                child: const ColoredBox(
-                                  color: Colors.redAccent,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      // Grabbable vertical handle — see `LibraryPreviewPage`
-                      // for the full rationale, ported as-is. Already only
-                      // ever rendered while `_ScrubBar` itself is (the
-                      // parent gates the whole time/scrub row on
-                      // `_controlsVisible`).
-                      Positioned(
-                        left: thumbLeft,
-                        top: 0,
-                        bottom: 0,
-                        child: Container(
-                          width: _thumbWidth,
-                          decoration: BoxDecoration(
-                            color: Colors.redAccent,
-                            borderRadius: BorderRadius.circular(
-                              _thumbWidth / 2,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-/// A large skip-seek button with an opaque circular backdrop — see
-/// `LibraryPreviewPage`'s identical widget for the full rationale, ported
-/// here directly rather than shared (both preview implementations are
-/// already independent, not sharing code, per the existing pattern in this
-/// codebase).
-class _SeekButton extends StatelessWidget {
-  const _SeekButton({required this.icon, required this.onPressed});
-
-  final IconData icon;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.black54,
-        shape: BoxShape.circle,
-      ),
-      child: IconButton(
-        onPressed: onPressed,
-        icon: Icon(icon, color: Colors.white),
-        iconSize: 40,
-        padding: const EdgeInsets.all(14),
       ),
     );
   }

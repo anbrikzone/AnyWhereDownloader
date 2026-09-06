@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 /// changelog entry's version. Keep this in sync with `pubspec.yaml`'s
 /// `version:` field and the top entry of both [kChangelog] and the
 /// project-root `CHANGELOG.md`.
-const String kAppVersion = '0.3.5';
+const String kAppVersion = '0.3.6';
 
 /// The kind of change a changelog line describes. Rendered as a small
 /// section header ("Added" / "Changed" / "Fixed"); a kind with no lines is
@@ -40,6 +40,27 @@ class ChangelogEntry {
 /// new" screen renders; the project-root `CHANGELOG.md` mirrors it for
 /// people reading the repo. Update both together on every release.
 const List<ChangelogEntry> kChangelog = [
+  ChangelogEntry(
+    version: '0.3.6',
+    date: '2026-09-06',
+    notes: {
+      'en': {
+        ChangeKind.changed: [
+          'Rebuilt the full-screen video player (Library and WhatsApp status viewers): tap anywhere to show or hide the controls — only the centre button plays/pauses; double-tap the left or right side to skip 10 seconds; a chunkier progress bar with a round grab handle that highlights while dragged; and a 1× / 1.5× / 2× speed button.',
+        ],
+      },
+      'ru': {
+        ChangeKind.changed: [
+          'Переработан полноэкранный видеоплеер (просмотр в Библиотеке и статусов WhatsApp): тап в любом месте показывает/скрывает управление — воспроизведение переключает только центральная кнопка; двойной тап слева или справа — перемотка на 10 секунд; более толстая полоса прогресса с круглым бегунком, который подсвечивается при перетаскивании; кнопка скорости 1× / 1.5× / 2×.',
+        ],
+      },
+      'kk': {
+        ChangeKind.changed: [
+          'Толық экранды бейне ойнатқыш қайта жасалды (Кітапхана мен WhatsApp статустарын қарауда): кез келген жерді түрту басқаруды көрсетеді/жасырады — ойнатуды тек ортаңғы түйме ауыстырады; сол не оң жақты қос түрту — 10 секундқа айналдыру; дөңгелек, сүйрегенде ерекшеленетін тұтқасы бар қалыңдау прогресс жолағы; 1× / 1.5× / 2× жылдамдық түймесі.',
+        ],
+      },
+    },
+  ),
   ChangelogEntry(
     version: '0.3.5',
     date: '2026-09-06',

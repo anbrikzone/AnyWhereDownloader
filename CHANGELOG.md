@@ -6,6 +6,25 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 
 ---
 
+## 0.3.6 — 2026-09-06
+
+### English
+
+**Changed**
+- Rebuilt the full-screen video player (Library and WhatsApp status viewers): tap anywhere to show or hide the controls — only the centre button plays/pauses; double-tap the left or right side to skip 10 seconds; a chunkier progress bar with a round grab handle that highlights while dragged; and a 1× / 1.5× / 2× speed button.
+
+### Русский
+
+**Изменено**
+- Переработан полноэкранный видеоплеер (просмотр в Библиотеке и статусов WhatsApp): тап в любом месте показывает/скрывает управление — воспроизведение переключает только центральная кнопка; двойной тап слева или справа — перемотка на 10 секунд; более толстая полоса прогресса с круглым бегунком, который подсвечивается при перетаскивании; кнопка скорости 1× / 1.5× / 2×.
+
+### Қазақша
+
+**Өзгертілді**
+- Толық экранды бейне ойнатқыш қайта жасалды (Кітапхана мен WhatsApp статустарын қарауда): кез келген жерді түрту басқаруды көрсетеді/жасырады — ойнатуды тек ортаңғы түйме ауыстырады; сол не оң жақты қос түрту — 10 секундқа айналдыру; дөңгелек, сүйрегенде ерекшеленетін тұтқасы бар қалыңдау прогресс жолағы; 1× / 1.5× / 2× жылдамдық түймесі.
+
+---
+
 ## 0.3.5 — 2026-09-06
 
 ### English
