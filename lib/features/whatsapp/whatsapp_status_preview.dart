@@ -541,6 +541,70 @@ class _ZoomableImageState extends State<_ZoomableImage>
   AnimationController? _animation;
   bool _reportedZoomed = false;
 
+  // Double-tap is detected from raw pointer events via a [Listener], not a
+  // `GestureDetector`: once zoomed in the image becomes pannable, and
+  // `InteractiveViewer`'s own scale/pan recognizer then wins the gesture
+  // arena and swallows `GestureDetector.onDoubleTap` — so double-tap
+  // *zoom-out* never fired. A `Listener` is passive (never joins the arena)
+  // so it still sees every tap; the guards below keep a pan or pinch from
+  // being mistaken for one.
+  static const _tapSlop = 24.0;
+  int _downPointers = 0;
+  int? _trackedPointer;
+  Offset? _trackedDownGlobal;
+  bool _trackedMoved = false;
+  DateTime? _lastTapAt;
+  Offset? _lastTapLocal;
+
+  void _onPointerDown(PointerDownEvent event) {
+    _downPointers++;
+    if (_downPointers > 1) {
+      // Second finger down → pinch, not a tap sequence.
+      _trackedPointer = null;
+      _lastTapAt = null;
+      return;
+    }
+    _trackedPointer = event.pointer;
+    _trackedDownGlobal = event.position;
+    _trackedMoved = false;
+  }
+
+  void _onPointerMove(PointerMoveEvent event) {
+    if (event.pointer != _trackedPointer || _trackedDownGlobal == null) return;
+    if ((event.position - _trackedDownGlobal!).distance > _tapSlop) {
+      _trackedMoved = true;
+    }
+  }
+
+  void _onPointerUp(PointerUpEvent event) {
+    if (_downPointers > 0) _downPointers--;
+    if (event.pointer != _trackedPointer) return;
+    _trackedPointer = null;
+    if (_trackedMoved) {
+      _lastTapAt = null;
+      return;
+    }
+    final now = DateTime.now();
+    final lastAt = _lastTapAt;
+    final lastLocal = _lastTapLocal;
+    if (lastAt != null &&
+        now.difference(lastAt) < const Duration(milliseconds: 300) &&
+        lastLocal != null &&
+        (event.localPosition - lastLocal).distance < _tapSlop * 2) {
+      _lastTapAt = null;
+      _doubleTapPosition = event.localPosition;
+      _handleDoubleTap();
+    } else {
+      _lastTapAt = now;
+      _lastTapLocal = event.localPosition;
+    }
+  }
+
+  void _onPointerCancel(PointerCancelEvent event) {
+    if (_downPointers > 0) _downPointers--;
+    if (event.pointer == _trackedPointer) _trackedPointer = null;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -599,9 +663,11 @@ class _ZoomableImageState extends State<_ZoomableImage>
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onDoubleTapDown: (details) => _doubleTapPosition = details.localPosition,
-      onDoubleTap: _handleDoubleTap,
+    return Listener(
+      onPointerDown: _onPointerDown,
+      onPointerMove: _onPointerMove,
+      onPointerUp: _onPointerUp,
+      onPointerCancel: _onPointerCancel,
       child: InteractiveViewer(
         transformationController: _controller,
         maxScale: 5,

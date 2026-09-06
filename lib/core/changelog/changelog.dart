@@ -49,17 +49,26 @@ const List<ChangelogEntry> kChangelog = [
           'Pinch and double-tap to zoom photos in the WhatsApp status viewer, and swipe between statuses — same as the Library viewer.',
           'Optional WhatsApp status archive (Settings → WhatsApp): keep viewed statuses for 1 week or 1 month. Archived statuses stay on the WhatsApp screen under a new "Archived" tab and never go to your gallery — they only reach the Library if you save them yourself.',
         ],
+        ChangeKind.fixed: [
+          'Double-tapping a zoomed-in photo now zooms it back out, in both the WhatsApp status viewer and the Library viewer.',
+        ],
       },
       'ru': {
         ChangeKind.added: [
           'Масштабирование фото щипком и двойным касанием в просмотре статусов WhatsApp, а также перелистывание между статусами — как в просмотрщике Библиотеки.',
           'Необязательный архив статусов WhatsApp (Настройки → WhatsApp): хранить просмотренные статусы неделю или месяц. Архивные статусы остаются на экране WhatsApp во вкладке «Архив» и не попадают в галерею — в Библиотеку они добавляются, только если вы сохраните их сами.',
         ],
+        ChangeKind.fixed: [
+          'Двойное касание по приближённому фото теперь возвращает масштаб обратно — и в просмотре статусов WhatsApp, и в просмотрщике Библиотеки.',
+        ],
       },
       'kk': {
         ChangeKind.added: [
           'WhatsApp статустарын қараушыда фотоны шымшу және қос түртумен масштабтау, сондай-ақ статустар арасында сырғыту — Кітапхана қараушысындағыдай.',
           'WhatsApp статустарының қосымша мұрағаты (Параметрлер → WhatsApp): көрілген статустарды бір апта немесе бір ай сақтау. Мұрағатталған статустар WhatsApp экранында «Мұрағат» қойындысында қалады және галереяға түспейді — Кітапханаға тек өзіңіз сақтағанда ғана қосылады.',
+        ],
+        ChangeKind.fixed: [
+          'Үлкейтілген фотоны қос түрту енді масштабты қайтарады — WhatsApp статустары мен Кітапхана қараушысында да.',
         ],
       },
     },
