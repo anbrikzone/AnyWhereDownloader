@@ -313,7 +313,17 @@ class YouTubeController extends StateNotifier<YouTubeState> {
       } finally {
         final f = File(item.path);
         if (await f.exists()) await f.delete();
-        state = state.copyWith(playlistSaved: saved, playlistFailed: failed);
+        // Advance the visible counter here too — the `@@AWD_ITEM@@` line
+        // that triggers this is the one signal known to reach Dart, so the
+        // "N / M" label must not depend on the progress callback alone.
+        state = state.copyWith(
+          playlistSaved: saved,
+          playlistFailed: failed,
+          playlistCurrentIndex: (saved + failed + 1).clamp(
+            1,
+            state.playlistTotal ?? (saved + failed + 1),
+          ),
+        );
       }
     }
 

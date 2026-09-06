@@ -346,43 +346,74 @@ class YtDlpDownloadService : Service() {
                 if (!playlistItems.isNullOrBlank()) {
                     request.addOption("--playlist-items", playlistItems)
                 }
-                // Emit one machine-readable line per finished item: a marker,
-                // the 1-based index, the total, and the final on-disk path.
+                // Progress/phase is driven entirely by `--print` marker lines,
+                // NOT by parsing yt-dlp's normal stdout: youtubedl-android's
+                // execute() callback only reliably surfaces `--print` output
+                // for a playlist run (the raw `[download] N%` / `[Merger]`
+                // lines don't come through), so anything not printed by us is
+                // invisible here.
+                //  - video:      fires once per entry, after extraction
+                //  - before_dl:  fires before each stream download (video, then
+                //                audio for a merge; the source for audio-only)
+                //  - post_process: fires around merge / audio-extract
+                //  - after_move: fires once the final file is in place
                 request.addOption("--no-simulate")
+                request.addOption("--newline")
                 request.addOption(
                     "--print",
-                    "after_move:@@AWD_ITEM@@\t%(playlist_index)s\t%(playlist_count)s\t%(filepath)s",
+                    "video:@@AWD_START@@\t%(playlist_index)s\t%(playlist_count)s",
+                )
+                request.addOption("--print", "before_dl:@@AWD_DL@@")
+                request.addOption("--print", "post_process:@@AWD_PP@@")
+                request.addOption(
+                    "--print",
+                    "after_move:@@AWD_ITEM@@\t%(playlist_count)s\t%(filepath)s",
                 )
 
-                // How many entries have fully finished (a `@@AWD_ITEM@@` line).
-                // Drives the "N of M" counter directly, so it doesn't depend
-                // on yt-dlp's log wording for "Downloading item N of M".
+                // How many entries have fully finished. Drives the "N of M"
+                // counter directly (an `@@AWD_ITEM@@` line = one done).
                 var completed = 0
-                // Prefer the caller's expected count (the number of items
-                // actually being downloaded — a `--playlist-items` subset can
-                // be far smaller than yt-dlp's `playlist_count`).
+                // Prefer the caller's expected count (a `--playlist-items`
+                // subset can be far smaller than yt-dlp's `playlist_count`).
                 var total = if (expectedCount > 0) expectedCount else 0
                 val isAudioMode = audioFormat != null
-                // Per-item sub-phase, so the UI can say what's happening to
-                // the current entry (download video / audio / merge / convert)
-                // instead of only "item N of M". Reset when the item advances.
-                var itemDestCount = 0
+                var itemDlCount = 0
                 var subPhase = if (isAudioMode) "audio" else "video"
-                val itemMarkerRegex = Regex("Downloading item (\\d+) of (\\d+)")
-                val doneRegex = Regex("^@@AWD_ITEM@@\t(\\d+)\t(\\d*)\t(.+)$")
-                val destRegex = Regex("Destination:\\s")
-                val mergerRegex = Regex("\\[Merger]|Merging formats")
-                val extractRegex = Regex("\\[ExtractAudio]")
+                val startRegex = Regex("^@@AWD_START@@\t(\\d*)\t(\\d*)$")
+                val doneRegex = Regex("^@@AWD_ITEM@@\t(\\d*)\t(.+)$")
+
+                fun emitProgress(itemProgress: Double) {
+                    val workingIndex =
+                        if (total > 0) (completed + 1).coerceAtMost(total)
+                        else completed + 1
+                    val combined = if (total > 0) {
+                        ((completed + itemProgress / 100.0) / total * 100.0)
+                            .coerceIn(0.0, 99.0)
+                    } else {
+                        0.0
+                    }
+                    updateNotification(processId, combined.toInt(), "playlist", false)
+                    NativeToDartChannel.invoke(
+                        "onDownloadProgress",
+                        mapOf(
+                            "processId" to processId,
+                            "progress" to combined,
+                            "phase" to "playlist",
+                            "subPhase" to subPhase,
+                            "itemIndex" to workingIndex,
+                            "itemProgress" to itemProgress,
+                        ),
+                    )
+                }
 
                 YoutubeDL.getInstance().execute(request, processId) { progress, _, line ->
                     val trimmed = line.trim()
-                    val done = doneRegex.find(trimmed)
-                    if (done != null) {
+
+                    doneRegex.find(trimmed)?.let { m ->
                         completed++
-                        // Next entry starts fresh.
-                        itemDestCount = 0
+                        itemDlCount = 0
                         subPhase = if (isAudioMode) "audio" else "video"
-                        done.groupValues[2].toIntOrNull()?.let { c ->
+                        m.groupValues[1].toIntOrNull()?.let { c ->
                             if (expectedCount <= 0 && c > 0) total = c
                         }
                         NativeToDartChannel.invoke(
@@ -391,50 +422,42 @@ class YtDlpDownloadService : Service() {
                                 "processId" to processId,
                                 "index" to completed,
                                 "count" to total,
-                                "path" to done.groupValues[3].trim(),
+                                "path" to m.groupValues[2].trim(),
                             ),
                         )
-                    } else {
-                        itemMarkerRegex.find(line)?.let { m ->
-                            if (expectedCount <= 0) {
-                                total = m.groupValues[2].toIntOrNull() ?: total
-                            }
+                        emitProgress(0.0)
+                        return@execute
+                    }
+
+                    startRegex.find(trimmed)?.let { m ->
+                        if (expectedCount <= 0) {
+                            m.groupValues[2].toIntOrNull()?.let { if (it > 0) total = it }
                         }
-                        when {
-                            mergerRegex.containsMatchIn(line) -> subPhase = "merging"
-                            extractRegex.containsMatchIn(line) -> subPhase = "converting"
-                            destRegex.containsMatchIn(line) -> {
-                                itemDestCount++
-                                if (!isAudioMode) {
-                                    subPhase = if (itemDestCount >= 2) "audio" else "video"
-                                }
-                            }
+                        itemDlCount = 0
+                        subPhase = if (isAudioMode) "audio" else "video"
+                        emitProgress(0.0)
+                        return@execute
+                    }
+
+                    if (trimmed == "@@AWD_DL@@") {
+                        itemDlCount++
+                        if (!isAudioMode) {
+                            subPhase = if (itemDlCount >= 2) "audio" else "video"
                         }
-                        // 1-based index of the entry currently being worked on.
-                        val workingIndex =
-                            if (total > 0) (completed + 1).coerceAtMost(total)
-                            else completed + 1
-                        val combined = if (total > 0) {
-                            ((completed + progress / 100.0) / total * 100.0)
-                                .coerceIn(0.0, 99.0)
-                        } else {
-                            0.0
-                        }
-                        updateNotification(processId, combined.toInt(), "playlist", false)
-                        NativeToDartChannel.invoke(
-                            "onDownloadProgress",
-                            mapOf(
-                                "processId" to processId,
-                                "progress" to combined,
-                                "phase" to "playlist",
-                                "subPhase" to subPhase,
-                                "itemIndex" to workingIndex,
-                                // Raw 0-100 of the current sub-download, so the
-                                // UI has visible movement even for a fast
-                                // single-format item with no merge step.
-                                "itemProgress" to progress,
-                            ),
-                        )
+                        emitProgress(0.0)
+                        return@execute
+                    }
+
+                    if (trimmed == "@@AWD_PP@@") {
+                        subPhase = if (isAudioMode) "converting" else "merging"
+                        emitProgress(0.0)
+                        return@execute
+                    }
+
+                    // Bonus: if raw `[download] N%` lines *do* come through,
+                    // use them for the current entry's fine-grained percent.
+                    if (progress in 0f..100f && trimmed.startsWith("[download]")) {
+                        emitProgress(progress.toDouble())
                     }
                 }
                 NativeToDartChannel.invoke(
