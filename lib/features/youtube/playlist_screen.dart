@@ -13,11 +13,28 @@ class PlaylistPick {
   final PlaylistQuality quality;
 }
 
-/// Lists a playlist's entries with a checkbox each (all ticked by default)
-/// plus one shared quality choice. Pops a [PlaylistPick] on confirm.
-class PlaylistScreen extends StatefulWidget {
-  const PlaylistScreen({
-    super.key,
+/// Half-height bottom sheet — same shape as the single-video format sheet —
+/// listing a playlist's entries with a checkbox each (all ticked by default)
+/// plus one shared quality choice. Resolves to a [PlaylistPick] on confirm,
+/// null on dismiss.
+Future<PlaylistPick?> showPlaylistPickerSheet({
+  required BuildContext context,
+  required String playlistTitle,
+  required List<PlaylistEntryInfo> entries,
+}) {
+  return showModalBottomSheet<PlaylistPick>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    builder: (context) => _PlaylistPickerBody(
+      playlistTitle: playlistTitle,
+      entries: entries,
+    ),
+  );
+}
+
+class _PlaylistPickerBody extends StatefulWidget {
+  const _PlaylistPickerBody({
     required this.playlistTitle,
     required this.entries,
   });
@@ -26,10 +43,10 @@ class PlaylistScreen extends StatefulWidget {
   final List<PlaylistEntryInfo> entries;
 
   @override
-  State<PlaylistScreen> createState() => _PlaylistScreenState();
+  State<_PlaylistPickerBody> createState() => _PlaylistPickerBodyState();
 }
 
-class _PlaylistScreenState extends State<PlaylistScreen> {
+class _PlaylistPickerBodyState extends State<_PlaylistPickerBody> {
   late final Set<int> _selected = {
     for (final e in widget.entries) e.position,
   };
@@ -48,117 +65,115 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
     final total = widget.entries.length;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          widget.playlistTitle.isEmpty
-              ? l10n.playlistPickerTitle
-              : widget.playlistTitle,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+    return SafeArea(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.6,
         ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(24),
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: Text(
-              l10n.playlistSelectedCount(_selected.length, total),
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: _selected.length == total
-                ? null
-                : () => setState(
-                    () => _selected.addAll(widget.entries.map((e) => e.position)),
-                  ),
-            child: Text(l10n.playlistSelectAll),
-          ),
-          TextButton(
-            onPressed: _selected.isEmpty
-                ? null
-                : () => setState(_selected.clear),
-            child: Text(l10n.playlistSelectNone),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                l10n.playlistQualityHeading,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-            ),
-          ),
-          SizedBox(
-            height: 44,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              itemCount: PlaylistQuality.values.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 8),
-              itemBuilder: (context, i) {
-                final q = PlaylistQuality.values[i];
-                return Align(
-                  alignment: Alignment.center,
-                  child: ChoiceChip(
-                    label: Text(q.label),
-                    selected: _quality == q,
-                    onSelected: (_) => setState(() => _quality = q),
-                  ),
-                );
-              },
-            ),
-          ),
-          const Divider(height: 16),
-          Expanded(
-            child: ListView.builder(
-              itemCount: widget.entries.length,
-              itemBuilder: (context, i) {
-                final e = widget.entries[i];
-                return CheckboxListTile(
-                  dense: true,
-                  value: _selected.contains(e.position),
-                  onChanged: (on) => _toggle(e.position, on),
-                  title: Text(
-                    '${e.position}. ${e.title.isEmpty ? '—' : e.title}',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  subtitle: e.durationSeconds != null && e.durationSeconds! > 0
-                      ? Text(_formatDuration(e.durationSeconds!))
-                      : null,
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: FilledButton.icon(
-            onPressed: _selected.isEmpty
-                ? null
-                : () => Navigator.of(context).pop(
-                    PlaylistPick(
-                      positions: _selected.toList()..sort(),
-                      quality: _quality,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 8, 0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      widget.playlistTitle.isEmpty
+                          ? l10n.playlistPickerTitle
+                          : widget.playlistTitle,
+                      style: theme.textTheme.titleMedium,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-            icon: const Icon(Icons.download),
-            label: Text(l10n.playlistDownloadButton(_selected.length)),
-          ),
+                  TextButton(
+                    onPressed: _selected.length == total
+                        ? null
+                        : () => setState(() => _selected
+                            .addAll(widget.entries.map((e) => e.position))),
+                    child: Text(l10n.playlistSelectAll),
+                  ),
+                  TextButton(
+                    onPressed: _selected.isEmpty
+                        ? null
+                        : () => setState(_selected.clear),
+                    child: Text(l10n.playlistSelectNone),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+              child: Text(
+                l10n.playlistSelectedCount(_selected.length, total),
+                style: theme.textTheme.bodySmall,
+              ),
+            ),
+            SizedBox(
+              height: 44,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: PlaylistQuality.values.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
+                itemBuilder: (context, i) {
+                  final q = PlaylistQuality.values[i];
+                  return Align(
+                    alignment: Alignment.center,
+                    child: ChoiceChip(
+                      label: Text(q.label),
+                      selected: _quality == q,
+                      onSelected: (_) => setState(() => _quality = q),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const Divider(height: 12),
+            Flexible(
+              child: ListView.builder(
+                padding: EdgeInsets.zero,
+                itemCount: widget.entries.length,
+                itemBuilder: (context, i) {
+                  final e = widget.entries[i];
+                  return CheckboxListTile(
+                    dense: true,
+                    value: _selected.contains(e.position),
+                    onChanged: (on) => _toggle(e.position, on),
+                    title: Text(
+                      '${e.position}. ${e.title.isEmpty ? '—' : e.title}',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle:
+                        e.durationSeconds != null && e.durationSeconds! > 0
+                        ? Text(_formatDuration(e.durationSeconds!))
+                        : null,
+                  );
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: FilledButton.icon(
+                onPressed: _selected.isEmpty
+                    ? null
+                    : () => Navigator.of(context).pop(
+                        PlaylistPick(
+                          positions: _selected.toList()..sort(),
+                          quality: _quality,
+                        ),
+                      ),
+                icon: const Icon(Icons.download),
+                label: Text(l10n.playlistDownloadButton(_selected.length)),
+              ),
+            ),
+          ],
         ),
       ),
     );

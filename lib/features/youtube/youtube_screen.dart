@@ -140,13 +140,10 @@ class _YouTubeScreenState extends ConsumerState<YouTubeScreen>
     final controller = ref.read(youTubeControllerProvider.notifier);
     final info = await controller.fetchPlaylist(url);
     if (info == null || !mounted) return;
-    final pick = await Navigator.of(context).push<PlaylistPick>(
-      MaterialPageRoute(
-        builder: (_) => PlaylistScreen(
-          playlistTitle: info.title,
-          entries: info.entries,
-        ),
-      ),
+    final pick = await showPlaylistPickerSheet(
+      context: context,
+      playlistTitle: info.title,
+      entries: info.entries,
     );
     if (pick == null || !mounted || pick.positions.isEmpty) return;
     await controller.downloadPlaylist(

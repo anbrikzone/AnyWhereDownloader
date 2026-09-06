@@ -346,17 +346,16 @@ class YtDlpDownloadService : Service() {
                 if (!playlistItems.isNullOrBlank()) {
                     request.addOption("--playlist-items", playlistItems)
                 }
-                // Progress/phase is driven entirely by `--print` marker lines,
-                // NOT by parsing yt-dlp's normal stdout: youtubedl-android's
-                // execute() callback only reliably surfaces `--print` output
-                // for a playlist run (the raw `[download] N%` / `[Merger]`
-                // lines don't come through), so anything not printed by us is
-                // invisible here.
-                //  - video:      fires once per entry, after extraction
-                //  - before_dl:  fires before each stream download (video, then
-                //                audio for a merge; the source for audio-only)
-                //  - post_process: fires around merge / audio-extract
-                //  - after_move: fires once the final file is in place
+                // The "N of M" counter and the entry-start/entry-done signals
+                // come from `--print` marker lines (the one channel that
+                // reliably reaches youtubedl-android's execute() callback for
+                // a playlist run):
+                //  - video:       once per entry, after extraction  (start)
+                //  - post_process: around merge / audio-extract
+                //  - after_move:  once the final file is in place   (done)
+                // The video→audio stream switch and the fine-grained percent
+                // come from the raw `[download] …` lines, which DO come
+                // through once `--progress` is forced on (see below).
                 request.addOption("--no-simulate")
                 // `--print` implies `--quiet`, which kills the progress bar —
                 // `--progress` forces it back on, `--newline` puts each
@@ -368,7 +367,6 @@ class YtDlpDownloadService : Service() {
                     "--print",
                     "video:@@AWD_START@@\t%(playlist_index)s\t%(playlist_count)s",
                 )
-                request.addOption("--print", "before_dl:@@AWD_DL@@")
                 request.addOption("--print", "post_process:@@AWD_PP@@")
                 request.addOption(
                     "--print",
@@ -382,10 +380,15 @@ class YtDlpDownloadService : Service() {
                 // subset can be far smaller than yt-dlp's `playlist_count`).
                 var total = if (expectedCount > 0) expectedCount else 0
                 val isAudioMode = audioFormat != null
-                var itemDlCount = 0
+                // `[download] Destination:` lines seen for the current entry —
+                // 1st is the video stream, 2nd the audio stream (video mode).
+                var streamCount = 0
                 var subPhase = if (isAudioMode) "audio" else "video"
                 val startRegex = Regex("^@@AWD_START@@\t(\\d*)\t(\\d*)$")
                 val doneRegex = Regex("^@@AWD_ITEM@@\t(\\d*)\t(.+)$")
+                val dlDestRegex = Regex("^\\[download] Destination:")
+                val mergerRegex = Regex("\\[Merger]|Merging formats into")
+                val extractRegex = Regex("^\\[ExtractAudio]")
 
                 fun emitProgress(itemProgress: Double) {
                     val workingIndex =
@@ -416,7 +419,7 @@ class YtDlpDownloadService : Service() {
 
                     doneRegex.find(trimmed)?.let { m ->
                         completed++
-                        itemDlCount = 0
+                        streamCount = 0
                         subPhase = if (isAudioMode) "audio" else "video"
                         m.groupValues[1].toIntOrNull()?.let { c ->
                             if (expectedCount <= 0 && c > 0) total = c
@@ -438,23 +441,29 @@ class YtDlpDownloadService : Service() {
                         if (expectedCount <= 0) {
                             m.groupValues[2].toIntOrNull()?.let { if (it > 0) total = it }
                         }
-                        itemDlCount = 0
+                        streamCount = 0
                         subPhase = if (isAudioMode) "audio" else "video"
                         emitProgress(0.0)
                         return@execute
                     }
 
-                    if (trimmed == "@@AWD_DL@@") {
-                        itemDlCount++
-                        if (!isAudioMode) {
-                            subPhase = if (itemDlCount >= 2) "audio" else "video"
-                        }
+                    if (trimmed == "@@AWD_PP@@" || mergerRegex.containsMatchIn(trimmed)) {
+                        subPhase = if (isAudioMode) "converting" else "merging"
                         emitProgress(0.0)
                         return@execute
                     }
 
-                    if (trimmed == "@@AWD_PP@@") {
-                        subPhase = if (isAudioMode) "converting" else "merging"
+                    if (extractRegex.containsMatchIn(trimmed)) {
+                        subPhase = "converting"
+                        emitProgress(0.0)
+                        return@execute
+                    }
+
+                    if (dlDestRegex.containsMatchIn(trimmed)) {
+                        streamCount++
+                        if (!isAudioMode) {
+                            subPhase = if (streamCount >= 2) "audio" else "video"
+                        }
                         emitProgress(0.0)
                         return@execute
                     }
