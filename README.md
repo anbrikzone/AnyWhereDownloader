@@ -15,7 +15,10 @@ paste (or one it picks up from the clipboard).
 - **LinkedIn** — public post / feed video, and single photos.
 - **WhatsApp** — statuses you have already viewed, read from the local status cache
   via the Storage Access Framework (no network, no login). Works with WhatsApp and
-  WhatsApp Business.
+  WhatsApp Business. An optional archive keeps a private in-app copy of viewed
+  statuses (1 week or 1 month) under a separate **Archived** tab, so you can still
+  save them after WhatsApp clears its cache — nothing reaches the gallery or the
+  Library until you save it yourself.
 
 Videos and photos are saved to the gallery; audio to your **Music** folder.
 Everything downloaded is collected in the **Library** tab — grouped by source, with
@@ -25,7 +28,8 @@ scrub, zoom photos) and long-press peek.
 ## Other features
 
 - **Settings** — light / dark / system theme, per-service on/off, clipboard
-  auto-paste toggle, and app language (English, Russian, Kazakh).
+  auto-paste toggle, WhatsApp status archive retention, and app language
+  (English, Russian, Kazakh).
 - **In-app updates** — Settings → About → Check for updates downloads and installs
   the newest APK from GitHub Releases; it also checks quietly once a day.
 - **What's new** — a per-version changelog in Settings → About.
@@ -54,6 +58,6 @@ flutter test
 flutter build apk --release --split-per-abi
 ```
 
-Release signing expects `android/key.properties` + `android/keystore/` (both
-gitignored); without them the build falls back to the debug key. See `RELEASE.md`
-for the full release checklist.
+Release signing uses `android/key.properties` + `android/keystore/`; without them
+the build falls back to the debug key. See `RELEASE.md` for the full release
+checklist.
