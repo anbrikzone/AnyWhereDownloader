@@ -11,7 +11,7 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 ### English
 
 **Added**
-- Download a whole YouTube playlist, or tick just the videos you want, at one shared quality (up to 1080p / 720p / 360p / MP3 320).
+- Download a whole YouTube playlist, or tick just the videos you want, at one shared quality (best / up to 1080p / 720p / 360p / MP3 320).
 
 **Changed**
 - The WhatsApp status archive is now a private in-app copy under a new "Archived" tab on the WhatsApp screen — archived statuses no longer go to your gallery or the Library unless you save them yourself.
@@ -22,7 +22,7 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 ### Русский
 
 **Добавлено**
-- Скачивание плейлиста YouTube целиком или только отмеченных роликов, в одном общем качестве (до 1080p / 720p / 360p / MP3 320).
+- Скачивание плейлиста YouTube целиком или только отмеченных роликов, в одном общем качестве (лучшее / до 1080p / 720p / 360p / MP3 320).
 
 **Изменено**
 - Архив статусов WhatsApp теперь локальная копия внутри приложения во вкладке «Архив» на экране WhatsApp — архивные статусы больше не попадают в галерею и Библиотеку, пока вы не сохраните их сами.
@@ -33,7 +33,7 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 ### Қазақша
 
 **Қосылды**
-- YouTube ойнату тізімін толығымен немесе тек белгіленген бейнелерді бір ортақ сапада жүктеу (1080p / 720p / 360p / MP3 320 дейін).
+- YouTube ойнату тізімін толығымен немесе тек белгіленген бейнелерді бір ортақ сапада жүктеу (ең жоғары / 1080p / 720p / 360p / MP3 320 дейін).
 
 **Өзгертілді**
 - WhatsApp статустарының мұрағаты енді WhatsApp экранындағы «Мұрағат» қойындысындағы қолданба ішіндегі жеке көшірме — мұрағатталған статустар өзіңіз сақтамайынша галереяға да, Кітапханаға да түспейді.

@@ -2,6 +2,10 @@
 /// download — a playlist can't show a per-video format sheet, so the user
 /// picks one of these up front.
 enum PlaylistQuality {
+  /// Best available, no resolution cap (may be 4K VP9/AV1 muxed into mp4 —
+  /// same codec-compatibility caveat as the single-video merge path).
+  best,
+
   /// Best available up to 1080p.
   upTo1080,
   upTo720,
@@ -15,6 +19,7 @@ enum PlaylistQuality {
   /// yt-dlp `-f` selector for the video presets; null for [audioMp3]
   /// (which goes through `-x --audio-format mp3` instead).
   String? get formatSelector => switch (this) {
+    PlaylistQuality.best => 'bv*+ba/b',
     PlaylistQuality.upTo1080 =>
       'bv*[height<=1080]+ba/b[height<=1080]/bv*+ba/b',
     PlaylistQuality.upTo720 =>
@@ -29,6 +34,7 @@ enum PlaylistQuality {
   /// Short label for the picker chips (brand-neutral, not localized — same
   /// treatment as the single-video format rows).
   String get label => switch (this) {
+    PlaylistQuality.best => 'Best',
     PlaylistQuality.upTo1080 => '≤ 1080p',
     PlaylistQuality.upTo720 => '720p',
     PlaylistQuality.upTo360 => '360p',

@@ -51,11 +51,17 @@ void main() {
 
   group('PlaylistQuality', () {
     test('video presets carry a format selector, audio does not', () {
+      expect(PlaylistQuality.best.formatSelector, isNotNull);
+      expect(PlaylistQuality.best.isAudio, isFalse);
       expect(PlaylistQuality.upTo1080.formatSelector, isNotNull);
       expect(PlaylistQuality.upTo720.isAudio, isFalse);
       expect(PlaylistQuality.audioMp3.formatSelector, isNull);
       expect(PlaylistQuality.audioMp3.audioFormat, 'mp3');
       expect(PlaylistQuality.audioMp3.audioQualityKbps, 320);
+    });
+
+    test('"best" has no height cap in its selector', () {
+      expect(PlaylistQuality.best.formatSelector, isNot(contains('height')));
     });
   });
 }

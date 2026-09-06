@@ -46,7 +46,7 @@ const List<ChangelogEntry> kChangelog = [
     notes: {
       'en': {
         ChangeKind.added: [
-          'Download a whole YouTube playlist, or tick just the videos you want, at one shared quality (up to 1080p / 720p / 360p / MP3 320).',
+          'Download a whole YouTube playlist, or tick just the videos you want, at one shared quality (best / up to 1080p / 720p / 360p / MP3 320).',
         ],
         ChangeKind.changed: [
           'The WhatsApp status archive is now a private in-app copy under a new "Archived" tab on the WhatsApp screen — archived statuses no longer go to your gallery or the Library unless you save them yourself.',
@@ -57,7 +57,7 @@ const List<ChangelogEntry> kChangelog = [
       },
       'ru': {
         ChangeKind.added: [
-          'Скачивание плейлиста YouTube целиком или только отмеченных роликов, в одном общем качестве (до 1080p / 720p / 360p / MP3 320).',
+          'Скачивание плейлиста YouTube целиком или только отмеченных роликов, в одном общем качестве (лучшее / до 1080p / 720p / 360p / MP3 320).',
         ],
         ChangeKind.changed: [
           'Архив статусов WhatsApp теперь локальная копия внутри приложения во вкладке «Архив» на экране WhatsApp — архивные статусы больше не попадают в галерею и Библиотеку, пока вы не сохраните их сами.',
@@ -68,7 +68,7 @@ const List<ChangelogEntry> kChangelog = [
       },
       'kk': {
         ChangeKind.added: [
-          'YouTube ойнату тізімін толығымен немесе тек белгіленген бейнелерді бір ортақ сапада жүктеу (1080p / 720p / 360p / MP3 320 дейін).',
+          'YouTube ойнату тізімін толығымен немесе тек белгіленген бейнелерді бір ортақ сапада жүктеу (ең жоғары / 1080p / 720p / 360p / MP3 320 дейін).',
         ],
         ChangeKind.changed: [
           'WhatsApp статустарының мұрағаты енді WhatsApp экранындағы «Мұрағат» қойындысындағы қолданба ішіндегі жеке көшірме — мұрағатталған статустар өзіңіз сақтамайынша галереяға да, Кітапханаға да түспейді.',
