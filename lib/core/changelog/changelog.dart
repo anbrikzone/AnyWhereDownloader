@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 /// changelog entry's version. Keep this in sync with `pubspec.yaml`'s
 /// `version:` field and the top entry of both [kChangelog] and the
 /// project-root `CHANGELOG.md`.
-const String kAppVersion = '0.3.4';
+const String kAppVersion = '0.3.5';
 
 /// The kind of change a changelog line describes. Rendered as a small
 /// section header ("Added" / "Changed" / "Fixed"); a kind with no lines is
@@ -41,14 +41,15 @@ class ChangelogEntry {
 /// people reading the repo. Update both together on every release.
 const List<ChangelogEntry> kChangelog = [
   ChangelogEntry(
-    version: '0.3.4',
+    version: '0.3.5',
     date: '2026-09-06',
     notes: {
       'en': {
         ChangeKind.added: [
           'Download a whole YouTube playlist, or tick just the videos you want, at one shared quality (up to 1080p / 720p / 360p / MP3 320).',
-          'Pinch and double-tap to zoom photos in the WhatsApp status viewer, and swipe between statuses — same as the Library viewer.',
-          'Optional WhatsApp status archive (Settings → WhatsApp): keep viewed statuses for 1 week or 1 month. Archived statuses stay on the WhatsApp screen under a new "Archived" tab and never go to your gallery — they only reach the Library if you save them yourself.',
+        ],
+        ChangeKind.changed: [
+          'The WhatsApp status archive is now a private in-app copy under a new "Archived" tab on the WhatsApp screen — archived statuses no longer go to your gallery or the Library unless you save them yourself.',
         ],
         ChangeKind.fixed: [
           'Double-tapping a zoomed-in photo now zooms it back out, in both the WhatsApp status viewer and the Library viewer.',
@@ -57,8 +58,9 @@ const List<ChangelogEntry> kChangelog = [
       'ru': {
         ChangeKind.added: [
           'Скачивание плейлиста YouTube целиком или только отмеченных роликов, в одном общем качестве (до 1080p / 720p / 360p / MP3 320).',
-          'Масштабирование фото щипком и двойным касанием в просмотре статусов WhatsApp, а также перелистывание между статусами — как в просмотрщике Библиотеки.',
-          'Необязательный архив статусов WhatsApp (Настройки → WhatsApp): хранить просмотренные статусы неделю или месяц. Архивные статусы остаются на экране WhatsApp во вкладке «Архив» и не попадают в галерею — в Библиотеку они добавляются, только если вы сохраните их сами.',
+        ],
+        ChangeKind.changed: [
+          'Архив статусов WhatsApp теперь локальная копия внутри приложения во вкладке «Архив» на экране WhatsApp — архивные статусы больше не попадают в галерею и Библиотеку, пока вы не сохраните их сами.',
         ],
         ChangeKind.fixed: [
           'Двойное касание по приближённому фото теперь возвращает масштаб обратно — и в просмотре статусов WhatsApp, и в просмотрщике Библиотеки.',
@@ -67,11 +69,36 @@ const List<ChangelogEntry> kChangelog = [
       'kk': {
         ChangeKind.added: [
           'YouTube ойнату тізімін толығымен немесе тек белгіленген бейнелерді бір ортақ сапада жүктеу (1080p / 720p / 360p / MP3 320 дейін).',
-          'WhatsApp статустарын қараушыда фотоны шымшу және қос түртумен масштабтау, сондай-ақ статустар арасында сырғыту — Кітапхана қараушысындағыдай.',
-          'WhatsApp статустарының қосымша мұрағаты (Параметрлер → WhatsApp): көрілген статустарды бір апта немесе бір ай сақтау. Мұрағатталған статустар WhatsApp экранында «Мұрағат» қойындысында қалады және галереяға түспейді — Кітапханаға тек өзіңіз сақтағанда ғана қосылады.',
+        ],
+        ChangeKind.changed: [
+          'WhatsApp статустарының мұрағаты енді WhatsApp экранындағы «Мұрағат» қойындысындағы қолданба ішіндегі жеке көшірме — мұрағатталған статустар өзіңіз сақтамайынша галереяға да, Кітапханаға да түспейді.',
         ],
         ChangeKind.fixed: [
           'Үлкейтілген фотоны қос түрту енді масштабты қайтарады — WhatsApp статустары мен Кітапхана қараушысында да.',
+        ],
+      },
+    },
+  ),
+  ChangelogEntry(
+    version: '0.3.4',
+    date: '2026-09-05',
+    notes: {
+      'en': {
+        ChangeKind.added: [
+          'Pinch and double-tap to zoom photos in the WhatsApp status viewer, and swipe between statuses — same as the Library viewer.',
+          'Optional WhatsApp status archive (Settings → WhatsApp): keep viewed statuses for 1 week or 1 month so they survive WhatsApp clearing its cache.',
+        ],
+      },
+      'ru': {
+        ChangeKind.added: [
+          'Масштабирование фото щипком и двойным касанием в просмотре статусов WhatsApp, а также перелистывание между статусами — как в просмотрщике Библиотеки.',
+          'Необязательный архив статусов WhatsApp (Настройки → WhatsApp): хранить просмотренные статусы неделю или месяц, чтобы они не пропали после очистки кэша WhatsApp.',
+        ],
+      },
+      'kk': {
+        ChangeKind.added: [
+          'WhatsApp статустарын қараушыда фотоны шымшу және қос түртумен масштабтау, сондай-ақ статустар арасында сырғыту — Кітапхана қараушысындағыдай.',
+          'WhatsApp статустарының қосымша мұрағаты (Параметрлер → WhatsApp): WhatsApp кэшін тазалағаннан кейін жоғалмауы үшін көрілген статустарды бір апта немесе бір ай сақтау.',
         ],
       },
     },
