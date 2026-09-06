@@ -27,26 +27,31 @@ and compares the tag against the bundled version.
    ```
    flutter build apk --release --split-per-abi
    ```
-   Output: `build/app/outputs/flutter-apk/`
-   - `app-arm64-v8a-release.apk`
-   - `app-armeabi-v7a-release.apk`
-   - `app-x86_64-release.apk`
+   Output (renamed by `build.gradle.kts`'s `applicationVariants` block):
+   `build/app/outputs/apk/release/`
+   - `AnyWhereDownloader-<version>-arm64-v8a.apk`
+   - `AnyWhereDownloader-<version>-armeabi-v7a.apk`
+   - `AnyWhereDownloader-<version>-x86_64.apk`
+   (`build/app/outputs/flutter-apk/` still holds Flutter's own
+   `app-<abi>-release.apk` copies — same bytes, older name.)
    (`llvm-strip … not recognized as a valid object file` on the
    `*.zip.so` files is expected — see CLAUDE.md.)
 4. Confirm the signing key is the real one, not the debug key:
    ```
    JAVA_HOME="C:/Program Files/Android/Android Studio/jbr" \
    "$LOCALAPPDATA/Android/sdk/build-tools/<ver>/apksigner.bat" \
-     verify --print-certs build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+     verify --print-certs \
+     build/app/outputs/apk/release/AnyWhereDownloader-<version>-arm64-v8a.apk
    ```
    Expect `CN=AnyWhereDownloader`.
 5. `git commit`, `git tag vX.Y.Z`, `git push --tags`.
 6. Create the GitHub Release for tag `vX.Y.Z`:
    - Title `vX.Y.Z`, body = the English changelog notes (this becomes the
      "What's new" text the in-app update sheet shows).
-   - **Attach all three APKs** as release assets, with the exact filenames
-     above — the updater matches an asset by the device ABI token in its
-     name (`arm64-v8a` etc.).
+   - **Attach all three APKs** as release assets — the updater matches an
+     asset by the device ABI token in its name (`arm64-v8a` etc.), so the
+     `AnyWhereDownloader-<version>-` prefix is cosmetic but the ABI token
+     must be present.
    - Mark it the *latest* release (GitHub does this for the newest
      non-prerelease tag automatically).
    - No `gh` CLI here → use the cached Git Credential Manager token

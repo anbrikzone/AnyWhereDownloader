@@ -78,6 +78,25 @@ android {
             useLegacyPackaging = true
         }
     }
+
+    // Name release APKs like `AnyWhereDownloader-0.3.5-arm64-v8a.apk` instead
+    // of the default `app-arm64-v8a-release.apk`. UpdateService.assetForAbis
+    // matches on the ABI substring, so the version/name prefix is free to
+    // change. (Flutter's own copy under build/app/outputs/flutter-apk/ may
+    // keep its default name depending on the tooling version — the GitHub
+    // release upload renames there too as a backstop.)
+    applicationVariants.all {
+        val variant = this
+        outputs.all {
+            val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            if (variant.buildType.name == "release") {
+                val abi = output.getFilter("ABI")
+                output.outputFileName =
+                    "AnyWhereDownloader-${variant.versionName}" +
+                    (if (abi != null) "-$abi" else "") + ".apk"
+            }
+        }
+    }
 }
 
 kotlin {

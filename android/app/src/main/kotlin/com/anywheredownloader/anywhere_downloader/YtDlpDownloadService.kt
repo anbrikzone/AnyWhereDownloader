@@ -358,6 +358,11 @@ class YtDlpDownloadService : Service() {
                 //  - post_process: fires around merge / audio-extract
                 //  - after_move: fires once the final file is in place
                 request.addOption("--no-simulate")
+                // `--print` implies `--quiet`, which kills the progress bar —
+                // `--progress` forces it back on, `--newline` puts each
+                // update on its own line so youtubedl-android parses a real
+                // percent for the `progress` callback arg.
+                request.addOption("--progress")
                 request.addOption("--newline")
                 request.addOption(
                     "--print",
@@ -454,9 +459,11 @@ class YtDlpDownloadService : Service() {
                         return@execute
                     }
 
-                    // Bonus: if raw `[download] N%` lines *do* come through,
-                    // use them for the current entry's fine-grained percent.
-                    if (progress in 0f..100f && trimmed.startsWith("[download]")) {
+                    // Fine-grained percent for the current entry. With
+                    // `--progress --newline` youtubedl-android parses a real
+                    // value into `progress` on every `[download] N%` line;
+                    // it's 0/-1 on non-download lines, so gate on > 0.
+                    if (progress > 0f && progress <= 100f) {
                         emitProgress(progress.toDouble())
                     }
                 }
