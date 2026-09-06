@@ -4,19 +4,22 @@ import android.app.RecoverableSecurityException
 import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
+import android.graphics.Bitmap
+import android.media.MediaMetadataRetriever
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
+import java.io.FileOutputStream
 
 /**
  * Saves an audio file into the MediaStore audio collection
- * (`Music/<album>/`) — `photo_manager` has no audio save API — and
- * silently prunes old files from an app-owned gallery album (WhatsApp
- * status auto-archive retention). Same defensive try/catch →
- * channel-error style as [MediaNotificationBridge].
+ * (`Music/<album>/`) — `photo_manager` has no audio save API — silently
+ * prunes old files from an app-owned gallery album, and decodes a
+ * thumbnail frame from a local (private) video file. Same defensive
+ * try/catch → channel-error style as [MediaNotificationBridge].
  */
 class MediaSaveBridge(private val appContext: Context) {
 
@@ -52,7 +55,57 @@ class MediaSaveBridge(private val appContext: Context) {
                 }
             }
 
+            "videoThumbnail" -> {
+                val path = call.argument<String>("path")
+                val destPath = call.argument<String>("destPath")
+                val width = call.argument<Number>("width")?.toInt() ?: 240
+                val height = call.argument<Number>("height")?.toInt() ?: 240
+                if (path == null || destPath == null) {
+                    result.error("bad_args", "Missing path/destPath", null)
+                    return
+                }
+                try {
+                    result.success(videoThumbnail(path, destPath, width, height))
+                } catch (e: Exception) {
+                    result.error("thumbnail_failed", e.message, null)
+                }
+            }
+
             else -> result.notImplemented()
+        }
+    }
+
+    /**
+     * Decodes a representative frame from the local video [path] and writes
+     * it to [destPath] as a JPEG, scaled to fit within [width]x[height].
+     * Used for archived-status grid tiles — those files are private to the
+     * app, so they aren't MediaStore assets `photo_manager` could thumbnail.
+     */
+    private fun videoThumbnail(
+        path: String,
+        destPath: String,
+        width: Int,
+        height: Int,
+    ): Boolean {
+        val retriever = MediaMetadataRetriever()
+        try {
+            retriever.setDataSource(path)
+            val frame = retriever.getScaledFrameAtTime(
+                -1,
+                MediaMetadataRetriever.OPTION_CLOSEST_SYNC,
+                width,
+                height,
+            ) ?: return false
+            FileOutputStream(File(destPath)).use { out ->
+                frame.compress(Bitmap.CompressFormat.JPEG, 85, out)
+            }
+            frame.recycle()
+            return true
+        } finally {
+            try {
+                retriever.release()
+            } catch (_: Exception) {
+            }
         }
     }
 

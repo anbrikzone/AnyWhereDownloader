@@ -424,6 +424,24 @@ abstract class AppLocalizations {
   /// **'No statuses available right now.\nOpen a status in WhatsApp, then refresh.'**
   String get whatsappNoStatuses;
 
+  /// No description provided for @statusTabRecent.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent'**
+  String get statusTabRecent;
+
+  /// No description provided for @statusTabArchived.
+  ///
+  /// In en, this message translates to:
+  /// **'Archived'**
+  String get statusTabArchived;
+
+  /// No description provided for @whatsappArchiveEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No archived statuses yet.\nViewed statuses are kept here automatically while the archive is on.'**
+  String get whatsappArchiveEmpty;
+
   /// No description provided for @couldNotReadFolder.
   ///
   /// In en, this message translates to:
@@ -721,7 +739,7 @@ abstract class AppLocalizations {
   /// No description provided for @statusArchiveSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Keep viewed statuses in the Library after WhatsApp deletes them'**
+  /// **'Keep a private in-app copy of viewed statuses in the WhatsApp tab after WhatsApp deletes them. Nothing reaches the Library until you save it.'**
   String get statusArchiveSubtitle;
 
   /// No description provided for @statusArchiveOff.

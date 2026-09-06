@@ -191,6 +191,16 @@ class AppLocalizationsKk extends AppLocalizations {
       'Қазір статустар жоқ.\nWhatsApp-та статусты ашып, содан кейін жаңартыңыз.';
 
   @override
+  String get statusTabRecent => 'Соңғылар';
+
+  @override
+  String get statusTabArchived => 'Мұрағат';
+
+  @override
+  String get whatsappArchiveEmpty =>
+      'Мұрағат әзірге бос.\nМұрағат қосулы тұрғанда көрілген статустар осында автоматты түрде сақталады.';
+
+  @override
   String couldNotReadFolder(String error) {
     return 'Қапшықты оқу мүмкін болмады.\n$error';
   }
@@ -369,7 +379,7 @@ class AppLocalizationsKk extends AppLocalizations {
 
   @override
   String get statusArchiveSubtitle =>
-      'WhatsApp жойғаннан кейін көрілген статустарды Кітапханада сақтау';
+      'WhatsApp жойғаннан кейін көрілген статустардың жеке көшірмесін WhatsApp қойындысында сақтау. Оларды сақтағанша Кітапханаға түспейді.';
 
   @override
   String get statusArchiveOff => 'Өшірулі';

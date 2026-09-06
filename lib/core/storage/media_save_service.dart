@@ -82,6 +82,29 @@ class MediaSaveService {
     }
   }
 
+  /// Decodes a thumbnail frame from a local video file into [destPath] as a
+  /// JPEG (scaled to fit [width]x[height]). For archived WhatsApp statuses —
+  /// private app files that aren't MediaStore assets, so `photo_manager`
+  /// can't thumbnail them. Returns false on any failure rather than throwing.
+  Future<bool> saveVideoThumbnail({
+    required String sourcePath,
+    required String destPath,
+    int width = 240,
+    int height = 240,
+  }) async {
+    try {
+      final ok = await _audioChannel.invokeMethod<bool>('videoThumbnail', {
+        'path': sourcePath,
+        'destPath': destPath,
+        'width': width,
+        'height': height,
+      });
+      return ok ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<String> _save(
     String filePath, {
     required String album,

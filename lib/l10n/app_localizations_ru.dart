@@ -191,6 +191,16 @@ class AppLocalizationsRu extends AppLocalizations {
       'Сейчас статусов нет.\nОткройте статус в WhatsApp, затем обновите.';
 
   @override
+  String get statusTabRecent => 'Недавние';
+
+  @override
+  String get statusTabArchived => 'Архив';
+
+  @override
+  String get whatsappArchiveEmpty =>
+      'В архиве пока пусто.\nПросмотренные статусы сохраняются здесь автоматически, пока архив включён.';
+
+  @override
   String couldNotReadFolder(String error) {
     return 'Не удалось прочитать папку.\n$error';
   }
@@ -369,7 +379,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get statusArchiveSubtitle =>
-      'Хранить просмотренные статусы в Библиотеке после того, как WhatsApp их удалит';
+      'Хранить локальную копию просмотренных статусов во вкладке WhatsApp после того, как WhatsApp их удалит. В Библиотеку они попадают только после сохранения.';
 
   @override
   String get statusArchiveOff => 'Выкл';

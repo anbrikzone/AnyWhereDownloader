@@ -112,7 +112,16 @@ class _StatusPreviewItemState extends State<_StatusPreviewItem> {
 
   String? _imagePath;
   VideoPlayerController? _videoController;
+
+  /// A temp file this widget created and must delete on dispose. Null for an
+  /// archived status, whose video is played straight from its (permanent)
+  /// local archive file — see [_playbackPath].
   String? _tempPath;
+
+  /// The local file the video is actually playing from — the temp copy for
+  /// a fresh status, the archive file for an archived one. Used by the
+  /// stuck-decoder recovery, which must not depend on [_tempPath].
+  String? _playbackPath;
   bool _loading = true;
   bool _failed = false;
 
@@ -178,12 +187,12 @@ class _StatusPreviewItemState extends State<_StatusPreviewItem> {
 
   Future<void> _recoverFromStuckDecoder() async {
     final oldController = _videoController;
-    final tempPath = _tempPath;
-    if (oldController == null || tempPath == null) return;
+    final playbackPath = _playbackPath;
+    if (oldController == null || playbackPath == null) return;
     _recovering = true;
     final resumePosition = oldController.value.position;
     try {
-      final newController = VideoPlayerController.file(File(tempPath));
+      final newController = VideoPlayerController.file(File(playbackPath));
       await newController.initialize();
       if (!mounted) {
         await newController.dispose();
@@ -230,12 +239,43 @@ class _StatusPreviewItemState extends State<_StatusPreviewItem> {
 
   Future<void> _load() async {
     try {
+      final item = widget.item;
+
+      // Archived status: the file is already a local file in the app's
+      // private archive. Play/show it directly — no SAF thumbnail, no temp
+      // copy, and crucially nothing to delete on dispose.
+      if (item.isArchived) {
+        final path = item.localPath!;
+        if (item.mediaType == StatusMediaType.image) {
+          if (!mounted) return;
+          setState(() {
+            _imagePath = path;
+            _loading = false;
+          });
+        } else {
+          final controller = VideoPlayerController.file(File(path));
+          await controller.initialize();
+          if (!mounted) {
+            await controller.dispose();
+            return;
+          }
+          _attachController(controller);
+          setState(() {
+            _videoController = controller;
+            _playbackPath = path;
+            _loading = false;
+          });
+          _scheduleStuckCheck();
+        }
+        return;
+      }
+
       final tempDir = await getTemporaryDirectory();
-      if (widget.item.mediaType == StatusMediaType.image) {
+      if (item.mediaType == StatusMediaType.image) {
         final destPath =
-            '${tempDir.path}/wa_preview_${widget.item.uri.hashCode}.jpg';
+            '${tempDir.path}/wa_preview_${item.uri.hashCode}.jpg';
         final ok = await _safService.saveThumbnailToFile(
-          uri: widget.item.uri,
+          uri: item.uri,
           width: 1600,
           height: 1600,
           destPath: destPath,
@@ -248,8 +288,8 @@ class _StatusPreviewItemState extends State<_StatusPreviewItem> {
         });
       } else {
         final destPath =
-            '${tempDir.path}/wa_preview_${DateTime.now().microsecondsSinceEpoch}_${widget.item.name}';
-        await _safStream.copyToLocalFile(widget.item.uri, destPath);
+            '${tempDir.path}/wa_preview_${DateTime.now().microsecondsSinceEpoch}_${item.name}';
+        await _safStream.copyToLocalFile(item.uri, destPath);
         final controller = VideoPlayerController.file(File(destPath));
         await controller.initialize();
         if (!mounted) {
@@ -261,6 +301,7 @@ class _StatusPreviewItemState extends State<_StatusPreviewItem> {
         setState(() {
           _videoController = controller;
           _tempPath = destPath;
+          _playbackPath = destPath;
           _loading = false;
         });
         _scheduleStuckCheck();
@@ -817,12 +858,48 @@ class _StatusPeekPreviewState extends State<StatusPeekPreview> {
 
   Future<void> _load() async {
     try {
+      final item = widget.item;
+
+      // Archived status — a local private file already. Show/play directly;
+      // `_videoTempPath` stays null so dispose never deletes the archive.
+      if (item.isArchived) {
+        final path = item.localPath!;
+        if (item.mediaType == StatusMediaType.image) {
+          if (!mounted) return;
+          setState(() {
+            _imagePath = path;
+            _loading = false;
+          });
+          return;
+        }
+        final controller = VideoPlayerController.file(File(path));
+        await controller.initialize();
+        if (!mounted) {
+          await controller.dispose();
+          return;
+        }
+        controller
+          ..setLooping(true)
+          ..setVolume(1)
+          ..play();
+        controller.addListener(() {
+          if (controller.value.volume == 0 && !controller.value.isCompleted) {
+            controller.setVolume(1);
+          }
+        });
+        setState(() {
+          _videoController = controller;
+          _loading = false;
+        });
+        return;
+      }
+
       final tempDir = await getTemporaryDirectory();
-      if (widget.item.mediaType == StatusMediaType.image) {
+      if (item.mediaType == StatusMediaType.image) {
         final destPath =
-            '${tempDir.path}/wa_peek_${widget.item.uri.hashCode}.jpg';
+            '${tempDir.path}/wa_peek_${item.uri.hashCode}.jpg';
         final ok = await _safService.saveThumbnailToFile(
-          uri: widget.item.uri,
+          uri: item.uri,
           width: 1600,
           height: 1600,
           destPath: destPath,
@@ -835,8 +912,8 @@ class _StatusPeekPreviewState extends State<StatusPeekPreview> {
         });
       } else {
         final destPath =
-            '${tempDir.path}/wa_peek_${DateTime.now().microsecondsSinceEpoch}_${widget.item.name}';
-        await _safStream.copyToLocalFile(widget.item.uri, destPath);
+            '${tempDir.path}/wa_peek_${DateTime.now().microsecondsSinceEpoch}_${item.name}';
+        await _safStream.copyToLocalFile(item.uri, destPath);
         final controller = VideoPlayerController.file(File(destPath));
         await controller.initialize();
         if (!mounted) {

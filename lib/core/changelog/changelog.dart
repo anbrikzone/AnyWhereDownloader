@@ -42,24 +42,24 @@ class ChangelogEntry {
 const List<ChangelogEntry> kChangelog = [
   ChangelogEntry(
     version: '0.3.4',
-    date: '2026-09-05',
+    date: '2026-09-06',
     notes: {
       'en': {
         ChangeKind.added: [
           'Pinch and double-tap to zoom photos in the WhatsApp status viewer, and swipe between statuses — same as the Library viewer.',
-          'Optional WhatsApp status archive (Settings → WhatsApp): keep viewed statuses for 1 week or 1 month. They are copied into the Library so they survive WhatsApp deleting them.',
+          'Optional WhatsApp status archive (Settings → WhatsApp): keep viewed statuses for 1 week or 1 month. Archived statuses stay on the WhatsApp screen under a new "Archived" tab and never go to your gallery — they only reach the Library if you save them yourself.',
         ],
       },
       'ru': {
         ChangeKind.added: [
           'Масштабирование фото щипком и двойным касанием в просмотре статусов WhatsApp, а также перелистывание между статусами — как в просмотрщике Библиотеки.',
-          'Необязательный архив статусов WhatsApp (Настройки → WhatsApp): хранить просмотренные статусы неделю или месяц. Они копируются в Библиотеку и остаются после того, как WhatsApp их удалит.',
+          'Необязательный архив статусов WhatsApp (Настройки → WhatsApp): хранить просмотренные статусы неделю или месяц. Архивные статусы остаются на экране WhatsApp во вкладке «Архив» и не попадают в галерею — в Библиотеку они добавляются, только если вы сохраните их сами.',
         ],
       },
       'kk': {
         ChangeKind.added: [
           'WhatsApp статустарын қараушыда фотоны шымшу және қос түртумен масштабтау, сондай-ақ статустар арасында сырғыту — Кітапхана қараушысындағыдай.',
-          'WhatsApp статустарының қосымша мұрағаты (Параметрлер → WhatsApp): көрілген статустарды бір апта немесе бір ай сақтау. Олар Кітапханаға көшіріліп, WhatsApp жойғаннан кейін де қалады.',
+          'WhatsApp статустарының қосымша мұрағаты (Параметрлер → WhatsApp): көрілген статустарды бір апта немесе бір ай сақтау. Мұрағатталған статустар WhatsApp экранында «Мұрағат» қойындысында қалады және галереяға түспейді — Кітапханаға тек өзіңіз сақтағанда ғана қосылады.',
         ],
       },
     },

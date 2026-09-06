@@ -190,6 +190,16 @@ class AppLocalizationsEn extends AppLocalizations {
       'No statuses available right now.\nOpen a status in WhatsApp, then refresh.';
 
   @override
+  String get statusTabRecent => 'Recent';
+
+  @override
+  String get statusTabArchived => 'Archived';
+
+  @override
+  String get whatsappArchiveEmpty =>
+      'No archived statuses yet.\nViewed statuses are kept here automatically while the archive is on.';
+
+  @override
   String couldNotReadFolder(String error) {
     return 'Could not read the folder.\n$error';
   }
@@ -368,7 +378,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get statusArchiveSubtitle =>
-      'Keep viewed statuses in the Library after WhatsApp deletes them';
+      'Keep a private in-app copy of viewed statuses in the WhatsApp tab after WhatsApp deletes them. Nothing reaches the Library until you save it.';
 
   @override
   String get statusArchiveOff => 'Off';

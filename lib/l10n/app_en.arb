@@ -85,6 +85,9 @@
   "whatsappPickFolderInstructions": "To show statuses, pick your WhatsApp status folder. The picker will open already positioned there — just tap \"use this folder\".",
   "whatsappPickFolderNote": "Note: a status has to be opened/viewed in WhatsApp itself first, otherwise it isn't cached on the device yet.",
   "whatsappNoStatuses": "No statuses available right now.\nOpen a status in WhatsApp, then refresh.",
+  "statusTabRecent": "Recent",
+  "statusTabArchived": "Archived",
+  "whatsappArchiveEmpty": "No archived statuses yet.\nViewed statuses are kept here automatically while the archive is on.",
   "couldNotReadFolder": "Could not read the folder.\n{error}",
   "@couldNotReadFolder": {
     "placeholders": { "error": { "type": "String" } }
@@ -176,7 +179,7 @@
   "clipboardAutoPasteSubtitle": "Automatically fill in a supported link copied to the clipboard",
   "whatsappSection": "WhatsApp",
   "statusArchiveTitle": "Archive statuses",
-  "statusArchiveSubtitle": "Keep viewed statuses in the Library after WhatsApp deletes them",
+  "statusArchiveSubtitle": "Keep a private in-app copy of viewed statuses in the WhatsApp tab after WhatsApp deletes them. Nothing reaches the Library until you save it.",
   "statusArchiveOff": "Off",
   "statusArchiveWeek": "Keep for 1 week",
   "statusArchiveMonth": "Keep for 1 month",

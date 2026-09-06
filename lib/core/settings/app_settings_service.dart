@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -31,7 +29,7 @@ class AppSettingsService {
   static const _localeKey = 'settings_locale';
   static const _lastUpdateCheckKey = 'settings_last_update_check_ms';
   static const _statusArchiveRetentionKey = 'settings_status_archive_retention';
-  static const _archivedStatusLedgerKey = 'settings_archived_status_ledger';
+  static const _legacyArchivePurgedKey = 'settings_legacy_wa_archive_purged';
 
   Future<ThemeMode> getThemeMode() async {
     final prefs = await SharedPreferences.getInstance();
@@ -119,22 +117,17 @@ class AppSettingsService {
     await prefs.setString(_statusArchiveRetentionKey, value.name);
   }
 
-  /// Dedup ledger for the archiver: status filename -> epoch millis it was
-  /// archived. JSON-encoded to a single string.
-  Future<Map<String, int>> getArchivedStatusLedger() async {
+  /// Whether the one-time cleanup of the 0.3.4 "WhatsApp Archive" gallery
+  /// album has already run. That build copied every viewed status into the
+  /// gallery (and so the Library); the archive is now a private in-app copy
+  /// instead, so the old album is deleted once on upgrade.
+  Future<bool> getLegacyArchivePurged() async {
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_archivedStatusLedgerKey);
-    if (raw == null || raw.isEmpty) return {};
-    try {
-      final decoded = jsonDecode(raw) as Map<String, dynamic>;
-      return decoded.map((k, v) => MapEntry(k, (v as num).toInt()));
-    } catch (_) {
-      return {};
-    }
+    return prefs.getBool(_legacyArchivePurgedKey) ?? false;
   }
 
-  Future<void> setArchivedStatusLedger(Map<String, int> ledger) async {
+  Future<void> setLegacyArchivePurged(bool value) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_archivedStatusLedgerKey, jsonEncode(ledger));
+    await prefs.setBool(_legacyArchivePurgedKey, value);
   }
 }

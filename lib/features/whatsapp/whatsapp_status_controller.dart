@@ -24,6 +24,7 @@ class WhatsAppStatusState {
     this.checkingFolder = true,
     this.treeUri,
     this.items = const AsyncValue.loading(),
+    this.archivedItems = const [],
     this.selectionMode = false,
     this.selectedUris = const {},
     this.saving = false,
@@ -33,7 +34,14 @@ class WhatsAppStatusState {
 
   final bool checkingFolder;
   final String? treeUri;
+
+  /// Statuses read live from WhatsApp's `.Statuses` cache via SAF.
   final AsyncValue<List<StatusItem>> items;
+
+  /// Private in-app archive copies (see [StatusArchiveService]) whose
+  /// original is no longer in the fresh list. Empty when the archive is
+  /// turned off. Shown in the WhatsApp screen's "Archived" tab.
+  final List<StatusItem> archivedItems;
 
   /// Whether tapping a tile toggles selection instead of opening the full
   /// preview — same explicit Select/Cancel model as Library, entered/exited
@@ -51,6 +59,7 @@ class WhatsAppStatusState {
     String? treeUri,
     bool clearTreeUri = false,
     AsyncValue<List<StatusItem>>? items,
+    List<StatusItem>? archivedItems,
     bool? selectionMode,
     Set<String>? selectedUris,
     bool? saving,
@@ -62,6 +71,7 @@ class WhatsAppStatusState {
       checkingFolder: checkingFolder ?? this.checkingFolder,
       treeUri: clearTreeUri ? null : (treeUri ?? this.treeUri),
       items: items ?? this.items,
+      archivedItems: archivedItems ?? this.archivedItems,
       selectionMode: selectionMode ?? this.selectionMode,
       selectedUris: selectedUris ?? this.selectedUris,
       saving: saving ?? this.saving,
@@ -106,10 +116,22 @@ class WhatsAppStatusController extends StateNotifier<WhatsAppStatusState> {
     final uri = await _safService.getPersistedTreeUri(_prefsKey);
     if (uri == null) {
       state = state.copyWith(checkingFolder: false);
-      return;
+    } else {
+      state = state.copyWith(checkingFolder: false, treeUri: uri);
+      await refresh();
     }
-    state = state.copyWith(checkingFolder: false, treeUri: uri);
-    await refresh();
+    unawaited(_purgeLegacyGalleryAlbumOnce());
+  }
+
+  /// Deletes the 0.3.4 "WhatsApp Archive" gallery album once, on first run
+  /// after upgrading — that build leaked every viewed status into the
+  /// gallery/Library. The archive is a private in-app copy now.
+  Future<void> _purgeLegacyGalleryAlbumOnce() async {
+    try {
+      if (await _appSettingsService.getLegacyArchivePurged()) return;
+      await _statusArchiveService.purgeLegacyGalleryAlbum();
+      await _appSettingsService.setLegacyArchivePurged(true);
+    } catch (_) {}
   }
 
   Future<void> pickFolder({required bool business}) async {
@@ -142,27 +164,50 @@ class WhatsAppStatusController extends StateNotifier<WhatsAppStatusState> {
     } catch (error, stackTrace) {
       state = state.copyWith(items: AsyncValue.error(error, stackTrace));
     }
+    // Always refresh the archived tab, even if the fresh list failed to
+    // load — the two are independent stores.
+    await _loadArchived();
   }
 
   /// Opportunistic WhatsApp-status archiving + retention cleanup — runs on
   /// every folder refresh when the user has opted in (Settings → WhatsApp).
+  /// Archiving is silent: the copies just appear in the "Archived" tab.
   /// Wrapped so a failure here never disturbs the status list that already
   /// loaded.
   Future<void> _runArchive(List<StatusItem> statuses) async {
     try {
       final retention = await _appSettingsService.getStatusArchiveRetention();
-      if (retention == StatusArchiveRetention.off) return;
-      final archived = await _statusArchiveService.archiveNew(statuses);
-      if (archived > 0) {
-        state = state.copyWith(
-          lastResultMessage: StatusMessage(
-            StatusMessageKey.statusesArchived,
-            count: archived,
-          ),
-        );
+      if (retention == StatusArchiveRetention.off) {
+        await _statusArchiveService.purgeAll();
+        return;
       }
+      await _statusArchiveService.archiveNew(statuses);
       await _statusArchiveService.pruneExpired(retention.duration);
     } catch (_) {}
+  }
+
+  /// Loads the private archive into [WhatsAppStatusState.archivedItems],
+  /// hiding any entry whose status is still live in the fresh list (each
+  /// status shows once, preferring the live copy). Empty when the archive
+  /// is off.
+  Future<void> _loadArchived() async {
+    try {
+      final retention = await _appSettingsService.getStatusArchiveRetention();
+      if (retention == StatusArchiveRetention.off) {
+        state = state.copyWith(archivedItems: const []);
+        return;
+      }
+      final archived = await _statusArchiveService.loadArchived();
+      final freshNames = (state.items.valueOrNull ?? const <StatusItem>[])
+          .map((s) => s.name)
+          .toSet();
+      state = state.copyWith(
+        archivedItems:
+            archived.where((a) => !freshNames.contains(a.name)).toList(),
+      );
+    } catch (_) {
+      state = state.copyWith(archivedItems: const []);
+    }
   }
 
   void enterSelectionMode() {
@@ -182,11 +227,18 @@ class WhatsAppStatusController extends StateNotifier<WhatsAppStatusState> {
     state = state.copyWith(selectedUris: selected);
   }
 
-  Future<void> saveSelected() async {
-    final items = state.items.valueOrNull;
-    if (items == null || state.selectedUris.isEmpty || state.busy) return;
+  /// Fresh + archived statuses combined — selection can span both tabs.
+  List<StatusItem> get _allItems => [
+    ...?state.items.valueOrNull,
+    ...state.archivedItems,
+  ];
 
-    final toSave = items.where((i) => state.selectedUris.contains(i.uri));
+  Future<void> saveSelected() async {
+    if (state.selectedUris.isEmpty || state.busy) return;
+
+    final toSave =
+        _allItems.where((i) => state.selectedUris.contains(i.uri)).toList();
+    if (toSave.isEmpty) return;
     state = state.copyWith(saving: true, clearLastResultMessage: true);
 
     // Best-effort: the save proceeds regardless of the outcome — denied
@@ -201,22 +253,32 @@ class WhatsAppStatusController extends StateNotifier<WhatsAppStatusState> {
     String? lastSavedName;
 
     for (final item in toSave) {
-      final tempPath = _tempPathFor(tempDir.path, item);
+      // Archived items are already local files — save straight from the
+      // archive, no SAF copy and nothing to clean up afterwards. Fresh
+      // items must be pulled out of SAF into a temp file first.
+      final archivedPath = item.isArchived ? item.localPath : null;
+      final tempPath =
+          archivedPath == null ? _tempPathFor(tempDir.path, item) : null;
       try {
-        await _safStream.copyToLocalFile(item.uri, tempPath);
+        if (tempPath != null) {
+          await _safStream.copyToLocalFile(item.uri, tempPath);
+        }
+        final source = archivedPath ?? tempPath!;
         final isImage = item.mediaType == StatusMediaType.image;
         lastSavedContentUri = isImage
-            ? await _mediaSaveService.saveImage(tempPath, album: _galAlbum)
-            : await _mediaSaveService.saveVideo(tempPath, album: _galAlbum);
+            ? await _mediaSaveService.saveImage(source, album: _galAlbum)
+            : await _mediaSaveService.saveVideo(source, album: _galAlbum);
         lastSavedMimeType = isImage ? 'image/*' : 'video/*';
         lastSavedName = item.name;
         succeeded++;
       } catch (_) {
         failed++;
       } finally {
-        final file = File(tempPath);
-        if (await file.exists()) {
-          await file.delete();
+        if (tempPath != null) {
+          final file = File(tempPath);
+          if (await file.exists()) {
+            await file.delete();
+          }
         }
       }
     }
@@ -257,25 +319,31 @@ class WhatsAppStatusController extends StateNotifier<WhatsAppStatusState> {
   /// the file doesn't need to be saved to the gallery first (it's already
   /// local on the device, unlike a real network download).
   Future<void> shareSelected() async {
-    final items = state.items.valueOrNull;
-    if (items == null || state.selectedUris.isEmpty || state.busy) return;
+    if (state.selectedUris.isEmpty || state.busy) return;
 
-    final toShare = items
-        .where((i) => state.selectedUris.contains(i.uri))
-        .toList();
+    final toShare =
+        _allItems.where((i) => state.selectedUris.contains(i.uri)).toList();
+    if (toShare.isEmpty) return;
     state = state.copyWith(sharing: true, clearLastResultMessage: true);
 
     final tempDir = await getTemporaryDirectory();
     final tempPaths = <String>[];
+    final sharePaths = <String>[];
     try {
       for (final item in toShare) {
+        if (item.isArchived && item.localPath != null) {
+          // Already a local file — share it directly.
+          sharePaths.add(item.localPath!);
+          continue;
+        }
         final tempPath = _tempPathFor(tempDir.path, item);
         await _safStream.copyToLocalFile(item.uri, tempPath);
         tempPaths.add(tempPath);
+        sharePaths.add(tempPath);
       }
-      if (tempPaths.isNotEmpty) {
+      if (sharePaths.isNotEmpty) {
         await SharePlus.instance.share(
-          ShareParams(files: tempPaths.map((p) => XFile(p)).toList()),
+          ShareParams(files: sharePaths.map((p) => XFile(p)).toList()),
         );
       }
       state = state.copyWith(sharing: false, selectedUris: {});

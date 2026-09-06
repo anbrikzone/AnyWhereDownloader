@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../core/l10n/status_message.dart';
+import '../../core/storage/media_save_service.dart';
 import '../../core/storage/saf_service.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/whatsapp/whatsapp_status_reader.dart';
@@ -30,51 +31,68 @@ class WhatsAppStatusScreen extends ConsumerWidget {
       }
     });
 
-    return Scaffold(
-      appBar: AppBar(
-        leading: state.selectionMode
-            ? IconButton(
-                tooltip: l10n.cancelSelectionTooltip,
-                icon: const Icon(Icons.close),
-                onPressed: controller.exitSelectionMode,
+    // Only split into tabs once there's actually something in the archive —
+    // otherwise it's just the single fresh grid, exactly as before.
+    final showTabs =
+        state.treeUri != null && state.archivedItems.isNotEmpty;
+
+    return DefaultTabController(
+      length: showTabs ? 2 : 1,
+      child: Scaffold(
+        appBar: AppBar(
+          leading: state.selectionMode
+              ? IconButton(
+                  tooltip: l10n.cancelSelectionTooltip,
+                  icon: const Icon(Icons.close),
+                  onPressed: controller.exitSelectionMode,
+                )
+              : null,
+          title: Text(
+            state.selectionMode
+                ? l10n.itemsSelectedCount(state.selectedUris.length)
+                : 'WhatsApp',
+          ),
+          actions: [
+            if (state.treeUri != null && !state.selectionMode)
+              IconButton(
+                tooltip: l10n.selectTooltip,
+                icon: const Icon(Icons.checklist),
+                onPressed: controller.enterSelectionMode,
+              ),
+            if (state.treeUri != null)
+              IconButton(
+                tooltip: l10n.refreshTooltip,
+                icon: const Icon(Icons.refresh),
+                onPressed: state.busy ? null : controller.refresh,
+              ),
+            if (state.treeUri != null)
+              IconButton(
+                tooltip: l10n.changeFolderTooltip,
+                icon: const Icon(Icons.drive_folder_upload_outlined),
+                onPressed: state.busy ? null : controller.forgetFolder,
+              ),
+          ],
+          bottom: showTabs
+              ? TabBar(
+                  tabs: [
+                    Tab(text: l10n.statusTabRecent),
+                    Tab(text: l10n.statusTabArchived),
+                  ],
+                )
+              : null,
+        ),
+        body: _buildBody(context, l10n, state, controller, showTabs),
+        bottomNavigationBar:
+            state.selectionMode && state.selectedUris.isNotEmpty
+            ? _ActionBar(
+                count: state.selectedUris.length,
+                saving: state.saving,
+                sharing: state.sharing,
+                onSave: controller.saveSelected,
+                onShare: controller.shareSelected,
               )
             : null,
-        title: Text(
-          state.selectionMode
-              ? l10n.itemsSelectedCount(state.selectedUris.length)
-              : 'WhatsApp',
-        ),
-        actions: [
-          if (state.treeUri != null && !state.selectionMode)
-            IconButton(
-              tooltip: l10n.selectTooltip,
-              icon: const Icon(Icons.checklist),
-              onPressed: controller.enterSelectionMode,
-            ),
-          if (state.treeUri != null)
-            IconButton(
-              tooltip: l10n.refreshTooltip,
-              icon: const Icon(Icons.refresh),
-              onPressed: state.busy ? null : controller.refresh,
-            ),
-          if (state.treeUri != null)
-            IconButton(
-              tooltip: l10n.changeFolderTooltip,
-              icon: const Icon(Icons.drive_folder_upload_outlined),
-              onPressed: state.busy ? null : controller.forgetFolder,
-            ),
-        ],
       ),
-      body: _buildBody(context, l10n, state, controller),
-      bottomNavigationBar: state.selectionMode && state.selectedUris.isNotEmpty
-          ? _ActionBar(
-              count: state.selectedUris.length,
-              saving: state.saving,
-              sharing: state.sharing,
-              onSave: controller.saveSelected,
-              onShare: controller.shareSelected,
-            )
-          : null,
     );
   }
 
@@ -83,6 +101,7 @@ class WhatsAppStatusScreen extends ConsumerWidget {
     AppLocalizations l10n,
     WhatsAppStatusState state,
     WhatsAppStatusController controller,
+    bool showTabs,
   ) {
     if (state.checkingFolder) {
       return const Center(child: CircularProgressIndicator());
@@ -92,6 +111,23 @@ class WhatsAppStatusScreen extends ConsumerWidget {
       return _FolderPickerPrompt(onPick: controller.pickFolder);
     }
 
+    final recentView = _buildRecentView(context, l10n, state, controller);
+    if (!showTabs) return recentView;
+
+    return TabBarView(
+      children: [
+        recentView,
+        _buildArchivedView(context, l10n, state, controller),
+      ],
+    );
+  }
+
+  Widget _buildRecentView(
+    BuildContext context,
+    AppLocalizations l10n,
+    WhatsAppStatusState state,
+    WhatsAppStatusController controller,
+  ) {
     return state.items.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, _) => _ErrorState(
@@ -103,26 +139,56 @@ class WhatsAppStatusScreen extends ConsumerWidget {
         if (statuses.isEmpty) {
           return _EmptyState(onRefresh: controller.refresh);
         }
-        return _StatusGrid(
-          items: statuses,
-          selectedUris: state.selectedUris,
-          selectionMode: state.selectionMode,
-          onTap: (index) {
-            final item = statuses[index];
-            if (state.selectionMode) {
-              controller.toggleSelected(item.uri);
-            } else {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => StatusPreviewPage(
-                    items: statuses,
-                    initialIndex: index,
-                  ),
-                ),
-              );
-            }
-          },
-        );
+        return _buildGrid(context, state, controller, statuses);
+      },
+    );
+  }
+
+  Widget _buildArchivedView(
+    BuildContext context,
+    AppLocalizations l10n,
+    WhatsAppStatusState state,
+    WhatsAppStatusController controller,
+  ) {
+    final archived = state.archivedItems;
+    if (archived.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            l10n.whatsappArchiveEmpty,
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+    return _buildGrid(context, state, controller, archived);
+  }
+
+  Widget _buildGrid(
+    BuildContext context,
+    WhatsAppStatusState state,
+    WhatsAppStatusController controller,
+    List<StatusItem> statuses,
+  ) {
+    return _StatusGrid(
+      items: statuses,
+      selectedUris: state.selectedUris,
+      selectionMode: state.selectionMode,
+      onTap: (index) {
+        final item = statuses[index];
+        if (state.selectionMode) {
+          controller.toggleSelected(item.uri);
+        } else {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => StatusPreviewPage(
+                items: statuses,
+                initialIndex: index,
+              ),
+            ),
+          );
+        }
       },
     );
   }
@@ -442,11 +508,31 @@ class _StatusTileState extends State<_StatusTile> {
 
   Future<String?> _generateThumbnail() async {
     try {
+      final item = widget.item;
       final tempDir = await getTemporaryDirectory();
+
+      // Archived items are private local files, not SAF documents — an
+      // image renders straight from disk, a video needs a decoded frame
+      // from the native bridge (it isn't a MediaStore asset either).
+      if (item.isArchived) {
+        final path = item.localPath;
+        if (path == null) return null;
+        if (item.mediaType == StatusMediaType.image) return path;
+        final destPath =
+            '${tempDir.path}/wa_arch_thumb_${path.hashCode}.jpg';
+        final ok = await MediaSaveService().saveVideoThumbnail(
+          sourcePath: path,
+          destPath: destPath,
+          width: 240,
+          height: 240,
+        );
+        return ok ? destPath : null;
+      }
+
       final destPath =
-          '${tempDir.path}/wa_thumb_${widget.item.uri.hashCode}.jpg';
+          '${tempDir.path}/wa_thumb_${item.uri.hashCode}.jpg';
       final ok = await SafService().saveThumbnailToFile(
-        uri: widget.item.uri,
+        uri: item.uri,
         width: 240,
         height: 240,
         destPath: destPath,
