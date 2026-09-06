@@ -198,41 +198,6 @@ class _VideoPlayerViewState extends State<VideoPlayerView>
             },
           ),
 
-          // Skip ±10 buttons on the centre line.
-          if (_controlsVisible)
-            Positioned.fill(
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Center(
-                      child: _RoundIconButton(
-                        icon: Icons.replay_10,
-                        size: 34,
-                        onTap: () {
-                          setState(() => _seekFxLeft = true);
-                          _seekFx.forward(from: 0);
-                          _seekRelative(-_seekStep);
-                        },
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Center(
-                      child: _RoundIconButton(
-                        icon: Icons.forward_10,
-                        size: 34,
-                        onTap: () {
-                          setState(() => _seekFxLeft = false);
-                          _seekFx.forward(from: 0);
-                          _seekRelative(_seekStep);
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
           // Bottom transport bar, pinned to the screen edge.
           Positioned(
             left: 0,
