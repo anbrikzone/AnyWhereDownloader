@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 /// changelog entry's version. Keep this in sync with `pubspec.yaml`'s
 /// `version:` field and the top entry of both [kChangelog] and the
 /// project-root `CHANGELOG.md`.
-const String kAppVersion = '0.3.6';
+const String kAppVersion = '0.3.7';
 
 /// The kind of change a changelog line describes. Rendered as a small
 /// section header ("Added" / "Changed" / "Fixed"); a kind with no lines is
@@ -40,6 +40,36 @@ class ChangelogEntry {
 /// new" screen renders; the project-root `CHANGELOG.md` mirrors it for
 /// people reading the repo. Update both together on every release.
 const List<ChangelogEntry> kChangelog = [
+  ChangelogEntry(
+    version: '0.3.7',
+    date: '2026-09-07',
+    notes: {
+      'en': {
+        ChangeKind.added: [
+          'Settings → About now shows the YouTube engine (yt-dlp) version and when it last updated — tap the row to update it right away.',
+        ],
+        ChangeKind.fixed: [
+          'YouTube downloads that failed with an “HTTP 403” / “SABR streaming” error: the app now keeps its YouTube engine up to date far more reliably (including at startup, and retrying after a failed attempt) and works around YouTube’s newer streaming restrictions.',
+        ],
+      },
+      'ru': {
+        ChangeKind.added: [
+          'В «Настройки → О приложении» теперь показывается версия движка YouTube (yt-dlp) и время последнего обновления — нажмите на строку, чтобы обновить его сразу.',
+        ],
+        ChangeKind.fixed: [
+          'Загрузки с YouTube, падавшие с ошибкой «HTTP 403» / «SABR streaming»: приложение теперь гораздо надёжнее поддерживает движок YouTube в актуальном состоянии (в том числе при запуске и с повтором после неудачной попытки) и обходит новые ограничения потоковой передачи YouTube.',
+        ],
+      },
+      'kk': {
+        ChangeKind.added: [
+          '«Параметрлер → Қолданба туралы» бөлімінде енді YouTube қозғалтқышының (yt-dlp) нұсқасы мен соңғы жаңарту уақыты көрсетіледі — оны бірден жаңарту үшін жолды түртіңіз.',
+        ],
+        ChangeKind.fixed: [
+          '«HTTP 403» / «SABR streaming» қатесімен үзілетін YouTube жүктеулері: қолданба енді YouTube қозғалтқышын әлдеқайда сенімді түрде жаңартып отырады (іске қосылу кезінде және сәтсіз әрекеттен кейін қайталап) әрі YouTube-тің жаңа ағындық шектеулерін айналып өтеді.',
+        ],
+      },
+    },
+  ),
   ChangelogEntry(
     version: '0.3.6',
     date: '2026-09-06',

@@ -6,6 +6,34 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 
 ---
 
+## 0.3.7 — 2026-09-07
+
+### English
+
+**Added**
+- Settings → About now shows the YouTube engine (yt-dlp) version and when it last updated — tap the row to update it right away.
+
+**Fixed**
+- YouTube downloads that failed with an "HTTP 403" / "SABR streaming" error: the app now keeps its YouTube engine up to date far more reliably (including at startup, and retrying after a failed attempt) and works around YouTube's newer streaming restrictions.
+
+### Русский
+
+**Добавлено**
+- В «Настройки → О приложении» теперь показывается версия движка YouTube (yt-dlp) и время последнего обновления — нажмите на строку, чтобы обновить его сразу.
+
+**Исправлено**
+- Загрузки с YouTube, падавшие с ошибкой «HTTP 403» / «SABR streaming»: приложение теперь гораздо надёжнее поддерживает движок YouTube в актуальном состоянии (в том числе при запуске и с повтором после неудачной попытки) и обходит новые ограничения потоковой передачи YouTube.
+
+### Қазақша
+
+**Қосылды**
+- «Параметрлер → Қолданба туралы» бөлімінде енді YouTube қозғалтқышының (yt-dlp) нұсқасы мен соңғы жаңарту уақыты көрсетіледі — оны бірден жаңарту үшін жолды түртіңіз.
+
+**Түзетілді**
+- «HTTP 403» / «SABR streaming» қатесімен үзілетін YouTube жүктеулері: қолданба енді YouTube қозғалтқышын әлдеқайда сенімді түрде жаңартып отырады (іске қосылу кезінде және сәтсіз әрекеттен кейін қайталап) әрі YouTube-тің жаңа ағындық шектеулерін айналып өтеді.
+
+---
+
 ## 0.3.6 — 2026-09-06
 
 ### English
