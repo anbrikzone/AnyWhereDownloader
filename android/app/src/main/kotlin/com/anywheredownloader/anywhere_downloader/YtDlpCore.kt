@@ -59,6 +59,15 @@ object YtDlpCore {
     private const val DLP_VERSION_KEY = "dlpVersion"
     private const val DLP_VERSION_NAME_KEY = "dlpVersionName"
 
+    /** Our own record, written next to the yt-dlp binary, of which bundled
+     *  version we last installed there. The decision to (re)seed is made
+     *  from this file, NOT youtubedl-android's `dlpVersion` pref: on some
+     *  devices that library's updater reports success and bumps the pref
+     *  without actually replacing the binary (real OnePlus 15 report —
+     *  About showed 2026.08.19 while the running yt-dlp was still
+     *  2025.11.12), which then made the old pref-trusting pre-seed skip. */
+    private const val SEED_MARKER = ".awd_bundled_version"
+
     @Volatile private var initialized = false
     @Volatile private var updateSucceededThisProcess = false
 
@@ -87,13 +96,31 @@ object YtDlpCore {
         initialized = true
     }
 
+    /** Reads our [SEED_MARKER] next to the on-disk yt-dlp binary. */
+    private fun seededVersion(appContext: Context): String? = try {
+        val marker = File(ytdlpDir(appContext), SEED_MARKER)
+        if (marker.exists()) marker.readText().trim().ifEmpty { null } else null
+    } catch (e: Throwable) {
+        null
+    }
+
+    private fun ytdlpDir(appContext: Context) = File(
+        appContext.noBackupFilesDir,
+        "${YoutubeDL.baseName}/${YoutubeDL.ytdlpDirName}",
+    )
+
     /**
-     * Copy the APK-bundled yt-dlp over the on-disk binary when it's newer
-     * than what's installed, *before* [YoutubeDL.init] runs. `init_ytdlp`
-     * only unpacks its own `R.raw.ytdlp` when the target file is absent, so
-     * writing ours first makes it win without touching library internals.
-     * Best-effort: any failure just falls through to youtubedl-android's
-     * vendored copy.
+     * Install the APK-bundled yt-dlp as the on-disk binary *before*
+     * [YoutubeDL.init] runs (`init_ytdlp` only unpacks its own `R.raw.ytdlp`
+     * when the target file is absent, so writing ours first makes it win).
+     *
+     * The "is the right binary already there?" question is answered from
+     * our own [SEED_MARKER] file, deliberately NOT from youtubedl-android's
+     * `dlpVersion` pref — that pref can be ahead of the file that's really
+     * on disk (its updater reporting success without swapping the binary),
+     * which is exactly what made the first version of this skip and leave a
+     * months-old yt-dlp running. Best-effort: any failure falls through to
+     * youtubedl-android's vendored copy.
      */
     private fun preSeedBundledYtDlp(appContext: Context) {
         try {
@@ -101,19 +128,29 @@ object YtDlpCore {
                 .use { it.readBytes().toString(Charsets.UTF_8).trim() }
             if (assetVersion.isEmpty()) return
 
-            val prefs = appContext.getSharedPreferences(YTDL_PREFS, Context.MODE_PRIVATE)
-            val installed = prefs.getString(DLP_VERSION_KEY, null)
-            val target = File(
-                appContext.noBackupFilesDir,
-                "${YoutubeDL.baseName}/${YoutubeDL.ytdlpDirName}/${YoutubeDL.ytdlpBin}",
-            )
-            // yt-dlp versions are zero-padded YYYY.MM.DD, so a lexical
-            // compare orders them; also seed if nothing is unpacked yet.
-            val fresher = installed.isNullOrEmpty() || assetVersion > installed
-            if (target.exists() && !fresher) return
+            val dir = ytdlpDir(appContext)
+            val target = File(dir, YoutubeDL.ytdlpBin)
+            val marker = File(dir, SEED_MARKER)
+            val seeded = seededVersion(appContext)
 
-            target.parentFile?.mkdirs()
-            val tmp = File(target.parentFile, "yt-dlp.awdtmp")
+            // Our bundled binary is already the one we put on disk — done.
+            if (target.exists() && seeded == assetVersion) return
+
+            // We seeded before AND something recorded a version strictly
+            // newer than we ship — assume a genuine self-update fetched it
+            // and leave that alone.
+            val recorded = appContext
+                .getSharedPreferences(YTDL_PREFS, Context.MODE_PRIVATE)
+                .getString(DLP_VERSION_KEY, null)
+            if (seeded != null && recorded != null && target.exists() &&
+                recorded > assetVersion
+            ) {
+                return
+            }
+
+            val targetExisted = target.exists()
+            dir.mkdirs()
+            val tmp = File(dir, "yt-dlp.awdtmp")
             appContext.assets.open("$BUNDLED_DIR/yt-dlp").use { input ->
                 tmp.outputStream().use { input.copyTo(it) }
             }
@@ -121,13 +158,19 @@ object YtDlpCore {
                 tmp.copyTo(target, overwrite = true)
                 tmp.delete()
             }
-            prefs.edit()
+            marker.writeText(assetVersion)
+            appContext.getSharedPreferences(YTDL_PREFS, Context.MODE_PRIVATE).edit()
                 .putString(DLP_VERSION_KEY, assetVersion)
                 .putString(DLP_VERSION_NAME_KEY, "yt-dlp $assetVersion")
                 .apply()
-            Log.i(TAG, "pre-seeded bundled yt-dlp $assetVersion (was ${installed ?: "none"})")
+            Log.i(
+                TAG,
+                "pre-seeded bundled yt-dlp $assetVersion " +
+                    "(marker was ${seeded ?: "none"}, pref was ${recorded ?: "none"}, " +
+                    "target existed=$targetExisted)",
+            )
         } catch (e: Throwable) {
-            Log.w(TAG, "bundled yt-dlp pre-seed skipped", e)
+            Log.w(TAG, "bundled yt-dlp pre-seed FAILED", e)
         }
     }
 
@@ -175,8 +218,22 @@ object YtDlpCore {
         }
     }
 
+    /**
+     * Best guess at the yt-dlp version actually on disk. youtubedl-android's
+     * own `version()` pref can read ahead of the real file (see
+     * [preSeedBundledYtDlp]), so when we have a [SEED_MARKER] we trust that
+     * instead — unless the pref is strictly newer, which only a genuine
+     * self-update produces.
+     */
     fun currentVersion(appContext: Context): String? = try {
-        YoutubeDL.getInstance().version(appContext)
+        val pref = YoutubeDL.getInstance().version(appContext)
+        val seeded = seededVersion(appContext)
+        when {
+            seeded == null -> pref
+            pref == null -> seeded
+            pref > seeded -> pref
+            else -> seeded
+        }
     } catch (e: Throwable) {
         Log.w(TAG, "reading yt-dlp version failed", e)
         null

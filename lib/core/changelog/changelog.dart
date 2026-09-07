@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 /// changelog entry's version. Keep this in sync with `pubspec.yaml`'s
 /// `version:` field and the top entry of both [kChangelog] and the
 /// project-root `CHANGELOG.md`.
-const String kAppVersion = '0.3.8';
+const String kAppVersion = '0.3.9';
 
 /// The kind of change a changelog line describes. Rendered as a small
 /// section header ("Added" / "Changed" / "Fixed"); a kind with no lines is
@@ -40,6 +40,27 @@ class ChangelogEntry {
 /// new" screen renders; the project-root `CHANGELOG.md` mirrors it for
 /// people reading the repo. Update both together on every release.
 const List<ChangelogEntry> kChangelog = [
+  ChangelogEntry(
+    version: '0.3.9',
+    date: '2026-09-07',
+    notes: {
+      'en': {
+        ChangeKind.fixed: [
+          'On some phones YouTube still failed with an “HTTP 403” error even though Settings said the YouTube engine was up to date — the app was quietly running an old built-in yt-dlp. The bundled engine is now installed reliably regardless of that.',
+        ],
+      },
+      'ru': {
+        ChangeKind.fixed: [
+          'На некоторых телефонах YouTube всё равно падал с ошибкой «HTTP 403», хотя в настройках движок YouTube значился актуальным — на деле приложение использовало старую встроенную версию yt-dlp. Теперь встроенный движок ставится надёжно, независимо от этого.',
+        ],
+      },
+      'kk': {
+        ChangeKind.fixed: [
+          'Кейбір телефондарда параметрлерде YouTube қозғалтқышы өзекті деп көрсетілсе де, YouTube «HTTP 403» қатесімен үзіле берді — қолданба шын мәнінде ескі кірістірілген yt-dlp нұсқасын пайдаланып жүрген. Енді кірістірілген қозғалтқыш бұған қарамастан сенімді орнатылады.',
+        ],
+      },
+    },
+  ),
   ChangelogEntry(
     version: '0.3.8',
     date: '2026-09-07',

@@ -6,6 +6,25 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 
 ---
 
+## 0.3.9 — 2026-09-07
+
+### English
+
+**Fixed**
+- On some phones YouTube still failed with an "HTTP 403" error even though Settings said the YouTube engine was up to date — the app was quietly running an old built-in yt-dlp. The bundled engine is now installed reliably regardless of that.
+
+### Русский
+
+**Исправлено**
+- На некоторых телефонах YouTube всё равно падал с ошибкой «HTTP 403», хотя в настройках движок YouTube значился актуальным — на деле приложение использовало старую встроенную версию yt-dlp. Теперь встроенный движок ставится надёжно, независимо от этого.
+
+### Қазақша
+
+**Түзетілді**
+- Кейбір телефондарда параметрлерде YouTube қозғалтқышы өзекті деп көрсетілсе де, YouTube «HTTP 403» қатесімен үзіле берді — қолданба шын мәнінде ескі кірістірілген yt-dlp нұсқасын пайдаланып жүрген. Енді кірістірілген қозғалтқыш бұған қарамастан сенімді орнатылады.
+
+---
+
 ## 0.3.8 — 2026-09-07
 
 ### English
