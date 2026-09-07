@@ -4,8 +4,8 @@ import '../settings/app_settings_service.dart';
 import 'update_installer.dart';
 import 'update_service.dart';
 
-/// How often the silent cold-start check is allowed to hit the network.
-const _checkThrottle = Duration(hours: 24);
+/// How often the silent background check is allowed to hit the network.
+const _checkThrottle = Duration(hours: 1);
 
 sealed class UpdateState {
   const UpdateState();
@@ -66,28 +66,46 @@ class UpdateController extends StateNotifier<UpdateState> {
   final UpdateInstaller _installer;
   final AppSettingsService _settings;
 
-  /// Silent, best-effort — only actually checks if the last check was more
-  /// than [_checkThrottle] ago. Never surfaces an error state (this runs on
-  /// cold start, where a failed check must be invisible).
+  /// True while a check is in flight — guards against overlapping runs, not
+  /// for the UI (the check is meant to be invisible; the row keeps showing
+  /// the last known result the whole time).
+  bool _checking = false;
+
+  /// Best-effort background check on app open — throttled to [_checkThrottle]
+  /// so an Activity recreate doesn't re-hit the network.
   Future<void> maybeCheckOnStartup() async {
-    if (state is! UpdateIdle) return;
     final last = await _settings.getLastUpdateCheck();
     if (last != null && DateTime.now().difference(last) < _checkThrottle) return;
-    await _check(surfaceErrors: false);
+    await _check();
   }
 
-  /// User tapped "Check for updates" — always hits the network, surfaces
-  /// "up to date" and errors.
-  Future<void> checkNow() => _check(surfaceErrors: true);
+  /// "Check for updates" tap. Runs in the background — the caller does not
+  /// await it and nothing blocks; [state] is updated if and when a result
+  /// comes back.
+  Future<void> checkNow() => _check();
 
-  Future<void> _check({required bool surfaceErrors}) async {
-    state = const UpdateChecking();
-    final info = await _service.checkForUpdate();
-    await _settings.setLastUpdateCheck(DateTime.now());
-    if (info != null) {
-      state = UpdateAvailable(info);
-    } else {
-      state = surfaceErrors ? const UpdateUpToDate() : const UpdateIdle();
+  Future<void> _check() async {
+    if (_checking) return;
+    // Don't disturb an in-progress download / install.
+    if (state is UpdateDownloading || state is UpdateReadyToInstall) return;
+    _checking = true;
+    try {
+      final info = await _service.checkForUpdate();
+      await _settings.setLastUpdateCheck(DateTime.now());
+      if (info != null) {
+        state = UpdateAvailable(info);
+      } else if (state is UpdateIdle ||
+          state is UpdateChecking ||
+          state is UpdateUpToDate ||
+          state is UpdateAvailable ||
+          state is UpdateError) {
+        // Nothing (or nothing any more) — settle on a plain "up to date".
+        state = const UpdateUpToDate();
+      }
+    } catch (_) {
+      // A failed background check stays quiet: keep whatever we last knew.
+    } finally {
+      _checking = false;
     }
   }
 

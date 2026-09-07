@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -152,21 +154,48 @@ class _Dropdown<T> extends StatelessWidget {
   }
 }
 
-/// "Check for updates" row. One tap checks **both** the app (GitHub
-/// release, [updateControllerProvider]) and the YouTube engine
-/// ([ytDlpStatusProvider] — a newer yt-dlp is fetched and installed
-/// silently). If an app update is found, tapping again opens
-/// [showUpdateSheet]; otherwise the subtitle reports the combined result.
-class _UpdateRow extends ConsumerWidget {
+/// "Check for updates" row. A tap kicks off **both** checks — the app
+/// (GitHub release, [updateControllerProvider]) and the YouTube engine
+/// ([ytDlpStatusProvider]) — in the background and returns immediately: the
+/// row keeps showing the last known result the whole time, never a
+/// blocking spinner. A short cosmetic pulse (≤2 s) acknowledges the tap;
+/// the real network calls run their own timeouts unwatched and update the
+/// row if and when anything changed. If an app update is found, the tap
+/// opens [showUpdateSheet] instead.
+class _UpdateRow extends ConsumerStatefulWidget {
   const _UpdateRow();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_UpdateRow> createState() => _UpdateRowState();
+}
+
+class _UpdateRowState extends ConsumerState<_UpdateRow> {
+  bool _pulsing = false;
+  Timer? _pulseTimer;
+
+  @override
+  void dispose() {
+    _pulseTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startCheck() {
+    // Fire-and-forget — neither call is awaited, nothing blocks.
+    unawaited(ref.read(updateControllerProvider.notifier).checkNow());
+    unawaited(ref.read(ytDlpStatusProvider.notifier).updateNow());
+    setState(() => _pulsing = true);
+    _pulseTimer?.cancel();
+    _pulseTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _pulsing = false);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final appState = ref.watch(updateControllerProvider);
     final ytState = ref.watch(ytDlpStatusProvider);
 
-    final busy = appState is UpdateChecking || ytState.updating;
     final hasAppUpdate = appState is UpdateAvailable ||
         appState is UpdateDownloading ||
         appState is UpdateReadyToInstall ||
@@ -181,15 +210,7 @@ class _UpdateRow extends ConsumerWidget {
         };
 
     String? subtitle;
-    Widget? trailing;
-    if (busy) {
-      subtitle = l10n.updateChecking;
-      trailing = const SizedBox(
-        width: 20,
-        height: 20,
-        child: CircularProgressIndicator(strokeWidth: 2),
-      );
-    } else if (appState is UpdateAvailable) {
+    if (appState is UpdateAvailable) {
       subtitle = l10n.updateAvailable(appState.info.version);
     } else if (appState is UpdateReadyToInstall) {
       subtitle = l10n.updateAvailable(appState.info.version);
@@ -203,7 +224,8 @@ class _UpdateRow extends ConsumerWidget {
           ? l10n.appNoUpdateLabel
           : '${l10n.appNoUpdateLabel} · $yt';
     } else {
-      subtitle = null; // idle — the standing hint below explains it
+      // Not checked yet this session — show "checking…" only during the pulse.
+      subtitle = _pulsing ? l10n.updateChecking : null;
     }
 
     return ListTile(
@@ -212,17 +234,20 @@ class _UpdateRow extends ConsumerWidget {
           : const Icon(Icons.system_update_outlined),
       title: Text(l10n.checkForUpdatesTitle),
       subtitle: subtitle == null ? null : Text(subtitle),
-      trailing: trailing,
-      onTap: busy
-          ? null
-          : () {
-              if (hasAppUpdate) {
-                showUpdateSheet(context);
-              } else {
-                ref.read(updateControllerProvider.notifier).checkNow();
-                ref.read(ytDlpStatusProvider.notifier).updateNow();
-              }
-            },
+      trailing: _pulsing
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : null,
+      onTap: () {
+        if (hasAppUpdate) {
+          showUpdateSheet(context);
+        } else {
+          _startCheck();
+        }
+      },
     );
   }
 }
