@@ -90,7 +90,7 @@ class UpdateService {
           'Accept': 'application/vnd.github+json',
           'User-Agent': 'AnyWhereDownloader',
         },
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 8));
       if (res.statusCode != 200) return null;
 
       final body = jsonDecode(res.body) as Map<String, dynamic>;

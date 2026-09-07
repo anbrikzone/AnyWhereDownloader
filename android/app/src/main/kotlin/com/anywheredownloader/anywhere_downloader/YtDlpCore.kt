@@ -53,16 +53,30 @@ object YtDlpCore {
     private const val RETRY_COOLDOWN_MS = 60_000L
 
     /** yt-dlp's own releases feed. We query this ourselves — with a
-     *  User-Agent, an `Accept` header and real timeouts — instead of
-     *  `YoutubeDL.updateYoutubeDL()`, whose check does a header-less,
-     *  timeout-less `ObjectMapper.readTree(URL)` of the whole (large)
-     *  release JSON and routinely takes a minute+ even when nothing needs
-     *  updating (confirmed on a OnePlus 15: two `already up to date`
-     *  results, no download, minute-long spinner). */
+     *  User-Agent, an `Accept` header, an `If-None-Match` conditional and
+     *  real timeouts — instead of `YoutubeDL.updateYoutubeDL()`, whose
+     *  check does a header-less, timeout-less `ObjectMapper.readTree(URL)`
+     *  of the whole (large) release JSON and routinely takes a minute+ even
+     *  when nothing needs updating (confirmed on a OnePlus 15: two `already
+     *  up to date` results, no download, minute-long spinner). */
     private const val YTDLP_RELEASES_API =
         "https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest"
+    private const val YTDLP_DOWNLOAD_URL =
+        "https://github.com/yt-dlp/yt-dlp/releases/download/%s/yt-dlp"
     private const val API_TIMEOUT_MS = 8_000
     private const val DOWNLOAD_TIMEOUT_MS = 30_000
+
+    /** A manual "Check for updates" tap re-uses the last result rather than
+     *  hitting the network again if a check already succeeded this recently
+     *  (the startup warm-up usually already ran one). */
+    private const val FORCE_RECHECK_THROTTLE_MS = 5 * 60_000L
+
+    /** Our own prefs (not youtubedl-android's) — caches the releases-feed
+     *  ETag + last-seen tag so repeat checks are a 304, not a full re-read
+     *  of the multi-KB release JSON. */
+    private const val AWD_PREFS = "awd_ytdlp"
+    private const val KEY_ETAG = "releases_etag"
+    private const val KEY_LATEST_TAG = "releases_latest_tag"
 
     /** APK-bundled yt-dlp (refreshed per release by
      *  `tool/refresh_bundled_ytdlp.sh`) — installed on first run when it
@@ -233,6 +247,13 @@ object YtDlpCore {
     fun forceUpdate(appContext: Context): UpdateOutcome {
         ensureInitOnly(appContext)
         synchronized(updateLock) {
+            val sinceLast = System.currentTimeMillis() - lastUpdate.timestampMs
+            if ((lastUpdate.status == "upToDate" || lastUpdate.status == "done") &&
+                sinceLast < FORCE_RECHECK_THROTTLE_MS
+            ) {
+                Log.i(TAG, "yt-dlp check re-used (${lastUpdate.status}, ${sinceLast}ms ago)")
+                return lastUpdate
+            }
             return runUpdateLocked(appContext, FORCED_UPDATE_TIMEOUT_MS)
         }
     }
@@ -305,8 +326,7 @@ object YtDlpCore {
     private fun ownUpdate(appContext: Context): UpdateOutcome {
         val now = System.currentTimeMillis()
         return try {
-            val json = org.json.JSONObject(apiGet(YTDLP_RELEASES_API))
-            val latestTag = json.getString("tag_name")
+            val latestTag = fetchLatestYtDlpTag(appContext)
             val installed = seededVersion(appContext) ?: appContext
                 .getSharedPreferences(YTDL_PREFS, Context.MODE_PRIVATE)
                 .getString(DLP_VERSION_KEY, null)
@@ -317,21 +337,9 @@ object YtDlpCore {
                 return UpdateOutcome("upToDate", currentVersion(appContext), null, now)
             }
 
-            val assets = json.getJSONArray("assets")
-            var downloadUrl: String? = null
-            for (i in 0 until assets.length()) {
-                val a = assets.getJSONObject(i)
-                if (a.getString("name") == "yt-dlp") {
-                    downloadUrl = a.getString("browser_download_url")
-                    break
-                }
-            }
-            val url = downloadUrl
-                ?: throw IOException("no yt-dlp asset in release $latestTag")
-
             val dir = ytdlpDir(appContext).apply { mkdirs() }
             val tmp = File(dir, "yt-dlp.dltmp")
-            downloadFile(url, tmp)
+            downloadFile(YTDLP_DOWNLOAD_URL.format(latestTag), tmp)
             if (tmp.length() < 500_000L) {
                 tmp.delete()
                 throw IOException("downloaded yt-dlp is implausibly small (${tmp.length()} B)")
@@ -359,19 +367,39 @@ object YtDlpCore {
         }
     }
 
-    private fun apiGet(urlStr: String): String {
-        val conn = (URL(urlStr).openConnection() as HttpURLConnection).apply {
+    /**
+     * The latest yt-dlp tag, via a conditional GET of the releases feed: an
+     * `If-None-Match` ETag means a repeat check is a tiny `304`, not a
+     * re-read of the whole multi-KB release JSON. Cached tag + ETag live in
+     * our own prefs.
+     */
+    private fun fetchLatestYtDlpTag(appContext: Context): String {
+        val prefs = appContext.getSharedPreferences(AWD_PREFS, Context.MODE_PRIVATE)
+        val etag = prefs.getString(KEY_ETAG, null)
+        val cachedTag = prefs.getString(KEY_LATEST_TAG, null)
+
+        val conn = (URL(YTDLP_RELEASES_API).openConnection() as HttpURLConnection).apply {
             connectTimeout = API_TIMEOUT_MS
             readTimeout = API_TIMEOUT_MS
             instanceFollowRedirects = true
             setRequestProperty("User-Agent", "AnyWhereDownloader")
             setRequestProperty("Accept", "application/vnd.github+json")
+            if (etag != null) setRequestProperty("If-None-Match", etag)
         }
         try {
-            if (conn.responseCode !in 200..299) {
-                throw IOException("HTTP ${conn.responseCode} from $urlStr")
+            val code = conn.responseCode
+            if (code == HttpURLConnection.HTTP_NOT_MODIFIED && cachedTag != null) {
+                return cachedTag
             }
-            return conn.inputStream.bufferedReader().use { it.readText() }
+            if (code !in 200..299) throw IOException("HTTP $code from releases feed")
+            val body = conn.inputStream.bufferedReader().use { it.readText() }
+            val tag = org.json.JSONObject(body).getString("tag_name")
+            prefs.edit().apply {
+                putString(KEY_LATEST_TAG, tag)
+                val newEtag = conn.getHeaderField("ETag")
+                if (newEtag != null) putString(KEY_ETAG, newEtag) else remove(KEY_ETAG)
+            }.apply()
+            return tag
         } finally {
             conn.disconnect()
         }
