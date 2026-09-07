@@ -10,24 +10,27 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 
 ### English
 
-**Added**
-- Settings → About now shows the YouTube engine (yt-dlp) version and when it last updated — tap the row to update it right away.
+**Changed**
+- The app now ships with a recent yt-dlp built in, so YouTube works right after a fresh install without waiting for the engine to update itself.
+- "Check for updates" (Settings → About) now updates the YouTube engine (yt-dlp) in the same tap — a newer yt-dlp is downloaded and installed automatically. The installed yt-dlp version is shown just below it.
 
 **Fixed**
-- YouTube downloads that failed with an "HTTP 403" / "SABR streaming" error: the app now keeps its YouTube engine up to date far more reliably (including at startup, and retrying after a failed attempt) and works around YouTube's newer streaming restrictions.
+- YouTube downloads that failed with an "HTTP 403" / "SABR streaming" error: the app now keeps its YouTube engine up to date far more reliably (at startup, and retrying after a failed attempt) and works around YouTube's newer streaming restrictions.
 
 ### Русский
 
-**Добавлено**
-- В «Настройки → О приложении» теперь показывается версия движка YouTube (yt-dlp) и время последнего обновления — нажмите на строку, чтобы обновить его сразу.
+**Изменено**
+- В приложение теперь встроена свежая версия yt-dlp, поэтому YouTube работает сразу после чистой установки, не дожидаясь самостоятельного обновления движка.
+- «Проверить обновления» (Настройки → О приложении) теперь тем же нажатием обновляет движок YouTube (yt-dlp) — новый yt-dlp скачивается и устанавливается автоматически. Установленная версия yt-dlp показана строкой ниже.
 
 **Исправлено**
-- Загрузки с YouTube, падавшие с ошибкой «HTTP 403» / «SABR streaming»: приложение теперь гораздо надёжнее поддерживает движок YouTube в актуальном состоянии (в том числе при запуске и с повтором после неудачной попытки) и обходит новые ограничения потоковой передачи YouTube.
+- Загрузки с YouTube, падавшие с ошибкой «HTTP 403» / «SABR streaming»: приложение теперь гораздо надёжнее поддерживает движок YouTube в актуальном состоянии (при запуске и с повтором после неудачной попытки) и обходит новые ограничения потоковой передачи YouTube.
 
 ### Қазақша
 
-**Қосылды**
-- «Параметрлер → Қолданба туралы» бөлімінде енді YouTube қозғалтқышының (yt-dlp) нұсқасы мен соңғы жаңарту уақыты көрсетіледі — оны бірден жаңарту үшін жолды түртіңіз.
+**Өзгертілді**
+- Қолданбаға енді yt-dlp-тың жаңа нұсқасы кірістірілген, сондықтан YouTube таза орнатудан кейін бірден жұмыс істейді, қозғалтқыштың өздігінен жаңаруын күтпейді.
+- «Жаңартуларды тексеру» (Параметрлер → Қолданба туралы) енді сол бір түртумен YouTube қозғалтқышын (yt-dlp) жаңартады — жаңа yt-dlp автоматты түрде жүктеліп орнатылады. Орнатылған yt-dlp нұсқасы төменгі жолда көрсетіледі.
 
 **Түзетілді**
 - «HTTP 403» / «SABR streaming» қатесімен үзілетін YouTube жүктеулері: қолданба енді YouTube қозғалтқышын әлдеқайда сенімді түрде жаңартып отырады (іске қосылу кезінде және сәтсіз әрекеттен кейін қайталап) әрі YouTube-тің жаңа ағындық шектеулерін айналып өтеді.
