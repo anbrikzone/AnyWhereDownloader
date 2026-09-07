@@ -228,6 +228,42 @@ class PlaylistItemDone {
   final String path;
 }
 
+/// The bundled yt-dlp binary's version and the result of the last
+/// self-update attempt (see `android/.../YtDlpCore.kt`). Surfaced in
+/// Settings → About so a stale binary — the usual cause of YouTube
+/// "SABR streaming" / `HTTP 403` download failures — is visible and
+/// manually fixable.
+class YtDlpStatusInfo {
+  YtDlpStatusInfo({
+    this.version,
+    this.lastUpdateStatus = 'never',
+    this.lastUpdateError,
+    this.lastUpdateAt,
+  });
+
+  factory YtDlpStatusInfo.fromMap(Map<Object?, Object?> map) {
+    final atMs = (map['lastUpdateAtMs'] as num?)?.toInt() ?? 0;
+    return YtDlpStatusInfo(
+      version: (map['version'] as String?)?.trim().isEmpty ?? true
+          ? null
+          : (map['version'] as String).trim(),
+      lastUpdateStatus: map['lastUpdateStatus'] as String? ?? 'never',
+      lastUpdateError: map['lastUpdateError'] as String?,
+      lastUpdateAt: atMs > 0
+          ? DateTime.fromMillisecondsSinceEpoch(atMs)
+          : null,
+    );
+  }
+
+  /// e.g. `2026.08.15`, or null if the binary hasn't been unpacked yet.
+  final String? version;
+
+  /// `done` | `upToDate` | `failed` | `never`.
+  final String lastUpdateStatus;
+  final String? lastUpdateError;
+  final DateTime? lastUpdateAt;
+}
+
 /// Thin wrapper over the native yt-dlp bridge (see
 /// `android/app/src/main/kotlin/.../YtDlpBridge.kt`). Shared by every
 /// URL-based extractor (YouTube now, Instagram/X later) — nothing
@@ -373,6 +409,25 @@ class YtDlpEngine {
 
   Future<void> cancelDownload(String processId) {
     return _channel.invokeMethod('cancelDownload', {'processId': processId});
+  }
+
+  /// The bundled yt-dlp version + last self-update outcome. Cheap; safe to
+  /// call from a Settings screen `build`.
+  Future<YtDlpStatusInfo> getYtDlpStatus() async {
+    final result = await _channel.invokeMethod<Map<Object?, Object?>>(
+      'getYtDlpInfo',
+    );
+    return YtDlpStatusInfo.fromMap(result ?? const {});
+  }
+
+  /// Forces a bundled-yt-dlp self-update now (Settings → About button).
+  /// Resolves with the outcome once the attempt finishes (or times out on
+  /// the native side, ~2 min).
+  Future<YtDlpStatusInfo> updateYtDlp() async {
+    final result = await _channel.invokeMethod<Map<Object?, Object?>>(
+      'updateYtDlp',
+    );
+    return YtDlpStatusInfo.fromMap(result ?? const {});
   }
 
   Future<void> _handleNativeCall(MethodCall call) async {

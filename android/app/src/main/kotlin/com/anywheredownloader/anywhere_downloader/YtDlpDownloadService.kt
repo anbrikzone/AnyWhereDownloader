@@ -133,6 +133,7 @@ class YtDlpDownloadService : Service() {
             try {
                 YtDlpCore.ensureInitialized(applicationContext)
                 val request = YoutubeDLRequest(url)
+                YtDlpOptions.applyYouTube(request, url)
                 request.addOption("-f", formatSelector)
                 request.addOption("--merge-output-format", "mp4")
                 request.addOption("-o", outputPath)
@@ -231,6 +232,7 @@ class YtDlpDownloadService : Service() {
                 // so name the output with the base only.
                 val base = outputPath.substringBeforeLast('.', outputPath)
                 val request = YoutubeDLRequest(url)
+                YtDlpOptions.applyYouTube(request, url)
                 request.addOption(
                     "-f",
                     if (audioFormat == "m4a") "ba[ext=m4a]/ba/b" else "ba/b",
@@ -322,6 +324,7 @@ class YtDlpDownloadService : Service() {
             try {
                 YtDlpCore.ensureInitialized(applicationContext)
                 val request = YoutubeDLRequest(url)
+                YtDlpOptions.applyYouTube(request, url)
                 if (audioFormat != null) {
                     request.addOption(
                         "-f",

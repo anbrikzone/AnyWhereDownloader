@@ -527,4 +527,42 @@ class AppLocalizationsKk extends AppLocalizations {
 
   @override
   String get updateNoAsset => 'Бұл құрылғыға үйлесімді жүктеме жоқ';
+
+  @override
+  String get ytDlpEngineChecking => 'Тексерілуде…';
+
+  @override
+  String get ytDlpUpdatingLabel => 'yt-dlp жаңартылуда…';
+
+  @override
+  String ytDlpVersionLabel(String version) {
+    return 'yt-dlp $version';
+  }
+
+  @override
+  String get ytDlpVersionUnknown => 'Нұсқасы белгісіз';
+
+  @override
+  String get ytDlpStatusUpdated => 'жаңартылды';
+
+  @override
+  String get ytDlpStatusUpToDate => 'өзекті нұсқа';
+
+  @override
+  String get ytDlpStatusUpdateFailed => 'соңғы жаңарту сәтсіз аяқталды';
+
+  @override
+  String get ytDlpStatusNotYet => 'әлі жаңартылған жоқ';
+
+  @override
+  String ytDlpUpdateDoneToast(String version) {
+    return 'yt-dlp $version нұсқасына жаңартылды';
+  }
+
+  @override
+  String get ytDlpUpToDateToast => 'yt-dlp нұсқасы қазірдің өзінде өзекті';
+
+  @override
+  String get ytDlpUpdateFailedToast =>
+      'yt-dlp жаңарту мүмкін болмады — байланысты тексеріңіз';
 }

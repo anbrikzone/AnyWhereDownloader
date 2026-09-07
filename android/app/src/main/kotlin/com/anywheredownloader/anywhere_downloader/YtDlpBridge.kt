@@ -132,6 +132,39 @@ class YtDlpBridge(private val appContext: Context) {
                 result.success(YoutubeDL.getInstance().destroyProcessById(processId))
             }
 
+            "getYtDlpInfo" -> {
+                executor.execute {
+                    val version = YtDlpCore.currentVersion(appContext)
+                    val last = YtDlpCore.lastUpdate
+                    mainHandler.post {
+                        result.success(
+                            mapOf(
+                                "version" to version,
+                                "lastUpdateStatus" to last.status,
+                                "lastUpdateError" to last.error,
+                                "lastUpdateAtMs" to last.timestampMs,
+                            ),
+                        )
+                    }
+                }
+            }
+
+            "updateYtDlp" -> {
+                executor.execute {
+                    val outcome = YtDlpCore.forceUpdate(appContext)
+                    mainHandler.post {
+                        result.success(
+                            mapOf(
+                                "version" to outcome.version,
+                                "lastUpdateStatus" to outcome.status,
+                                "lastUpdateError" to outcome.error,
+                                "lastUpdateAtMs" to outcome.timestampMs,
+                            ),
+                        )
+                    }
+                }
+            }
+
             else -> result.notImplemented()
         }
     }
@@ -140,8 +173,12 @@ class YtDlpBridge(private val appContext: Context) {
         executor.execute {
             try {
                 YtDlpCore.ensureInitialized(appContext)
+                val request = YoutubeDLRequest(url)
+                // SABR / player-client workaround for YouTube (no-op for
+                // every other host) — see YtDlpOptions.
+                YtDlpOptions.applyYouTube(request, url)
                 val info = try {
-                    YoutubeDL.getInstance().getInfo(url)
+                    YoutubeDL.getInstance().getInfo(request)
                 } catch (e: YoutubeDLException) {
                     if (isTwitterUrl(url) && e.message?.contains("No video could be found") == true) {
                         // X/Twitter's default GraphQL extraction path doesn't
@@ -161,9 +198,9 @@ class YtDlpBridge(private val appContext: Context) {
                         // "Not all metadata or media is available") — no
                         // reason to downgrade the common case that already
                         // works via GraphQL.
-                        val request = YoutubeDLRequest(url)
-                        request.addOption("--extractor-args", "twitter:api=syndication")
-                        YoutubeDL.getInstance().getInfo(request)
+                        val syndicationRequest = YoutubeDLRequest(url)
+                        syndicationRequest.addOption("--extractor-args", "twitter:api=syndication")
+                        YoutubeDL.getInstance().getInfo(syndicationRequest)
                     } else {
                         throw e
                     }

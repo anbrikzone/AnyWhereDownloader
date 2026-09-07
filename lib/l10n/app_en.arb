@@ -249,5 +249,23 @@
   "updateFailed": "Update failed — open the release page instead",
   "updatePermissionNeeded": "Allow installing apps from this source, then tap Install again",
   "updateOpenReleasePage": "Open release page",
-  "updateNoAsset": "No compatible download for this device"
+  "updateNoAsset": "No compatible download for this device",
+
+  "ytDlpEngineChecking": "Checking…",
+  "ytDlpUpdatingLabel": "Updating yt-dlp…",
+  "ytDlpVersionLabel": "yt-dlp {version}",
+  "@ytDlpVersionLabel": {
+    "placeholders": { "version": { "type": "String" } }
+  },
+  "ytDlpVersionUnknown": "Version unknown",
+  "ytDlpStatusUpdated": "updated",
+  "ytDlpStatusUpToDate": "up to date",
+  "ytDlpStatusUpdateFailed": "last update failed",
+  "ytDlpStatusNotYet": "not updated yet",
+  "ytDlpUpdateDoneToast": "yt-dlp updated to {version}",
+  "@ytDlpUpdateDoneToast": {
+    "placeholders": { "version": { "type": "String" } }
+  },
+  "ytDlpUpToDateToast": "yt-dlp is already up to date",
+  "ytDlpUpdateFailedToast": "Couldn't update yt-dlp — check your connection"
 }

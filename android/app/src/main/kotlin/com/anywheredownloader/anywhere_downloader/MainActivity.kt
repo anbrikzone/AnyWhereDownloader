@@ -37,5 +37,9 @@ class MainActivity : FlutterActivity() {
         mediaSaveChannel.setMethodCallHandler { call, result ->
             mediaSaveBridge.handle(call, result)
         }
+
+        // Init + self-update the bundled yt-dlp off the critical path, so a
+        // fresh binary is usually in place before the user pastes a link.
+        YtDlpCore.warmUp(applicationContext)
     }
 }

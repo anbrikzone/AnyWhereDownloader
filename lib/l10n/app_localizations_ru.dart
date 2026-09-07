@@ -526,4 +526,42 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get updateNoAsset => 'Нет совместимой загрузки для этого устройства';
+
+  @override
+  String get ytDlpEngineChecking => 'Проверка…';
+
+  @override
+  String get ytDlpUpdatingLabel => 'Обновление yt-dlp…';
+
+  @override
+  String ytDlpVersionLabel(String version) {
+    return 'yt-dlp $version';
+  }
+
+  @override
+  String get ytDlpVersionUnknown => 'Версия неизвестна';
+
+  @override
+  String get ytDlpStatusUpdated => 'обновлён';
+
+  @override
+  String get ytDlpStatusUpToDate => 'актуальная версия';
+
+  @override
+  String get ytDlpStatusUpdateFailed => 'обновление не удалось';
+
+  @override
+  String get ytDlpStatusNotYet => 'ещё не обновлялся';
+
+  @override
+  String ytDlpUpdateDoneToast(String version) {
+    return 'yt-dlp обновлён до $version';
+  }
+
+  @override
+  String get ytDlpUpToDateToast => 'yt-dlp уже актуальной версии';
+
+  @override
+  String get ytDlpUpdateFailedToast =>
+      'Не удалось обновить yt-dlp — проверьте подключение';
 }

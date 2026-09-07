@@ -177,5 +177,23 @@
   "updateFailed": "Жаңарту сәтсіз аяқталды — шығарылым бетін ашыңыз",
   "updatePermissionNeeded": "Осы көзден қолданба орнатуға рұқсат етіп, «Орнату» түймесін қайта басыңыз",
   "updateOpenReleasePage": "Шығарылым бетін ашу",
-  "updateNoAsset": "Бұл құрылғыға үйлесімді жүктеме жоқ"
+  "updateNoAsset": "Бұл құрылғыға үйлесімді жүктеме жоқ",
+
+  "ytDlpEngineChecking": "Тексерілуде…",
+  "ytDlpUpdatingLabel": "yt-dlp жаңартылуда…",
+  "ytDlpVersionLabel": "yt-dlp {version}",
+  "@ytDlpVersionLabel": {
+    "placeholders": { "version": { "type": "String" } }
+  },
+  "ytDlpVersionUnknown": "Нұсқасы белгісіз",
+  "ytDlpStatusUpdated": "жаңартылды",
+  "ytDlpStatusUpToDate": "өзекті нұсқа",
+  "ytDlpStatusUpdateFailed": "соңғы жаңарту сәтсіз аяқталды",
+  "ytDlpStatusNotYet": "әлі жаңартылған жоқ",
+  "ytDlpUpdateDoneToast": "yt-dlp {version} нұсқасына жаңартылды",
+  "@ytDlpUpdateDoneToast": {
+    "placeholders": { "version": { "type": "String" } }
+  },
+  "ytDlpUpToDateToast": "yt-dlp нұсқасы қазірдің өзінде өзекті",
+  "ytDlpUpdateFailedToast": "yt-dlp жаңарту мүмкін болмады — байланысты тексеріңіз"
 }

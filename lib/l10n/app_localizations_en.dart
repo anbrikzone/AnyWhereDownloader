@@ -525,4 +525,42 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updateNoAsset => 'No compatible download for this device';
+
+  @override
+  String get ytDlpEngineChecking => 'Checking…';
+
+  @override
+  String get ytDlpUpdatingLabel => 'Updating yt-dlp…';
+
+  @override
+  String ytDlpVersionLabel(String version) {
+    return 'yt-dlp $version';
+  }
+
+  @override
+  String get ytDlpVersionUnknown => 'Version unknown';
+
+  @override
+  String get ytDlpStatusUpdated => 'updated';
+
+  @override
+  String get ytDlpStatusUpToDate => 'up to date';
+
+  @override
+  String get ytDlpStatusUpdateFailed => 'last update failed';
+
+  @override
+  String get ytDlpStatusNotYet => 'not updated yet';
+
+  @override
+  String ytDlpUpdateDoneToast(String version) {
+    return 'yt-dlp updated to $version';
+  }
+
+  @override
+  String get ytDlpUpToDateToast => 'yt-dlp is already up to date';
+
+  @override
+  String get ytDlpUpdateFailedToast =>
+      'Couldn\'t update yt-dlp — check your connection';
 }

@@ -993,6 +993,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No compatible download for this device'**
   String get updateNoAsset;
+
+  /// No description provided for @ytDlpEngineChecking.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking…'**
+  String get ytDlpEngineChecking;
+
+  /// No description provided for @ytDlpUpdatingLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Updating yt-dlp…'**
+  String get ytDlpUpdatingLabel;
+
+  /// No description provided for @ytDlpVersionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'yt-dlp {version}'**
+  String ytDlpVersionLabel(String version);
+
+  /// No description provided for @ytDlpVersionUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Version unknown'**
+  String get ytDlpVersionUnknown;
+
+  /// No description provided for @ytDlpStatusUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'updated'**
+  String get ytDlpStatusUpdated;
+
+  /// No description provided for @ytDlpStatusUpToDate.
+  ///
+  /// In en, this message translates to:
+  /// **'up to date'**
+  String get ytDlpStatusUpToDate;
+
+  /// No description provided for @ytDlpStatusUpdateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'last update failed'**
+  String get ytDlpStatusUpdateFailed;
+
+  /// No description provided for @ytDlpStatusNotYet.
+  ///
+  /// In en, this message translates to:
+  /// **'not updated yet'**
+  String get ytDlpStatusNotYet;
+
+  /// No description provided for @ytDlpUpdateDoneToast.
+  ///
+  /// In en, this message translates to:
+  /// **'yt-dlp updated to {version}'**
+  String ytDlpUpdateDoneToast(String version);
+
+  /// No description provided for @ytDlpUpToDateToast.
+  ///
+  /// In en, this message translates to:
+  /// **'yt-dlp is already up to date'**
+  String get ytDlpUpToDateToast;
+
+  /// No description provided for @ytDlpUpdateFailedToast.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t update yt-dlp — check your connection'**
+  String get ytDlpUpdateFailedToast;
 }
 
 class _AppLocalizationsDelegate

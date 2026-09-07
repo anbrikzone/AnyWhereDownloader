@@ -5,6 +5,8 @@ import '../../core/changelog/changelog.dart';
 import '../../core/extraction/media_extractor.dart';
 import '../../core/settings/app_settings_service.dart';
 import '../../core/settings/settings_providers.dart';
+import '../../core/settings/yt_dlp_status_provider.dart';
+import '../../core/ui/app_toast.dart';
 import '../../core/update/update_providers.dart';
 import '../../l10n/app_localizations.dart';
 import 'changelog_screen.dart';
@@ -104,6 +106,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           const _UpdateRow(),
+          const _YtDlpRow(),
         ],
       ),
     );
@@ -198,6 +201,67 @@ class _UpdateRow extends ConsumerWidget {
               } else {
                 controller.checkNow();
               }
+            },
+    );
+  }
+}
+
+/// "yt-dlp engine" row. Shows the bundled yt-dlp version and the last
+/// self-update result; tapping forces an update now. A stale binary here is
+/// the usual cause of YouTube "SABR streaming" / `HTTP 403` download
+/// failures, so it's worth making visible and manually fixable.
+class _YtDlpRow extends ConsumerWidget {
+  const _YtDlpRow();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final state = ref.watch(ytDlpStatusProvider);
+    final controller = ref.read(ytDlpStatusProvider.notifier);
+    final info = state.info;
+
+    final String subtitle;
+    if (state.updating) {
+      subtitle = l10n.ytDlpUpdatingLabel;
+    } else if (state.loading || info == null) {
+      subtitle = l10n.ytDlpEngineChecking;
+    } else {
+      final version = info.version != null
+          ? l10n.ytDlpVersionLabel(info.version!)
+          : l10n.ytDlpVersionUnknown;
+      final status = switch (info.lastUpdateStatus) {
+        'done' => l10n.ytDlpStatusUpdated,
+        'upToDate' => l10n.ytDlpStatusUpToDate,
+        'failed' => l10n.ytDlpStatusUpdateFailed,
+        _ => l10n.ytDlpStatusNotYet,
+      };
+      subtitle = '$version · $status';
+    }
+
+    return ListTile(
+      leading: const Icon(Icons.terminal_outlined),
+      title: const Text('yt-dlp'),
+      subtitle: Text(subtitle),
+      trailing: state.updating
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.refresh),
+      onTap: state.updating
+          ? null
+          : () async {
+              final result = await controller.updateNow();
+              if (!context.mounted) return;
+              final message = switch (result?.lastUpdateStatus) {
+                'done' => l10n.ytDlpUpdateDoneToast(
+                  result?.version ?? '',
+                ),
+                'upToDate' => l10n.ytDlpUpToDateToast,
+                _ => l10n.ytDlpUpdateFailedToast,
+              };
+              showAppToast(context, message);
             },
     );
   }

@@ -177,5 +177,23 @@
   "updateFailed": "Не удалось обновить — откройте страницу релиза",
   "updatePermissionNeeded": "Разрешите установку приложений из этого источника и нажмите «Установить» снова",
   "updateOpenReleasePage": "Открыть страницу релиза",
-  "updateNoAsset": "Нет совместимой загрузки для этого устройства"
+  "updateNoAsset": "Нет совместимой загрузки для этого устройства",
+
+  "ytDlpEngineChecking": "Проверка…",
+  "ytDlpUpdatingLabel": "Обновление yt-dlp…",
+  "ytDlpVersionLabel": "yt-dlp {version}",
+  "@ytDlpVersionLabel": {
+    "placeholders": { "version": { "type": "String" } }
+  },
+  "ytDlpVersionUnknown": "Версия неизвестна",
+  "ytDlpStatusUpdated": "обновлён",
+  "ytDlpStatusUpToDate": "актуальная версия",
+  "ytDlpStatusUpdateFailed": "обновление не удалось",
+  "ytDlpStatusNotYet": "ещё не обновлялся",
+  "ytDlpUpdateDoneToast": "yt-dlp обновлён до {version}",
+  "@ytDlpUpdateDoneToast": {
+    "placeholders": { "version": { "type": "String" } }
+  },
+  "ytDlpUpToDateToast": "yt-dlp уже актуальной версии",
+  "ytDlpUpdateFailedToast": "Не удалось обновить yt-dlp — проверьте подключение"
 }
