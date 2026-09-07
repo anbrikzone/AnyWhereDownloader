@@ -1,0 +1,6 @@
+# Shell scripts must keep LF endings even on Windows checkouts, or the
+# shebang / line continuations break when run.
+*.sh text eol=lf
+
+# Bundled yt-dlp is a binary blob (python zipapp), never touch its bytes.
+android/app/src/main/assets/ytdlp/yt-dlp binary

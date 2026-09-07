@@ -190,10 +190,12 @@
   "ytDlpStatusUpToDate": "өзекті нұсқа",
   "ytDlpStatusUpdateFailed": "соңғы жаңарту сәтсіз аяқталды",
   "ytDlpStatusNotYet": "әлі жаңартылған жоқ",
-  "ytDlpUpdateDoneToast": "yt-dlp {version} нұсқасына жаңартылды",
-  "@ytDlpUpdateDoneToast": {
+  "updateChecksBothHint": "«Жаңартуларды тексеру» әрі қолданбаны, әрі YouTube қозғалтқышын (yt-dlp) тексереді. Жаңа yt-dlp автоматты түрде, бөлек терезесіз жүктеліп орнатылады.",
+  "appNoUpdateLabel": "Қолданба жаңартуы жоқ",
+  "ytDlpUpdatedToShort": "yt-dlp {version} нұсқасына жаңартылды",
+  "@ytDlpUpdatedToShort": {
     "placeholders": { "version": { "type": "String" } }
   },
-  "ytDlpUpToDateToast": "yt-dlp нұсқасы қазірдің өзінде өзекті",
-  "ytDlpUpdateFailedToast": "yt-dlp жаңарту мүмкін болмады — байланысты тексеріңіз"
+  "ytDlpCurrentShort": "yt-dlp өзекті",
+  "ytDlpFailedShort": "yt-dlp жаңарту сәтсіз"
 }

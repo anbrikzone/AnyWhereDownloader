@@ -1042,23 +1042,35 @@ abstract class AppLocalizations {
   /// **'not updated yet'**
   String get ytDlpStatusNotYet;
 
-  /// No description provided for @ytDlpUpdateDoneToast.
+  /// No description provided for @updateChecksBothHint.
+  ///
+  /// In en, this message translates to:
+  /// **'“Check for updates” checks both the app and the YouTube engine (yt-dlp). A newer yt-dlp is downloaded and installed automatically, with no separate prompt.'**
+  String get updateChecksBothHint;
+
+  /// No description provided for @appNoUpdateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'No app update'**
+  String get appNoUpdateLabel;
+
+  /// No description provided for @ytDlpUpdatedToShort.
   ///
   /// In en, this message translates to:
   /// **'yt-dlp updated to {version}'**
-  String ytDlpUpdateDoneToast(String version);
+  String ytDlpUpdatedToShort(String version);
 
-  /// No description provided for @ytDlpUpToDateToast.
+  /// No description provided for @ytDlpCurrentShort.
   ///
   /// In en, this message translates to:
-  /// **'yt-dlp is already up to date'**
-  String get ytDlpUpToDateToast;
+  /// **'yt-dlp up to date'**
+  String get ytDlpCurrentShort;
 
-  /// No description provided for @ytDlpUpdateFailedToast.
+  /// No description provided for @ytDlpFailedShort.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t update yt-dlp — check your connection'**
-  String get ytDlpUpdateFailedToast;
+  /// **'yt-dlp update failed'**
+  String get ytDlpFailedShort;
 }
 
 class _AppLocalizationsDelegate

@@ -554,14 +554,20 @@ class AppLocalizationsRu extends AppLocalizations {
   String get ytDlpStatusNotYet => 'ещё не обновлялся';
 
   @override
-  String ytDlpUpdateDoneToast(String version) {
+  String get updateChecksBothHint =>
+      '«Проверить обновления» проверяет и приложение, и движок YouTube (yt-dlp). Свежий yt-dlp скачивается и устанавливается автоматически, без отдельного окна.';
+
+  @override
+  String get appNoUpdateLabel => 'Обновлений программы нет';
+
+  @override
+  String ytDlpUpdatedToShort(String version) {
     return 'yt-dlp обновлён до $version';
   }
 
   @override
-  String get ytDlpUpToDateToast => 'yt-dlp уже актуальной версии';
+  String get ytDlpCurrentShort => 'yt-dlp актуален';
 
   @override
-  String get ytDlpUpdateFailedToast =>
-      'Не удалось обновить yt-dlp — проверьте подключение';
+  String get ytDlpFailedShort => 'не удалось обновить yt-dlp';
 }

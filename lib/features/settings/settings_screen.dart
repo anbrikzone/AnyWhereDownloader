@@ -6,7 +6,6 @@ import '../../core/extraction/media_extractor.dart';
 import '../../core/settings/app_settings_service.dart';
 import '../../core/settings/settings_providers.dart';
 import '../../core/settings/yt_dlp_status_provider.dart';
-import '../../core/ui/app_toast.dart';
 import '../../core/update/update_providers.dart';
 import '../../l10n/app_localizations.dart';
 import 'changelog_screen.dart';
@@ -107,6 +106,7 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const _UpdateRow(),
           const _YtDlpRow(),
+          const _UpdateHint(),
         ],
       ),
     );
@@ -152,64 +152,84 @@ class _Dropdown<T> extends StatelessWidget {
   }
 }
 
-/// "Check for updates" row. Reflects [updateControllerProvider]: tapping
-/// runs a check when idle, or opens [showUpdateSheet] once an update has
-/// been found (or a previous attempt failed).
+/// "Check for updates" row. One tap checks **both** the app (GitHub
+/// release, [updateControllerProvider]) and the YouTube engine
+/// ([ytDlpStatusProvider] — a newer yt-dlp is fetched and installed
+/// silently). If an app update is found, tapping again opens
+/// [showUpdateSheet]; otherwise the subtitle reports the combined result.
 class _UpdateRow extends ConsumerWidget {
   const _UpdateRow();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final state = ref.watch(updateControllerProvider);
-    final controller = ref.read(updateControllerProvider.notifier);
+    final appState = ref.watch(updateControllerProvider);
+    final ytState = ref.watch(ytDlpStatusProvider);
 
-    final (subtitle, trailing, hasUpdate) = switch (state) {
-      UpdateChecking() => (
-          l10n.updateChecking,
-          const SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ) as Widget,
-          false,
-        ),
-      UpdateUpToDate() => (l10n.updateUpToDate, null as Widget?, false),
-      UpdateAvailable(:final info) =>
-        (l10n.updateAvailable(info.version), null, true),
-      UpdateDownloading() => (l10n.updateDownloadingLabel, null, true),
-      UpdateReadyToInstall(:final info) =>
-        (l10n.updateAvailable(info.version), null, true),
-      UpdateError() => (l10n.updateFailed, null, true),
-      _ => (null as String?, null as Widget?, false),
-    };
+    final busy = appState is UpdateChecking || ytState.updating;
+    final hasAppUpdate = appState is UpdateAvailable ||
+        appState is UpdateDownloading ||
+        appState is UpdateReadyToInstall ||
+        appState is UpdateError;
+
+    // Short yt-dlp clause appended to the "no app update" line.
+    String ytClause() => switch (ytState.info?.lastUpdateStatus) {
+          'done' => l10n.ytDlpUpdatedToShort(ytState.info?.version ?? ''),
+          'upToDate' => l10n.ytDlpCurrentShort,
+          'failed' => l10n.ytDlpFailedShort,
+          _ => '',
+        };
+
+    String? subtitle;
+    Widget? trailing;
+    if (busy) {
+      subtitle = l10n.updateChecking;
+      trailing = const SizedBox(
+        width: 20,
+        height: 20,
+        child: CircularProgressIndicator(strokeWidth: 2),
+      );
+    } else if (appState is UpdateAvailable) {
+      subtitle = l10n.updateAvailable(appState.info.version);
+    } else if (appState is UpdateReadyToInstall) {
+      subtitle = l10n.updateAvailable(appState.info.version);
+    } else if (appState is UpdateDownloading) {
+      subtitle = l10n.updateDownloadingLabel;
+    } else if (appState is UpdateError) {
+      subtitle = l10n.updateFailed;
+    } else if (appState is UpdateUpToDate) {
+      final yt = ytClause();
+      subtitle = yt.isEmpty
+          ? l10n.appNoUpdateLabel
+          : '${l10n.appNoUpdateLabel} · $yt';
+    } else {
+      subtitle = null; // idle — the standing hint below explains it
+    }
 
     return ListTile(
-      leading: hasUpdate
-          ? Badge(
-              child: const Icon(Icons.system_update_outlined),
-            )
+      leading: hasAppUpdate
+          ? const Badge(child: Icon(Icons.system_update_outlined))
           : const Icon(Icons.system_update_outlined),
       title: Text(l10n.checkForUpdatesTitle),
       subtitle: subtitle == null ? null : Text(subtitle),
       trailing: trailing,
-      onTap: state is UpdateChecking
+      onTap: busy
           ? null
           : () {
-              if (hasUpdate) {
+              if (hasAppUpdate) {
                 showUpdateSheet(context);
               } else {
-                controller.checkNow();
+                ref.read(updateControllerProvider.notifier).checkNow();
+                ref.read(ytDlpStatusProvider.notifier).updateNow();
               }
             },
     );
   }
 }
 
-/// "yt-dlp engine" row. Shows the bundled yt-dlp version and the last
-/// self-update result; tapping forces an update now. A stale binary here is
-/// the usual cause of YouTube "SABR streaming" / `HTTP 403` download
-/// failures, so it's worth making visible and manually fixable.
+/// Read-only "yt-dlp" line under [_UpdateRow] — just shows the installed
+/// engine version and last-update result. The check/update action lives in
+/// [_UpdateRow] now; this is here so the version is visible at a glance.
 class _YtDlpRow extends ConsumerWidget {
   const _YtDlpRow();
 
@@ -217,7 +237,6 @@ class _YtDlpRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(ytDlpStatusProvider);
-    final controller = ref.read(ytDlpStatusProvider.notifier);
     final info = state.info;
 
     final String subtitle;
@@ -239,30 +258,30 @@ class _YtDlpRow extends ConsumerWidget {
     }
 
     return ListTile(
+      dense: true,
       leading: const Icon(Icons.terminal_outlined),
       title: const Text('yt-dlp'),
       subtitle: Text(subtitle),
-      trailing: state.updating
-          ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : const Icon(Icons.refresh),
-      onTap: state.updating
-          ? null
-          : () async {
-              final result = await controller.updateNow();
-              if (!context.mounted) return;
-              final message = switch (result?.lastUpdateStatus) {
-                'done' => l10n.ytDlpUpdateDoneToast(
-                  result?.version ?? '',
-                ),
-                'upToDate' => l10n.ytDlpUpToDateToast,
-                _ => l10n.ytDlpUpdateFailedToast,
-              };
-              showAppToast(context, message);
-            },
+    );
+  }
+}
+
+/// Standing one-liner under the update rows explaining that the single
+/// "Check for updates" action covers both the app and the yt-dlp engine.
+class _UpdateHint extends StatelessWidget {
+  const _UpdateHint();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      child: Text(
+        l10n.updateChecksBothHint,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+      ),
     );
   }
 }

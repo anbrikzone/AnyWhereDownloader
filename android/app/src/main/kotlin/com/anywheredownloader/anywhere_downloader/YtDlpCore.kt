@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.yausername.ffmpeg.FFmpeg
 import com.yausername.youtubedl_android.YoutubeDL
+import java.io.File
 import java.util.concurrent.atomic.AtomicReference
 
 /**
@@ -44,6 +45,20 @@ object YtDlpCore {
     /** After a failed attempt, don't hammer GitHub on every extraction. */
     private const val RETRY_COOLDOWN_MS = 60_000L
 
+    /** APK-bundled yt-dlp (refreshed per release by
+     *  `tool/refresh_bundled_ytdlp.sh`) — installed on first run when it
+     *  beats what youtubedl-android unpacked, so a fresh install isn't
+     *  stuck on the AAR's months-old binary until the self-update lands. */
+    private const val BUNDLED_DIR = "ytdlp"
+
+    /** youtubedl-android's own SharedPreferences file + version keys — the
+     *  stable contract its updater reads/writes (`SharedPrefsHelper`,
+     *  `YoutubeDLUpdater`). Written directly here rather than via that
+     *  internal class so a library refactor can't break the pre-seed. */
+    private const val YTDL_PREFS = "youtubedl-android"
+    private const val DLP_VERSION_KEY = "dlpVersion"
+    private const val DLP_VERSION_NAME_KEY = "dlpVersionName"
+
     @Volatile private var initialized = false
     @Volatile private var updateSucceededThisProcess = false
 
@@ -66,9 +81,54 @@ object YtDlpCore {
     @Synchronized
     private fun ensureInitOnly(appContext: Context) {
         if (initialized) return
+        preSeedBundledYtDlp(appContext)
         YoutubeDL.getInstance().init(appContext)
         FFmpeg.getInstance().init(appContext)
         initialized = true
+    }
+
+    /**
+     * Copy the APK-bundled yt-dlp over the on-disk binary when it's newer
+     * than what's installed, *before* [YoutubeDL.init] runs. `init_ytdlp`
+     * only unpacks its own `R.raw.ytdlp` when the target file is absent, so
+     * writing ours first makes it win without touching library internals.
+     * Best-effort: any failure just falls through to youtubedl-android's
+     * vendored copy.
+     */
+    private fun preSeedBundledYtDlp(appContext: Context) {
+        try {
+            val assetVersion = appContext.assets.open("$BUNDLED_DIR/version")
+                .use { it.readBytes().toString(Charsets.UTF_8).trim() }
+            if (assetVersion.isEmpty()) return
+
+            val prefs = appContext.getSharedPreferences(YTDL_PREFS, Context.MODE_PRIVATE)
+            val installed = prefs.getString(DLP_VERSION_KEY, null)
+            val target = File(
+                appContext.noBackupFilesDir,
+                "${YoutubeDL.baseName}/${YoutubeDL.ytdlpDirName}/${YoutubeDL.ytdlpBin}",
+            )
+            // yt-dlp versions are zero-padded YYYY.MM.DD, so a lexical
+            // compare orders them; also seed if nothing is unpacked yet.
+            val fresher = installed.isNullOrEmpty() || assetVersion > installed
+            if (target.exists() && !fresher) return
+
+            target.parentFile?.mkdirs()
+            val tmp = File(target.parentFile, "yt-dlp.awdtmp")
+            appContext.assets.open("$BUNDLED_DIR/yt-dlp").use { input ->
+                tmp.outputStream().use { input.copyTo(it) }
+            }
+            if (!tmp.renameTo(target)) {
+                tmp.copyTo(target, overwrite = true)
+                tmp.delete()
+            }
+            prefs.edit()
+                .putString(DLP_VERSION_KEY, assetVersion)
+                .putString(DLP_VERSION_NAME_KEY, "yt-dlp $assetVersion")
+                .apply()
+            Log.i(TAG, "pre-seeded bundled yt-dlp $assetVersion (was ${installed ?: "none"})")
+        } catch (e: Throwable) {
+            Log.w(TAG, "bundled yt-dlp pre-seed skipped", e)
+        }
     }
 
     /**

@@ -190,10 +190,12 @@
   "ytDlpStatusUpToDate": "актуальная версия",
   "ytDlpStatusUpdateFailed": "обновление не удалось",
   "ytDlpStatusNotYet": "ещё не обновлялся",
-  "ytDlpUpdateDoneToast": "yt-dlp обновлён до {version}",
-  "@ytDlpUpdateDoneToast": {
+  "updateChecksBothHint": "«Проверить обновления» проверяет и приложение, и движок YouTube (yt-dlp). Свежий yt-dlp скачивается и устанавливается автоматически, без отдельного окна.",
+  "appNoUpdateLabel": "Обновлений программы нет",
+  "ytDlpUpdatedToShort": "yt-dlp обновлён до {version}",
+  "@ytDlpUpdatedToShort": {
     "placeholders": { "version": { "type": "String" } }
   },
-  "ytDlpUpToDateToast": "yt-dlp уже актуальной версии",
-  "ytDlpUpdateFailedToast": "Не удалось обновить yt-dlp — проверьте подключение"
+  "ytDlpCurrentShort": "yt-dlp актуален",
+  "ytDlpFailedShort": "не удалось обновить yt-dlp"
 }

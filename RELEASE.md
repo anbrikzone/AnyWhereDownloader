@@ -22,8 +22,16 @@ and compares the tag against the bundled version.
      top entry in `kChangelog` (newest first), notes localized EN/RU/KK.
    - `CHANGELOG.md` → mirror that entry (`## X.Y.Z — YYYY-MM-DD` with
      `### English` / `### Русский` / `### Қазақша`).
-2. `flutter analyze` (clean) and `flutter test` (green).
-3. Build the split release APKs:
+2. **Refresh the bundled yt-dlp** so a fresh install starts on a recent
+   binary instead of the one vendored in the youtubedl-android AAR:
+   ```
+   bash tool/refresh_bundled_ytdlp.sh
+   ```
+   Commit the two changed files (`android/app/src/main/assets/ytdlp/yt-dlp`
+   + `version`). `YtDlpCore.preSeedBundledYtDlp` installs it on first run
+   when it beats what's already unpacked.
+3. `flutter analyze` (clean) and `flutter test` (green).
+4. Build the split release APKs:
    ```
    flutter build apk --release --split-per-abi
    ```
@@ -36,7 +44,7 @@ and compares the tag against the bundled version.
    `app-<abi>-release.apk` copies — same bytes, older name.)
    (`llvm-strip … not recognized as a valid object file` on the
    `*.zip.so` files is expected — see CLAUDE.md.)
-4. Confirm the signing key is the real one, not the debug key:
+5. Confirm the signing key is the real one, not the debug key:
    ```
    JAVA_HOME="C:/Program Files/Android/Android Studio/jbr" \
    "$LOCALAPPDATA/Android/sdk/build-tools/<ver>/apksigner.bat" \
@@ -44,8 +52,8 @@ and compares the tag against the bundled version.
      build/app/outputs/apk/release/AnyWhereDownloader-<version>-arm64-v8a.apk
    ```
    Expect `CN=AnyWhereDownloader`.
-5. `git commit`, `git tag vX.Y.Z`, `git push --tags`.
-6. Create the GitHub Release for tag `vX.Y.Z`:
+6. `git commit`, `git tag vX.Y.Z`, `git push --tags`.
+7. Create the GitHub Release for tag `vX.Y.Z`:
    - Title `vX.Y.Z`, body = the English changelog notes (this becomes the
      "What's new" text the in-app update sheet shows).
    - **Attach all three APKs** as release assets — the updater matches an

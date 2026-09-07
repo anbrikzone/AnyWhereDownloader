@@ -555,14 +555,20 @@ class AppLocalizationsKk extends AppLocalizations {
   String get ytDlpStatusNotYet => 'әлі жаңартылған жоқ';
 
   @override
-  String ytDlpUpdateDoneToast(String version) {
+  String get updateChecksBothHint =>
+      '«Жаңартуларды тексеру» әрі қолданбаны, әрі YouTube қозғалтқышын (yt-dlp) тексереді. Жаңа yt-dlp автоматты түрде, бөлек терезесіз жүктеліп орнатылады.';
+
+  @override
+  String get appNoUpdateLabel => 'Қолданба жаңартуы жоқ';
+
+  @override
+  String ytDlpUpdatedToShort(String version) {
     return 'yt-dlp $version нұсқасына жаңартылды';
   }
 
   @override
-  String get ytDlpUpToDateToast => 'yt-dlp нұсқасы қазірдің өзінде өзекті';
+  String get ytDlpCurrentShort => 'yt-dlp өзекті';
 
   @override
-  String get ytDlpUpdateFailedToast =>
-      'yt-dlp жаңарту мүмкін болмады — байланысты тексеріңіз';
+  String get ytDlpFailedShort => 'yt-dlp жаңарту сәтсіз';
 }

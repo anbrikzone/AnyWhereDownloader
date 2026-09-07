@@ -262,10 +262,12 @@
   "ytDlpStatusUpToDate": "up to date",
   "ytDlpStatusUpdateFailed": "last update failed",
   "ytDlpStatusNotYet": "not updated yet",
-  "ytDlpUpdateDoneToast": "yt-dlp updated to {version}",
-  "@ytDlpUpdateDoneToast": {
+  "updateChecksBothHint": "“Check for updates” checks both the app and the YouTube engine (yt-dlp). A newer yt-dlp is downloaded and installed automatically, with no separate prompt.",
+  "appNoUpdateLabel": "No app update",
+  "ytDlpUpdatedToShort": "yt-dlp updated to {version}",
+  "@ytDlpUpdatedToShort": {
     "placeholders": { "version": { "type": "String" } }
   },
-  "ytDlpUpToDateToast": "yt-dlp is already up to date",
-  "ytDlpUpdateFailedToast": "Couldn't update yt-dlp — check your connection"
+  "ytDlpCurrentShort": "yt-dlp up to date",
+  "ytDlpFailedShort": "yt-dlp update failed"
 }
