@@ -47,16 +47,19 @@ const List<ChangelogEntry> kChangelog = [
       'en': {
         ChangeKind.fixed: [
           'On some phones YouTube still failed with an “HTTP 403” error even though Settings said the YouTube engine was up to date — the app was quietly running an old built-in yt-dlp. The bundled engine is now installed reliably regardless of that.',
+          'Checking for a yt-dlp update no longer hangs for a minute — the app now queries the update feed directly with a timeout instead of going through a slow library call, so a check on an already-current engine returns almost instantly.',
         ],
       },
       'ru': {
         ChangeKind.fixed: [
           'На некоторых телефонах YouTube всё равно падал с ошибкой «HTTP 403», хотя в настройках движок YouTube значился актуальным — на деле приложение использовало старую встроенную версию yt-dlp. Теперь встроенный движок ставится надёжно, независимо от этого.',
+          'Проверка обновления yt-dlp больше не висит по минуте — приложение теперь запрашивает ленту обновлений напрямую с таймаутом, а не через медленный вызов библиотеки, поэтому проверка уже актуального движка возвращается почти мгновенно.',
         ],
       },
       'kk': {
         ChangeKind.fixed: [
           'Кейбір телефондарда параметрлерде YouTube қозғалтқышы өзекті деп көрсетілсе де, YouTube «HTTP 403» қатесімен үзіле берді — қолданба шын мәнінде ескі кірістірілген yt-dlp нұсқасын пайдаланып жүрген. Енді кірістірілген қозғалтқыш бұған қарамастан сенімді орнатылады.',
+          'yt-dlp жаңартуын тексеру енді бір минут бойы қатып қалмайды — қолданба баяу кітапхана шақыруының орнына жаңарту лентасын тікелей, таймаутпен сұрайды, сондықтан өзекті қозғалтқышты тексеру бірден дерлік қайтады.',
         ],
       },
     },

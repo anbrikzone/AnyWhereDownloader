@@ -5,6 +5,9 @@ import android.util.Log
 import com.yausername.ffmpeg.FFmpeg
 import com.yausername.youtubedl_android.YoutubeDL
 import java.io.File
+import java.io.IOException
+import java.net.HttpURLConnection
+import java.net.URL
 import java.util.concurrent.atomic.AtomicReference
 
 /**
@@ -12,23 +15,26 @@ import java.util.concurrent.atomic.AtomicReference
  * and [YtDlpDownloadService] (merge / audio / playlist downloads) so init
  * happens exactly once regardless of which entry point runs first.
  *
- * Also owns the **bundled-yt-dlp self-update**. The binary shipped inside
- * `youtubedl-android` is only as fresh as that library's last release, and
- * YouTube breaks older yt-dlp clients regularly (e.g. the "SABR streaming"
- * rollout → `HTTP Error 403: Forbidden`). yt-dlp ships fixes for that far
- * more often than the app can. [ensureInitialized] pulls the latest yt-dlp
- * script (not the Python/ffmpeg runtime, not the library) from yt-dlp's
- * own GitHub releases.
+ * Also owns keeping the yt-dlp **script** fresh (not the Python/ffmpeg
+ * runtime, not the library). The binary shipped inside `youtubedl-android`
+ * is only as fresh as that library's last release, and YouTube breaks
+ * older yt-dlp clients regularly (e.g. the "SABR streaming" rollout →
+ * `HTTP Error 403: Forbidden`). Two layers: [preSeedBundledYtDlp] installs
+ * the APK-bundled copy on first run, and [ownUpdate] fetches a newer one
+ * from yt-dlp's GitHub releases when there is one.
  *
- * History: the first version of this ran the update once, inside the
- * synchronized init, swallowed every failure with a bare `catch`, and
- * latched an `initialized` flag whether or not the update actually
- * succeeded — so a device that had no network on its first cold-start
- * extraction never retried and silently stayed months stale (real
- * OnePlus 15 report, yt-dlp stuck at 2025.11.12). This version: retries on
- * later calls after a failure (with a short cooldown), bounds how long it
- * blocks an extraction, records the last outcome for Settings → About, and
- * exposes a forced update for the manual button there.
+ * History:
+ *  - v1 ran the update once inside init, swallowed every failure, and
+ *    latched `initialized` regardless — one network-less cold start meant
+ *    permanently stale, silently (OnePlus 15, stuck at 2025.11.12).
+ *  - v2 added retry-after-failure, a time bound, and the APK bundle — but
+ *    the pre-seed trusted youtubedl-android's version pref, which read
+ *    ahead of the actual on-disk file, so it skipped.
+ *  - v3 (this): pre-seed decides from its own [SEED_MARKER]; the update
+ *    itself is [ownUpdate] — a plain timed HTTP check against yt-dlp's
+ *    releases feed — because `YoutubeDL.updateYoutubeDL()`'s own check does
+ *    a header-less, timeout-less full-JSON `readTree(URL)` that took a
+ *    minute+ on the OnePlus 15 even when nothing needed updating.
  */
 object YtDlpCore {
     private const val TAG = "YtDlpCore"
@@ -38,12 +44,25 @@ object YtDlpCore {
      *  keeps running in the background if it hasn't finished). */
     private const val INLINE_UPDATE_TIMEOUT_MS = 15_000L
 
-    /** Longer budget for the user-triggered Settings button — they asked
-     *  for it and are watching a spinner. */
-    private const val FORCED_UPDATE_TIMEOUT_MS = 120_000L
+    /** Budget for the user-triggered Settings button. Our own updater is a
+     *  ~8 s API check plus, only when a newer release exists, a ~3 MB
+     *  download — so this is a safety net, not the normal wait. */
+    private const val FORCED_UPDATE_TIMEOUT_MS = 60_000L
 
     /** After a failed attempt, don't hammer GitHub on every extraction. */
     private const val RETRY_COOLDOWN_MS = 60_000L
+
+    /** yt-dlp's own releases feed. We query this ourselves — with a
+     *  User-Agent, an `Accept` header and real timeouts — instead of
+     *  `YoutubeDL.updateYoutubeDL()`, whose check does a header-less,
+     *  timeout-less `ObjectMapper.readTree(URL)` of the whole (large)
+     *  release JSON and routinely takes a minute+ even when nothing needs
+     *  updating (confirmed on a OnePlus 15: two `already up to date`
+     *  results, no download, minute-long spinner). */
+    private const val YTDLP_RELEASES_API =
+        "https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest"
+    private const val API_TIMEOUT_MS = 8_000
+    private const val DOWNLOAD_TIMEOUT_MS = 30_000
 
     /** APK-bundled yt-dlp (refreshed per release by
      *  `tool/refresh_bundled_ytdlp.sh`) — installed on first run when it
@@ -243,26 +262,7 @@ object YtDlpCore {
     private fun runUpdateLocked(appContext: Context, timeoutMs: Long): UpdateOutcome {
         val holder = AtomicReference<UpdateOutcome?>()
         val worker = Thread {
-            val outcome = try {
-                val status = YoutubeDL.getInstance()
-                    .updateYoutubeDL(appContext, YoutubeDL.UpdateChannel.STABLE)
-                val version = currentVersion(appContext)
-                if (status == YoutubeDL.UpdateStatus.DONE) {
-                    Log.i(TAG, "yt-dlp updated to ${version ?: "?"}")
-                    UpdateOutcome("done", version, null, System.currentTimeMillis())
-                } else {
-                    Log.i(TAG, "yt-dlp already up to date (${version ?: "?"})")
-                    UpdateOutcome("upToDate", version, null, System.currentTimeMillis())
-                }
-            } catch (e: Throwable) {
-                Log.w(TAG, "yt-dlp self-update failed", e)
-                UpdateOutcome(
-                    "failed",
-                    currentVersion(appContext),
-                    e.message ?: e.javaClass.simpleName,
-                    System.currentTimeMillis(),
-                )
-            }
+            val outcome = ownUpdate(appContext)
             holder.set(outcome)
             synchronized(updateLock) {
                 lastUpdate = outcome
@@ -291,5 +291,108 @@ object YtDlpCore {
             lastUpdate = soft
         }
         return soft
+    }
+
+    /**
+     * Our replacement for `YoutubeDL.updateYoutubeDL()`: query yt-dlp's
+     * `releases/latest` ourselves (User-Agent + `Accept` + timeouts), and
+     * only when the tag is newer than what's on disk, download the `yt-dlp`
+     * asset (with timeouts) and swap it in — writing our [SEED_MARKER] and
+     * youtubedl-android's `dlpVersion` pref so everything stays consistent.
+     * The common "already current" path is a single fast API call, no
+     * download, no giant-JSON parse.
+     */
+    private fun ownUpdate(appContext: Context): UpdateOutcome {
+        val now = System.currentTimeMillis()
+        return try {
+            val json = org.json.JSONObject(apiGet(YTDLP_RELEASES_API))
+            val latestTag = json.getString("tag_name")
+            val installed = seededVersion(appContext) ?: appContext
+                .getSharedPreferences(YTDL_PREFS, Context.MODE_PRIVATE)
+                .getString(DLP_VERSION_KEY, null)
+
+            // yt-dlp tags are zero-padded YYYY.MM.DD — a string compare orders them.
+            if (installed != null && installed >= latestTag) {
+                Log.i(TAG, "yt-dlp current ($installed, latest $latestTag)")
+                return UpdateOutcome("upToDate", currentVersion(appContext), null, now)
+            }
+
+            val assets = json.getJSONArray("assets")
+            var downloadUrl: String? = null
+            for (i in 0 until assets.length()) {
+                val a = assets.getJSONObject(i)
+                if (a.getString("name") == "yt-dlp") {
+                    downloadUrl = a.getString("browser_download_url")
+                    break
+                }
+            }
+            val url = downloadUrl
+                ?: throw IOException("no yt-dlp asset in release $latestTag")
+
+            val dir = ytdlpDir(appContext).apply { mkdirs() }
+            val tmp = File(dir, "yt-dlp.dltmp")
+            downloadFile(url, tmp)
+            if (tmp.length() < 500_000L) {
+                tmp.delete()
+                throw IOException("downloaded yt-dlp is implausibly small (${tmp.length()} B)")
+            }
+            val target = File(dir, YoutubeDL.ytdlpBin)
+            if (!tmp.renameTo(target)) {
+                tmp.copyTo(target, overwrite = true)
+                tmp.delete()
+            }
+            File(dir, SEED_MARKER).writeText(latestTag)
+            appContext.getSharedPreferences(YTDL_PREFS, Context.MODE_PRIVATE).edit()
+                .putString(DLP_VERSION_KEY, latestTag)
+                .putString(DLP_VERSION_NAME_KEY, "yt-dlp $latestTag")
+                .apply()
+            Log.i(TAG, "yt-dlp updated ${installed ?: "none"} -> $latestTag")
+            UpdateOutcome("done", latestTag, null, now)
+        } catch (e: Throwable) {
+            Log.w(TAG, "yt-dlp update failed", e)
+            UpdateOutcome(
+                "failed",
+                currentVersion(appContext),
+                e.message ?: e.javaClass.simpleName,
+                now,
+            )
+        }
+    }
+
+    private fun apiGet(urlStr: String): String {
+        val conn = (URL(urlStr).openConnection() as HttpURLConnection).apply {
+            connectTimeout = API_TIMEOUT_MS
+            readTimeout = API_TIMEOUT_MS
+            instanceFollowRedirects = true
+            setRequestProperty("User-Agent", "AnyWhereDownloader")
+            setRequestProperty("Accept", "application/vnd.github+json")
+        }
+        try {
+            if (conn.responseCode !in 200..299) {
+                throw IOException("HTTP ${conn.responseCode} from $urlStr")
+            }
+            return conn.inputStream.bufferedReader().use { it.readText() }
+        } finally {
+            conn.disconnect()
+        }
+    }
+
+    private fun downloadFile(urlStr: String, dest: File) {
+        val conn = (URL(urlStr).openConnection() as HttpURLConnection).apply {
+            connectTimeout = API_TIMEOUT_MS
+            readTimeout = DOWNLOAD_TIMEOUT_MS
+            instanceFollowRedirects = true
+            setRequestProperty("User-Agent", "AnyWhereDownloader")
+        }
+        try {
+            if (conn.responseCode !in 200..299) {
+                throw IOException("HTTP ${conn.responseCode} downloading $urlStr")
+            }
+            conn.inputStream.use { input ->
+                dest.outputStream().use { output -> input.copyTo(output) }
+            }
+        } finally {
+            conn.disconnect()
+        }
     }
 }
