@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 /// changelog entry's version. Keep this in sync with `pubspec.yaml`'s
 /// `version:` field and the top entry of both [kChangelog] and the
 /// project-root `CHANGELOG.md`.
-const String kAppVersion = '0.3.7';
+const String kAppVersion = '0.3.8';
 
 /// The kind of change a changelog line describes. Rendered as a small
 /// section header ("Added" / "Changed" / "Fixed"); a kind with no lines is
@@ -41,7 +41,7 @@ class ChangelogEntry {
 /// people reading the repo. Update both together on every release.
 const List<ChangelogEntry> kChangelog = [
   ChangelogEntry(
-    version: '0.3.7',
+    version: '0.3.8',
     date: '2026-09-07',
     notes: {
       'en': {

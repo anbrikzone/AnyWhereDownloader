@@ -6,7 +6,7 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 
 ---
 
-## 0.3.7 — 2026-09-07
+## 0.3.8 — 2026-09-07
 
 ### English
 
