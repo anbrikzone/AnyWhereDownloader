@@ -297,6 +297,12 @@ class YtDlpBridge(private val appContext: Context) {
             "vcodec" to format.vcodec,
             "acodec" to format.acodec,
             "height" to format.height,
+            "width" to format.width,
+            // yt-dlp's `format_note` — for YouTube this is the quality-tier
+            // label ("1080p", "1080p60", "2160p HDR"). Preferred over
+            // `height` for the UI, since `height` is the coded frame height
+            // and for a non-16:9 video that's smaller than its tier.
+            "formatNote" to format.formatNote,
             "tbr" to format.tbr,
             "url" to format.url,
             "fileSize" to format.fileSize,

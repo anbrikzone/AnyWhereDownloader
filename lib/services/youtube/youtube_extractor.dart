@@ -1,6 +1,22 @@
 import '../../core/extraction/media_extractor.dart';
 import '../../core/yt_dlp_engine/yt_dlp_engine.dart';
 
+final _tierNote = RegExp(r'^\d{2,4}p');
+
+/// Display label for a video variant. yt-dlp's `format_note` is YouTube's
+/// own quality-tier name ("1080p", "1080p60", "2160p HDR") — prefer it,
+/// because the raw `height` is the coded frame height and for a non-16:9
+/// video that is smaller than the tier it belongs to (a 2:1 clip's
+/// 1080p stream is 1920x960, so `height` is 960, not 1080). Fall back to
+/// `${height}p`, then to a tier derived from `width` for a landscape clip.
+String? _resolutionLabel(RawFormat f) {
+  final note = f.formatNote?.trim();
+  if (note != null && _tierNote.hasMatch(note)) return note;
+  if (f.height > 0) return '${f.height}p';
+  if (f.width > 0) return '${(f.width * 9 / 16).round()}p';
+  return null;
+}
+
 /// Thin wrapper over [YtDlpEngine] for YouTube specifically. Offers two
 /// kinds of variants:
 /// - Muxed (video+audio combined) formats — downloaded directly, one URL,
@@ -46,7 +62,7 @@ class YouTubeExtractor implements MediaExtractor {
         format.height,
         MediaVariant(
           type: MediaVariantType.video,
-          resolutionLabel: format.height > 0 ? '${format.height}p' : null,
+          resolutionLabel: _resolutionLabel(format),
           container: format.ext ?? 'mp4',
           approxSizeBytes: format.estimatedSizeBytes(duration),
           sourceUrl: format.url!,
@@ -76,7 +92,7 @@ class YouTubeExtractor implements MediaExtractor {
         format.height,
         MediaVariant(
           type: MediaVariantType.video,
-          resolutionLabel: format.height > 0 ? '${format.height}p' : null,
+          resolutionLabel: _resolutionLabel(format),
           container: 'mp4',
           approxSizeBytes: size,
           sourceUrl: url,

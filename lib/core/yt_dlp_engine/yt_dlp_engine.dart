@@ -12,6 +12,8 @@ class RawFormat {
     required this.vcodec,
     required this.acodec,
     required this.height,
+    required this.width,
+    required this.formatNote,
     required this.url,
     required this.fileSizeBytes,
     required this.httpHeaders,
@@ -34,6 +36,8 @@ class RawFormat {
       vcodec: map['vcodec'] as String?,
       acodec: map['acodec'] as String?,
       height: map['height'] as int? ?? 0,
+      width: map['width'] as int? ?? 0,
+      formatNote: map['formatNote'] as String?,
       url: map['url'] as String?,
       fileSizeBytes: fileSize > 0 ? fileSize : fileSizeApprox,
       httpHeaders: headers,
@@ -46,6 +50,14 @@ class RawFormat {
   final String? vcodec;
   final String? acodec;
   final int height;
+  final int width;
+
+  /// yt-dlp's `format_note`. For YouTube this is the quality-tier label
+  /// ("1080p", "1080p60", "2160p HDR"); [YouTubeExtractor] prefers it over
+  /// [height], which is the coded frame height and is smaller than the
+  /// tier for a non-16:9 video (a 2:1 clip's 1080p stream is 1920x960).
+  final String? formatNote;
+
   final String? url;
   final int fileSizeBytes;
   final Map<String, String>? httpHeaders;

@@ -47,16 +47,19 @@ const List<ChangelogEntry> kChangelog = [
       'en': {
         ChangeKind.fixed: [
           'YouTube videos saved at 720p or higher no longer play with the audio slightly out of sync — the offset was most noticeable in the phone’s gallery app. Merged video and audio now stay aligned, and an audio track fully compatible with MP4 is preferred.',
+          'The quality options for a YouTube download now match the labels YouTube itself shows (1080p, 1440p, …), including for videos with an unusual aspect ratio, where they used to appear as odd numbers like 960p.',
         ],
       },
       'ru': {
         ChangeKind.fixed: [
           'Видео с YouTube, сохранённые в 720p и выше, больше не воспроизводятся с рассинхроном звука — сдвиг был особенно заметен в галерее телефона. При склейке видео и звука дорожки теперь остаются синхронными, и выбирается аудиодорожка, полностью совместимая с MP4.',
+          'Варианты качества для загрузки с YouTube теперь совпадают с обозначениями самого YouTube (1080p, 1440p, …), в том числе для видео с нестандартным соотношением сторон, где раньше показывались странные числа вроде 960p.',
         ],
       },
       'kk': {
         ChangeKind.fixed: [
           '720p және одан жоғары сапада сақталған YouTube бейнелерінің дыбысы енді сәл сәйкессіз ойналмайды — бұл ауытқу телефон галереясында әсіресе байқалатын. Бейне мен дыбыс біріктірілгенде жолдар енді синхронды болып қалады және MP4 пішімімен толық үйлесімді аудиожол таңдалады.',
+          'YouTube-тен жүктеу үшін сапа нұсқалары енді YouTube-тің өз белгілерімен сәйкес келеді (1080p, 1440p, …), соның ішінде бейне арақатынасы стандартты емес болғанда да — бұрын онда 960p сияқты біртүрлі сандар көрсетілетін.',
         ],
       },
     },
