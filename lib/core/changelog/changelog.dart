@@ -50,6 +50,8 @@ const List<ChangelogEntry> kChangelog = [
           'The quality options for a YouTube download now match the labels YouTube itself shows (1080p, 1440p, …), including for videos with an unusual aspect ratio, where they used to appear as odd numbers like 960p.',
           'Some videos — most often WhatsApp statuses — briefly opened stretched with the wrong proportions and only corrected themselves after a swipe. They now show at the right aspect ratio straight away.',
           'Opening the WhatsApp “Archived” tab for the first time no longer stutters — building its thumbnails no longer blocks the screen while the tab slides in.',
+          'The system “pasted from your clipboard” notice no longer pops up every time you switch back to the app — the clipboard is only read when the link field is empty.',
+          'Clearing the link field with the × no longer stops the same link being auto-pasted again — copy it once more and it fills in.',
         ],
       },
       'ru': {
@@ -58,6 +60,8 @@ const List<ChangelogEntry> kChangelog = [
           'Варианты качества для загрузки с YouTube теперь совпадают с обозначениями самого YouTube (1080p, 1440p, …), в том числе для видео с нестандартным соотношением сторон, где раньше показывались странные числа вроде 960p.',
           'Некоторые видео — чаще всего статусы WhatsApp — при открытии на мгновение отображались растянутыми с неправильными пропорциями и приходили в норму только после свайпа. Теперь они сразу показываются с правильным соотношением сторон.',
           'Первое открытие вкладки «Архив» в разделе WhatsApp больше не подтормаживает — построение миниатюр больше не блокирует экран во время анимации перехода.',
+          'Системное уведомление «вставлено из буфера обмена» больше не появляется при каждом возврате в приложение — буфер читается только когда поле ссылки пустое.',
+          'Очистка поля ссылки крестиком больше не мешает повторно вставить ту же ссылку — скопируйте её снова, и она подставится.',
         ],
       },
       'kk': {
@@ -66,6 +70,8 @@ const List<ChangelogEntry> kChangelog = [
           'YouTube-тен жүктеу үшін сапа нұсқалары енді YouTube-тің өз белгілерімен сәйкес келеді (1080p, 1440p, …), соның ішінде бейне арақатынасы стандартты емес болғанда да — бұрын онда 960p сияқты біртүрлі сандар көрсетілетін.',
           'Кейбір бейнелер — көбінесе WhatsApp статустары — ашылғанда сәл уақыт бұрыс пропорциямен созылып көрсетіліп, тек сырғытқаннан кейін ғана қалпына келетін. Енді олар бірден дұрыс арақатынаспен көрсетіледі.',
           'WhatsApp бөліміндегі «Мұрағат» қойындысын алғаш ашу енді кібіртіктемейді — нобайларды құру қойынды ашылып жатқанда экранды бөгемейді.',
+          'Жүйелік «буферден қойылды» хабарламасы енді қолданбаға әр қайта кіргенде шықпайды — буфер тек сілтеме өрісі бос болғанда оқылады.',
+          'Сілтеме өрісін × арқылы тазалау енді сол сілтемені қайта қоюға кедергі келтірмейді — оны қайта көшірсеңіз, өріске түседі.',
         ],
       },
     },

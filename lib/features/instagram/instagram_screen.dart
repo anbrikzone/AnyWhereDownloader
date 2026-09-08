@@ -63,6 +63,14 @@ class _InstagramScreenState extends ConsumerState<InstagramScreen>
     // pushed on top, and both register the same lifecycle observer.
     if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
     if (!ref.read(clipboardAutoPasteEnabledProvider)) return;
+    // Nothing to auto-fill once the field has content — and not reading the
+    // clipboard here is what stops Android's system "pasted from your
+    // clipboard" toast firing on every return to the app.
+    if (_urlController.text.trim().isNotEmpty) return;
+    // hasStrings() inspects the clip's type, not its content, so it does
+    // not trigger that toast; only getData() (the real read) does.
+    if (!await Clipboard.hasStrings()) return;
+    if (!mounted) return;
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     final text = data?.text?.trim();
     if (text == null || text.isEmpty) return;
@@ -77,11 +85,12 @@ class _InstagramScreenState extends ConsumerState<InstagramScreen>
     showAppToast(context, AppLocalizations.of(context)!.clipboardLinkPasted);
   }
 
-  /// Clears the URL field and, since the system clipboard is what keeps
-  /// re-offering this same link, wipes it too — same behavior (and the
-  /// same OS-level "Copied to clipboard" pill tradeoff) as `YouTubeScreen`.
+  /// Clears the URL field and wipes the system clipboard too — same
+  /// behavior (and the same OS-toast tradeoff) as `YouTubeScreen`. The
+  /// tracker is forgotten, not marked handled, so re-copying the same URL
+  /// on purpose still auto-pastes it.
   Future<void> _clearUrl() async {
-    ClipboardLinkTracker.instance.markHandled(_urlController.text);
+    ClipboardLinkTracker.instance.forget();
     await Clipboard.setData(const ClipboardData(text: ''));
     if (!mounted) return;
     setState(() => _urlController.clear());

@@ -167,6 +167,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // even when it isn't the visible screen.
     if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
     if (!ref.read(clipboardAutoPasteEnabledProvider)) return;
+    // Nothing to auto-fill once the field has content — and not reading the
+    // clipboard here is what stops Android's system "pasted from your
+    // clipboard" toast firing on every return to the app.
+    if (_urlController.text.trim().isNotEmpty) return;
+    // hasStrings() inspects the clip's type, not its content, so it does
+    // not trigger that toast; only getData() (the real read) does.
+    if (!await Clipboard.hasStrings()) return;
+    if (!mounted) return;
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     final text = data?.text?.trim();
     if (text == null || text.isEmpty) return;
@@ -182,14 +190,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     showAppToast(context, AppLocalizations.of(context)!.clipboardLinkPasted);
   }
 
-  /// Clears the URL field and, since the system clipboard is what keeps
-  /// re-offering this same link, wipes it too — otherwise
-  /// `ClipboardLinkTracker`'s "already offered" memory doesn't survive the
-  /// app process being killed and relaunched, and the same link gets
-  /// auto-pasted again on a later cold start even though the user already
-  /// dismissed it.
+  /// Clears the URL field and wipes the system clipboard too — that wipe is
+  /// what stops the same link being re-offered on a later cold start (the
+  /// in-memory `ClipboardLinkTracker` doesn't survive a process restart).
+  /// The tracker is *forgotten* rather than marked handled, so re-copying
+  /// the identical URL on purpose still auto-pastes it.
   Future<void> _clearUrl() async {
-    ClipboardLinkTracker.instance.markHandled(_urlController.text);
+    ClipboardLinkTracker.instance.forget();
     await Clipboard.setData(const ClipboardData(text: ''));
     if (!mounted) return;
     setState(() {

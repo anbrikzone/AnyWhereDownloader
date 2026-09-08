@@ -14,4 +14,11 @@ class ClipboardLinkTracker {
   bool shouldOffer(String text) => text != _lastHandled;
 
   void markHandled(String text) => _lastHandled = text;
+
+  /// Forget the last-handled link, so an identical URL copied again is
+  /// offered afresh. Called when the user clears the URL field: clearing
+  /// is "not this one right now", not "never auto-paste this string again"
+  /// — and `_clearUrl` also wipes the system clipboard, which is what
+  /// actually stops a stale clip being re-offered on the next cold start.
+  void forget() => _lastHandled = null;
 }
