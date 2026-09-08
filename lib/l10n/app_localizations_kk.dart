@@ -562,10 +562,6 @@ class AppLocalizationsKk extends AppLocalizations {
   String get ytDlpStatusNotYet => 'әлі жаңартылған жоқ';
 
   @override
-  String get updateChecksBothHint =>
-      '«Жаңартуларды тексеру» әрі қолданбаны, әрі YouTube қозғалтқышын (yt-dlp) тексереді. Жаңа yt-dlp автоматты түрде, бөлек терезесіз жүктеліп орнатылады.';
-
-  @override
   String get appNoUpdateLabel => 'Қолданба жаңартуы жоқ';
 
   @override

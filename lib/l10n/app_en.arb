@@ -264,7 +264,6 @@
   "ytDlpStatusUpToDate": "up to date",
   "ytDlpStatusUpdateFailed": "last update failed",
   "ytDlpStatusNotYet": "not updated yet",
-  "updateChecksBothHint": "“Check for updates” checks both the app and the YouTube engine (yt-dlp). A newer yt-dlp is downloaded and installed automatically, with no separate prompt.",
   "appNoUpdateLabel": "No app update",
   "ytDlpUpdatedToShort": "yt-dlp updated to {version}",
   "@ytDlpUpdatedToShort": {

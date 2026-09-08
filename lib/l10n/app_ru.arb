@@ -192,7 +192,6 @@
   "ytDlpStatusUpToDate": "актуальная версия",
   "ytDlpStatusUpdateFailed": "обновление не удалось",
   "ytDlpStatusNotYet": "ещё не обновлялся",
-  "updateChecksBothHint": "«Проверить обновления» проверяет и приложение, и движок YouTube (yt-dlp). Свежий yt-dlp скачивается и устанавливается автоматически, без отдельного окна.",
   "appNoUpdateLabel": "Обновлений программы нет",
   "ytDlpUpdatedToShort": "yt-dlp обновлён до {version}",
   "@ytDlpUpdatedToShort": {

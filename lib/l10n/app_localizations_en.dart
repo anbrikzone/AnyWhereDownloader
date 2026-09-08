@@ -560,10 +560,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ytDlpStatusNotYet => 'not updated yet';
 
   @override
-  String get updateChecksBothHint =>
-      '“Check for updates” checks both the app and the YouTube engine (yt-dlp). A newer yt-dlp is downloaded and installed automatically, with no separate prompt.';
-
-  @override
   String get appNoUpdateLabel => 'No app update';
 
   @override

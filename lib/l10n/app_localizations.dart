@@ -1054,12 +1054,6 @@ abstract class AppLocalizations {
   /// **'not updated yet'**
   String get ytDlpStatusNotYet;
 
-  /// No description provided for @updateChecksBothHint.
-  ///
-  /// In en, this message translates to:
-  /// **'“Check for updates” checks both the app and the YouTube engine (yt-dlp). A newer yt-dlp is downloaded and installed automatically, with no separate prompt.'**
-  String get updateChecksBothHint;
-
   /// No description provided for @appNoUpdateLabel.
   ///
   /// In en, this message translates to:

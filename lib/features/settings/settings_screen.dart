@@ -113,7 +113,7 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const _UpdateRow(),
           const _YtDlpRow(),
-          const _UpdateHint(),
+          const SizedBox(height: 12),
         ],
       ),
     );
@@ -292,26 +292,6 @@ class _YtDlpRow extends ConsumerWidget {
       leading: const Icon(Icons.terminal_outlined),
       title: const Text('yt-dlp'),
       subtitle: Text(subtitle),
-    );
-  }
-}
-
-/// Standing one-liner under the update rows explaining that the single
-/// "Check for updates" action covers both the app and the yt-dlp engine.
-class _UpdateHint extends StatelessWidget {
-  const _UpdateHint();
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      child: Text(
-        l10n.updateChecksBothHint,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-      ),
     );
   }
 }

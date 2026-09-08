@@ -561,10 +561,6 @@ class AppLocalizationsRu extends AppLocalizations {
   String get ytDlpStatusNotYet => 'ещё не обновлялся';
 
   @override
-  String get updateChecksBothHint =>
-      '«Проверить обновления» проверяет и приложение, и движок YouTube (yt-dlp). Свежий yt-dlp скачивается и устанавливается автоматически, без отдельного окна.';
-
-  @override
   String get appNoUpdateLabel => 'Обновлений программы нет';
 
   @override
