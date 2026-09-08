@@ -555,6 +555,11 @@ class _LibraryPeekPreviewState extends State<LibraryPeekPreview> {
   VideoPlayerController? _videoController;
   bool _loading = true;
 
+  /// Last aspect ratio rendered — the decoded size (with rotation
+  /// correction) can arrive a frame after `initialize()`, so rebuild when
+  /// it changes or a rotated clip stays stretched.
+  double _lastAspect = 0;
+
   @override
   void initState() {
     super.initState();
@@ -593,6 +598,10 @@ class _LibraryPeekPreviewState extends State<LibraryPeekPreview> {
       controller.addListener(() {
         if (controller.value.volume == 0 && !controller.value.isCompleted) {
           controller.setVolume(1);
+        }
+        if (controller.value.aspectRatio != _lastAspect) {
+          _lastAspect = controller.value.aspectRatio;
+          if (mounted) setState(() {});
         }
       });
       setState(() {

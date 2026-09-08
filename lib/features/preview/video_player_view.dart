@@ -52,6 +52,12 @@ class _VideoPlayerViewState extends State<VideoPlayerView>
   Offset? _doubleTapLocal;
   bool _wasPlaying = false;
 
+  /// Last video aspect ratio we rendered with. The decoded size — and its
+  /// rotation correction — can land a frame or two after `initialize()`,
+  /// and [_onTick] otherwise never rebuilds for it, so a rotated/vertical
+  /// clip stays stretched until some unrelated `setState`.
+  double _lastAspect = 0;
+
   /// Whether this widget currently holds the screen-awake lock (so it only
   /// toggles it on a real change, and releases exactly what it acquired).
   bool _awake = false;
@@ -92,6 +98,8 @@ class _VideoPlayerViewState extends State<VideoPlayerView>
     if (oldWidget.controller != widget.controller) {
       oldWidget.controller.removeListener(_onTick);
       _c.addListener(_onTick);
+      // Re-pick up the new controller's aspect ratio on the next tick.
+      _lastAspect = 0;
       // A stuck-decoder recovery swaps in a fresh controller at 1×; keep the
       // user's chosen speed.
       if (_speed != 1.0) _c.setPlaybackSpeed(_speed);
@@ -110,6 +118,12 @@ class _VideoPlayerViewState extends State<VideoPlayerView>
 
   void _onTick() {
     if (!mounted) return;
+    // Rebuild when the video's aspect ratio settles (see [_lastAspect]).
+    final aspect = _c.value.aspectRatio;
+    if (aspect != _lastAspect) {
+      _lastAspect = aspect;
+      setState(() {});
+    }
     // Keep the controls up once playback ends so the replay button is
     // reachable; otherwise let the auto-hide timer run.
     if (_c.value.isCompleted && !_controlsVisible) {

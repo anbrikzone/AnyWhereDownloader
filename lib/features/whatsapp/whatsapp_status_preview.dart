@@ -585,6 +585,11 @@ class _StatusPeekPreviewState extends State<StatusPeekPreview> {
   bool _loading = true;
   bool _failed = false;
 
+  /// Last aspect ratio rendered — the decoded size (with rotation
+  /// correction) can arrive a frame after `initialize()`, so rebuild when
+  /// it changes or a rotated status clip stays stretched.
+  double _lastAspect = 0;
+
   @override
   void initState() {
     super.initState();
@@ -620,6 +625,10 @@ class _StatusPeekPreviewState extends State<StatusPeekPreview> {
         controller.addListener(() {
           if (controller.value.volume == 0 && !controller.value.isCompleted) {
             controller.setVolume(1);
+          }
+          if (controller.value.aspectRatio != _lastAspect) {
+            _lastAspect = controller.value.aspectRatio;
+            if (mounted) setState(() {});
           }
         });
         setState(() {
@@ -666,6 +675,10 @@ class _StatusPeekPreviewState extends State<StatusPeekPreview> {
         controller.addListener(() {
           if (controller.value.volume == 0 && !controller.value.isCompleted) {
             controller.setVolume(1);
+          }
+          if (controller.value.aspectRatio != _lastAspect) {
+            _lastAspect = controller.value.aspectRatio;
+            if (mounted) setState(() {});
           }
         });
         setState(() {
