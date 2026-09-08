@@ -8,11 +8,14 @@ import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
 import android.os.Build
 import android.os.Environment
+import android.os.Handler
+import android.os.Looper
 import android.provider.MediaStore
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
 import java.io.FileOutputStream
+import java.util.concurrent.Executors
 
 /**
  * Saves an audio file into the MediaStore audio collection
@@ -22,6 +25,30 @@ import java.io.FileOutputStream
  * try/catch → channel-error style as [MediaNotificationBridge].
  */
 class MediaSaveBridge(private val appContext: Context) {
+
+    // MethodChannel handlers run on the platform (main) thread. These ops
+    // hit the filesystem / MediaMetadataRetriever / ContentResolver and
+    // must not block it — a burst of archived-video thumbnail decodes on
+    // the main thread was stuttering the WhatsApp "Archived" tab's first
+    // open. Same background-Executor + main-Handler shape as YtDlpBridge.
+    private val executor = Executors.newSingleThreadExecutor()
+    private val mainHandler = Handler(Looper.getMainLooper())
+
+    private fun runAsync(
+        result: MethodChannel.Result,
+        errorCode: String,
+        op: () -> Any?,
+    ) {
+        executor.execute {
+            val outcome = runCatching(op)
+            mainHandler.post {
+                outcome.fold(
+                    onSuccess = { result.success(it) },
+                    onFailure = { result.error(errorCode, it.message, null) },
+                )
+            }
+        }
+    }
 
     fun handle(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
@@ -34,10 +61,8 @@ class MediaSaveBridge(private val appContext: Context) {
                     result.error("bad_args", "Missing path/album/title", null)
                     return
                 }
-                try {
-                    result.success(saveAudio(path, album, title, mimeType))
-                } catch (e: Exception) {
-                    result.error("save_failed", e.message, null)
+                runAsync(result, "save_failed") {
+                    saveAudio(path, album, title, mimeType)
                 }
             }
 
@@ -48,11 +73,7 @@ class MediaSaveBridge(private val appContext: Context) {
                     result.error("bad_args", "Missing album/olderThanMillis", null)
                     return
                 }
-                try {
-                    result.success(pruneAlbum(album, olderThanMillis))
-                } catch (e: Exception) {
-                    result.error("prune_failed", e.message, null)
-                }
+                runAsync(result, "prune_failed") { pruneAlbum(album, olderThanMillis) }
             }
 
             "videoThumbnail" -> {
@@ -64,10 +85,8 @@ class MediaSaveBridge(private val appContext: Context) {
                     result.error("bad_args", "Missing path/destPath", null)
                     return
                 }
-                try {
-                    result.success(videoThumbnail(path, destPath, width, height))
-                } catch (e: Exception) {
-                    result.error("thumbnail_failed", e.message, null)
+                runAsync(result, "thumbnail_failed") {
+                    videoThumbnail(path, destPath, width, height)
                 }
             }
 

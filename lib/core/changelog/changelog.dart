@@ -49,6 +49,7 @@ const List<ChangelogEntry> kChangelog = [
           'YouTube videos saved at 720p or higher no longer play with the audio slightly out of sync — the offset was most noticeable in the phone’s gallery app. Merged video and audio now stay aligned, and an audio track fully compatible with MP4 is preferred.',
           'The quality options for a YouTube download now match the labels YouTube itself shows (1080p, 1440p, …), including for videos with an unusual aspect ratio, where they used to appear as odd numbers like 960p.',
           'Some videos — most often WhatsApp statuses — briefly opened stretched with the wrong proportions and only corrected themselves after a swipe. They now show at the right aspect ratio straight away.',
+          'Opening the WhatsApp “Archived” tab for the first time no longer stutters — building its thumbnails no longer blocks the screen while the tab slides in.',
         ],
       },
       'ru': {
@@ -56,6 +57,7 @@ const List<ChangelogEntry> kChangelog = [
           'Видео с YouTube, сохранённые в 720p и выше, больше не воспроизводятся с рассинхроном звука — сдвиг был особенно заметен в галерее телефона. При склейке видео и звука дорожки теперь остаются синхронными, и выбирается аудиодорожка, полностью совместимая с MP4.',
           'Варианты качества для загрузки с YouTube теперь совпадают с обозначениями самого YouTube (1080p, 1440p, …), в том числе для видео с нестандартным соотношением сторон, где раньше показывались странные числа вроде 960p.',
           'Некоторые видео — чаще всего статусы WhatsApp — при открытии на мгновение отображались растянутыми с неправильными пропорциями и приходили в норму только после свайпа. Теперь они сразу показываются с правильным соотношением сторон.',
+          'Первое открытие вкладки «Архив» в разделе WhatsApp больше не подтормаживает — построение миниатюр больше не блокирует экран во время анимации перехода.',
         ],
       },
       'kk': {
@@ -63,6 +65,7 @@ const List<ChangelogEntry> kChangelog = [
           '720p және одан жоғары сапада сақталған YouTube бейнелерінің дыбысы енді сәл сәйкессіз ойналмайды — бұл ауытқу телефон галереясында әсіресе байқалатын. Бейне мен дыбыс біріктірілгенде жолдар енді синхронды болып қалады және MP4 пішімімен толық үйлесімді аудиожол таңдалады.',
           'YouTube-тен жүктеу үшін сапа нұсқалары енді YouTube-тің өз белгілерімен сәйкес келеді (1080p, 1440p, …), соның ішінде бейне арақатынасы стандартты емес болғанда да — бұрын онда 960p сияқты біртүрлі сандар көрсетілетін.',
           'Кейбір бейнелер — көбінесе WhatsApp статустары — ашылғанда сәл уақыт бұрыс пропорциямен созылып көрсетіліп, тек сырғытқаннан кейін ғана қалпына келетін. Енді олар бірден дұрыс арақатынаспен көрсетіледі.',
+          'WhatsApp бөліміндегі «Мұрағат» қойындысын алғаш ашу енді кібіртіктемейді — нобайларды құру қойынды ашылып жатқанда экранды бөгемейді.',
         ],
       },
     },

@@ -588,6 +588,10 @@ class _StatusTileState extends State<_StatusTile> {
                   return Image.file(
                     File(path),
                     fit: BoxFit.cover,
+                    // Archived images resolve to the raw full-res status
+                    // file — decode it down to roughly tile size (3-col
+                    // grid) instead of full resolution per tile.
+                    cacheWidth: 480,
                     errorBuilder: (_, _, _) => const _TileFallbackIcon(),
                   );
                 }
