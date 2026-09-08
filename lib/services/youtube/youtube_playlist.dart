@@ -18,13 +18,19 @@ enum PlaylistQuality {
 
   /// yt-dlp `-f` selector for the video presets; null for [audioMp3]
   /// (which goes through `-x --audio-format mp3` instead).
+  ///
+  /// Each preset prefers an AAC (`mp4a`) audio track before falling back
+  /// to any audio — same reason as the single-video merge path
+  /// ([YouTubeExtractor]): AAC is MP4-native, so the per-item merge is a
+  /// clean stream-copy instead of muxing Opus into MP4.
   String? get formatSelector => switch (this) {
-    PlaylistQuality.best => 'bv*+ba/b',
+    PlaylistQuality.best => 'bv*+ba[acodec^=mp4a]/bv*+ba/b',
     PlaylistQuality.upTo1080 =>
-      'bv*[height<=1080]+ba/b[height<=1080]/bv*+ba/b',
+      'bv*[height<=1080]+ba[acodec^=mp4a]/bv*[height<=1080]+ba/b[height<=1080]/bv*+ba/b',
     PlaylistQuality.upTo720 =>
-      'bv*[height<=720]+ba/b[height<=720]/b[height<=720]/bv*+ba/b',
-    PlaylistQuality.upTo360 => 'b[height<=360]/bv*[height<=360]+ba/b',
+      'bv*[height<=720]+ba[acodec^=mp4a]/bv*[height<=720]+ba/b[height<=720]/b[height<=720]/bv*+ba/b',
+    PlaylistQuality.upTo360 =>
+      'bv*[height<=360]+ba[acodec^=mp4a]/b[height<=360]/bv*[height<=360]+ba/b',
     PlaylistQuality.audioMp3 => null,
   };
 
