@@ -3,6 +3,9 @@
 An Android app for saving videos, photos and audio to your device from a link you
 paste (or one it picks up from the clipboard).
 
+> **Beta.** This app is under active development. Some features may be unstable or
+> change between updates.
+
 ## Screenshots
 
 <p>

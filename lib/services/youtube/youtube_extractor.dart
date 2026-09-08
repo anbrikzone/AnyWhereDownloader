@@ -80,7 +80,13 @@ class YouTubeExtractor implements MediaExtractor {
           container: 'mp4',
           approxSizeBytes: size,
           sourceUrl: url,
-          mergeFormatSelector: '${format.formatId}+bestaudio/best',
+          // Prefer an AAC (m4a) audio track over Opus: AAC is MP4-native, so
+          // the merge is a clean stream-copy of both tracks with no container
+          // conversion — Opus-in-MP4 is what tends to produce A/V drift and
+          // player-compatibility problems. Video codec is left unconstrained
+          // so 1440p/4K (VP9/AV1-only on YouTube) still work.
+          mergeFormatSelector:
+              '${format.formatId}+ba[acodec^=mp4a]/${format.formatId}+ba/best',
           durationSeconds: duration > 0 ? duration : null,
         ),
       ));

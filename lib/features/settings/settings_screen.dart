@@ -99,6 +99,11 @@ class SettingsScreen extends ConsumerWidget {
           const Divider(),
           _SectionHeader(l10n.aboutSection),
           ListTile(
+            leading: const Icon(Icons.science_outlined),
+            title: Text(l10n.betaNoticeTitle),
+            subtitle: Text(l10n.betaNoticeBody),
+          ),
+          ListTile(
             title: Text(l10n.whatsNewTitle),
             subtitle: Text(l10n.versionLabel(kAppVersion)),
             trailing: const Icon(Icons.chevron_right),

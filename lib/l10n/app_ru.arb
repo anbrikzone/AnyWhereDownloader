@@ -163,6 +163,8 @@
   "changelogChanged": "Изменено",
   "changelogFixed": "Исправлено",
   "versionLabel": "Версия {version}",
+  "betaNoticeTitle": "Бета-версия",
+  "betaNoticeBody": "Приложение активно дорабатывается. Некоторые функции могут работать нестабильно или меняться между обновлениями.",
 
   "checkForUpdatesTitle": "Проверить обновления",
   "updateChecking": "Проверка…",

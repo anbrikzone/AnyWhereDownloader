@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 /// changelog entry's version. Keep this in sync with `pubspec.yaml`'s
 /// `version:` field and the top entry of both [kChangelog] and the
 /// project-root `CHANGELOG.md`.
-const String kAppVersion = '0.3.9';
+const String kAppVersion = '0.3.10';
 
 /// The kind of change a changelog line describes. Rendered as a small
 /// section header ("Added" / "Changed" / "Fixed"); a kind with no lines is
@@ -40,6 +40,27 @@ class ChangelogEntry {
 /// new" screen renders; the project-root `CHANGELOG.md` mirrors it for
 /// people reading the repo. Update both together on every release.
 const List<ChangelogEntry> kChangelog = [
+  ChangelogEntry(
+    version: '0.3.10',
+    date: '2026-09-08',
+    notes: {
+      'en': {
+        ChangeKind.fixed: [
+          'YouTube videos saved at 720p or higher no longer play with the audio slightly out of sync — the offset was most noticeable in the phone’s gallery app. Merged video and audio now stay aligned, and an audio track fully compatible with MP4 is preferred.',
+        ],
+      },
+      'ru': {
+        ChangeKind.fixed: [
+          'Видео с YouTube, сохранённые в 720p и выше, больше не воспроизводятся с рассинхроном звука — сдвиг был особенно заметен в галерее телефона. При склейке видео и звука дорожки теперь остаются синхронными, и выбирается аудиодорожка, полностью совместимая с MP4.',
+        ],
+      },
+      'kk': {
+        ChangeKind.fixed: [
+          '720p және одан жоғары сапада сақталған YouTube бейнелерінің дыбысы енді сәл сәйкессіз ойналмайды — бұл ауытқу телефон галереясында әсіресе байқалатын. Бейне мен дыбыс біріктірілгенде жолдар енді синхронды болып қалады және MP4 пішімімен толық үйлесімді аудиожол таңдалады.',
+        ],
+      },
+    },
+  ),
   ChangelogEntry(
     version: '0.3.9',
     date: '2026-09-07',

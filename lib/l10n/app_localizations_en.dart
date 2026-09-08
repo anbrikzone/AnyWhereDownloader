@@ -480,6 +480,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get betaNoticeTitle => 'Beta version';
+
+  @override
+  String get betaNoticeBody =>
+      'This app is under active development. Some features may be unstable or change between updates.';
+
+  @override
   String get checkForUpdatesTitle => 'Check for updates';
 
   @override

@@ -6,6 +6,25 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 
 ---
 
+## 0.3.10 — 2026-09-08
+
+### English
+
+**Fixed**
+- YouTube videos saved at 720p or higher no longer play with the audio slightly out of sync — the offset was most noticeable in the phone's gallery app. Merged video and audio now stay aligned, and an audio track fully compatible with MP4 is preferred.
+
+### Русский
+
+**Исправлено**
+- Видео с YouTube, сохранённые в 720p и выше, больше не воспроизводятся с рассинхроном звука — сдвиг был особенно заметен в галерее телефона. При склейке видео и звука дорожки теперь остаются синхронными, и выбирается аудиодорожка, полностью совместимая с MP4.
+
+### Қазақша
+
+**Түзетілді**
+- 720p және одан жоғары сапада сақталған YouTube бейнелерінің дыбысы енді сәл сәйкессіз ойналмайды — бұл ауытқу телефон галереясында әсіресе байқалатын. Бейне мен дыбыс біріктірілгенде жолдар енді синхронды болып қалады және MP4 пішімімен толық үйлесімді аудиожол таңдалады.
+
+---
+
 ## 0.3.9 — 2026-09-07
 
 ### English

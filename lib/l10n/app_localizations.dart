@@ -910,6 +910,18 @@ abstract class AppLocalizations {
   /// **'Version {version}'**
   String versionLabel(String version);
 
+  /// No description provided for @betaNoticeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Beta version'**
+  String get betaNoticeTitle;
+
+  /// No description provided for @betaNoticeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This app is under active development. Some features may be unstable or change between updates.'**
+  String get betaNoticeBody;
+
   /// No description provided for @checkForUpdatesTitle.
   ///
   /// In en, this message translates to:

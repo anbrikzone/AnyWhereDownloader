@@ -53,5 +53,6 @@ app.*.map.json
 # Local planning / spec / assistant files — kept out of the public repo
 /TODO.md
 /TZ_media_downloader.md
-/CLAUDE.md
+/BACKLOG-ARCHIVE.md
+CLAUDE.md
 /.claude/

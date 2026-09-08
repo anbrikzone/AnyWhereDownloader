@@ -229,6 +229,8 @@
   "@versionLabel": {
     "placeholders": { "version": { "type": "String" } }
   },
+  "betaNoticeTitle": "Beta version",
+  "betaNoticeBody": "This app is under active development. Some features may be unstable or change between updates.",
 
   "checkForUpdatesTitle": "Check for updates",
   "updateChecking": "Checking…",

@@ -136,6 +136,7 @@ class YtDlpDownloadService : Service() {
                 YtDlpOptions.applyYouTube(request, url)
                 request.addOption("-f", formatSelector)
                 request.addOption("--merge-output-format", "mp4")
+                applyMergeSyncOptions(request)
                 request.addOption("-o", outputPath)
 
                 // A merge download is really 2 sub-downloads (video, then
@@ -338,6 +339,7 @@ class YtDlpDownloadService : Service() {
                 } else {
                     request.addOption("-f", formatSelector!!)
                     request.addOption("--merge-output-format", "mp4")
+                    applyMergeSyncOptions(request)
                 }
                 request.addOption(
                     "-o",
@@ -519,6 +521,31 @@ class YtDlpDownloadService : Service() {
                 stopSelf()
             }
         }
+    }
+
+    /**
+     * A/V-sync hardening for every video merge (single video + playlist).
+     *
+     * `-avoid_negative_ts make_zero` + zeroed `-muxpreload`/`-muxdelay` make
+     * the MP4 muxer start both streams at PTS 0 instead of recording the
+     * audio's small start offset as an edit-list (`elst`) entry. Players that
+     * honour the edit list (ExoPlayer) were fine either way; players that
+     * ignore it (Google Photos, many Android system players) were showing a
+     * constant audio offset for the whole clip — this removes the edit list
+     * so there is nothing for them to ignore. Still a pure `-c copy` merge:
+     * no re-encode, no quality loss.
+     *
+     * `--fragment-retries` + `--abort-on-unavailable-fragments` make a
+     * dropped video fragment fail the download instead of silently yielding
+     * a file whose audio drifts from that point on.
+     */
+    private fun applyMergeSyncOptions(request: YoutubeDLRequest) {
+        request.addOption(
+            "--postprocessor-args",
+            "Merger+ffmpeg_o:-avoid_negative_ts make_zero -muxpreload 0 -muxdelay 0",
+        )
+        request.addOption("--fragment-retries", "10")
+        request.addOption("--abort-on-unavailable-fragments")
     }
 
     private fun ensureChannel() {

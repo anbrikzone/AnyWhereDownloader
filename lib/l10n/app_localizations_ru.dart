@@ -481,6 +481,13 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String get betaNoticeTitle => 'Бета-версия';
+
+  @override
+  String get betaNoticeBody =>
+      'Приложение активно дорабатывается. Некоторые функции могут работать нестабильно или меняться между обновлениями.';
+
+  @override
   String get checkForUpdatesTitle => 'Проверить обновления';
 
   @override

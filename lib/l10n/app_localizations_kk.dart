@@ -482,6 +482,13 @@ class AppLocalizationsKk extends AppLocalizations {
   }
 
   @override
+  String get betaNoticeTitle => 'Бета-нұсқа';
+
+  @override
+  String get betaNoticeBody =>
+      'Қолданба белсенді әзірленуде. Кейбір функциялар тұрақсыз болуы немесе жаңартулар арасында өзгеруі мүмкін.';
+
+  @override
   String get checkForUpdatesTitle => 'Жаңартуларды тексеру';
 
   @override
