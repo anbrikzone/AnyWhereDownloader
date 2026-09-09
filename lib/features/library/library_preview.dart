@@ -161,6 +161,7 @@ class _LibraryPreviewItemState extends State<_LibraryPreviewItem> {
   // but not impossible. Full history in CLAUDE.md "Library".
   Timer? _stuckCheckTimer;
   Duration? _lastStuckCheckPosition;
+  int _stuckSamples = 0;
   bool _recovering = false;
 
   void _scheduleStuckCheck() {
@@ -176,18 +177,35 @@ class _LibraryPreviewItemState extends State<_LibraryPreviewItem> {
     final controller = _videoController;
     if (controller == null || !controller.value.isInitialized) return;
     final value = controller.value;
-    if (!value.isPlaying || value.isBuffering) {
-      // Not expected to be advancing right now (paused, mid-drag, or
-      // genuinely buffering) — don't compare across this gap once playback
-      // resumes, or a legitimate pause would look like a freeze.
+    if (!value.isPlaying) {
+      // Genuinely not playing (user paused, or `_ScrubBar` paused for a
+      // drag) — not a freeze. Drop the baseline so the resume isn't judged
+      // against a pre-pause position.
       _lastStuckCheckPosition = null;
+      _stuckSamples = 0;
       return;
     }
+    // A wedged Exynos H.264 decoder reports `isPlaying: true` *and*
+    // `isBuffering: true` and never advances again, so buffering is no
+    // longer a free pass. A real buffering hiccup on a large file clears
+    // within a check or two; only a position that hasn't moved across two
+    // consecutive checks (~4s) is treated as a decoder freeze.
     final position = value.position;
     final lastPosition = _lastStuckCheckPosition;
     _lastStuckCheckPosition = position;
-    if (lastPosition != null &&
-        (position - lastPosition).abs() < const Duration(milliseconds: 200)) {
+    if (lastPosition == null) {
+      _stuckSamples = 0;
+      return;
+    }
+    final stalled =
+        (position - lastPosition).abs() < const Duration(milliseconds: 200);
+    if (!stalled) {
+      _stuckSamples = 0;
+      return;
+    }
+    _stuckSamples++;
+    if (_stuckSamples >= 2) {
+      _stuckSamples = 0;
       await _recoverFromStuckDecoder();
     }
   }
@@ -212,6 +230,7 @@ class _LibraryPreviewItemState extends State<_LibraryPreviewItem> {
     } finally {
       _recovering = false;
       _lastStuckCheckPosition = null;
+      _stuckSamples = 0;
     }
   }
 

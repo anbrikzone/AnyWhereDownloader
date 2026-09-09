@@ -180,6 +180,7 @@ class _StatusPreviewItemState extends State<_StatusPreviewItem> {
   // field.
   Timer? _stuckCheckTimer;
   Duration? _lastStuckCheckPosition;
+  int _stuckSamples = 0;
   bool _recovering = false;
 
   void _scheduleStuckCheck() {
@@ -195,15 +196,33 @@ class _StatusPreviewItemState extends State<_StatusPreviewItem> {
     final controller = _videoController;
     if (controller == null || !controller.value.isInitialized) return;
     final value = controller.value;
-    if (!value.isPlaying || value.isBuffering) {
+    if (!value.isPlaying) {
+      // Genuinely not playing (user paused, or `_ScrubBar` paused for a
+      // drag) — not a freeze.
       _lastStuckCheckPosition = null;
+      _stuckSamples = 0;
       return;
     }
+    // Buffering is no longer a free pass: a wedged decoder reports
+    // `isPlaying: true` + `isBuffering: true` forever. See
+    // `library_preview.dart` for the full rationale — needs two consecutive
+    // stalled checks (~4s) before recreating the controller.
     final position = value.position;
     final lastPosition = _lastStuckCheckPosition;
     _lastStuckCheckPosition = position;
-    if (lastPosition != null &&
-        (position - lastPosition).abs() < const Duration(milliseconds: 200)) {
+    if (lastPosition == null) {
+      _stuckSamples = 0;
+      return;
+    }
+    final stalled =
+        (position - lastPosition).abs() < const Duration(milliseconds: 200);
+    if (!stalled) {
+      _stuckSamples = 0;
+      return;
+    }
+    _stuckSamples++;
+    if (_stuckSamples >= 2) {
+      _stuckSamples = 0;
       await _recoverFromStuckDecoder();
     }
   }
@@ -228,6 +247,7 @@ class _StatusPreviewItemState extends State<_StatusPreviewItem> {
     } finally {
       _recovering = false;
       _lastStuckCheckPosition = null;
+      _stuckSamples = 0;
     }
   }
 

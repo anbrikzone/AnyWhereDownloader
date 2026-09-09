@@ -547,6 +547,11 @@ class _ScrubBar extends StatefulWidget {
 
 class _ScrubBarState extends State<_ScrubBar> {
   static const _throttle = Duration(milliseconds: 400);
+  // A tap-to-seek keeps playback paused this long before resuming, so the
+  // seek settles first and — if the tap is really the first half of a
+  // tap-then-grab-the-thumb gesture — the drag takes over the pause before
+  // any resume/re-pause churn reaches the decoder.
+  static const _tapSettle = Duration(milliseconds: 150);
   static const _track = 5.0;
   static const _thumb = 14.0;
   static const _thumbActive = 22.0;
@@ -555,8 +560,16 @@ class _ScrubBarState extends State<_ScrubBar> {
   Duration? _dragPosition;
   DateTime? _lastSeekAt;
   Timer? _pendingSeek;
+  Timer? _tapReleaseTimer;
   bool _wasPlaying = false;
   bool _dragging = false;
+
+  /// True while *this* widget holds the controller paused for a scrub (tap
+  /// or drag) and still owes it a resume. A drag starting right after a tap
+  /// must not re-read `isPlaying` here — it's already false — or the resume
+  /// after the drag is lost and the video sits frozen. [_wasPlaying] is
+  /// captured once, when the pause is first taken.
+  bool _pausedByScrub = false;
 
   Duration _positionFromDx(double dx, double width) {
     final duration = widget.controller.value.duration;
@@ -582,9 +595,53 @@ class _ScrubBarState extends State<_ScrubBar> {
     });
   }
 
-  void _onDragStart(double dx, double width) {
+  /// Pause the controller for a scrub and remember whether it was playing —
+  /// idempotent, so a tap immediately followed by a drag captures the state
+  /// exactly once.
+  void _takeoverPause() {
+    if (_pausedByScrub) return;
     _wasPlaying = widget.controller.value.isPlaying;
+    _pausedByScrub = true;
     widget.controller.pause();
+  }
+
+  /// Undo [_takeoverPause] — resume playback iff it was playing when the
+  /// scrub began.
+  Future<void> _releaseResume() async {
+    if (!_pausedByScrub) return;
+    _pausedByScrub = false;
+    if (_wasPlaying) await widget.controller.play();
+  }
+
+  /// A single tap on the track: seek there, but through the same
+  /// pause / throttled-seek / resume path a drag uses, rather than a bare
+  /// `seekTo()` on the still-playing controller (which — chained into a
+  /// drag that follows — was wedging the hardware decoder).
+  void _onTapSeek(double dx, double width) {
+    final target = _positionFromDx(dx, width);
+    widget.onInteraction();
+    _takeoverPause();
+    _dragPosition = target;
+    widget.onPositionPreview(target);
+    _throttledSeek(target);
+    _tapReleaseTimer?.cancel();
+    _tapReleaseTimer = Timer(_tapSettle, () async {
+      // A drag that began inside the settle window cancelled this timer and
+      // now owns the pause/resume; this only runs for a lone tap.
+      _pendingSeek?.cancel();
+      await widget.controller.seekTo(target);
+      _lastSeekAt = DateTime.now();
+      if (!mounted) return;
+      _dragPosition = null;
+      widget.onPositionPreview(null);
+      await _releaseResume();
+      widget.onInteraction();
+    });
+  }
+
+  void _onDragStart(double dx, double width) {
+    _tapReleaseTimer?.cancel();
+    _takeoverPause();
     final target = _positionFromDx(dx, width);
     setState(() {
       _dragging = true;
@@ -603,6 +660,7 @@ class _ScrubBarState extends State<_ScrubBar> {
   }
 
   Future<void> _onDragEnd() async {
+    _tapReleaseTimer?.cancel();
     _pendingSeek?.cancel();
     final target = _dragPosition;
     if (target != null) await widget.controller.seekTo(target);
@@ -612,13 +670,14 @@ class _ScrubBarState extends State<_ScrubBar> {
       _dragPosition = null;
     });
     widget.onPositionPreview(null);
-    if (_wasPlaying) await widget.controller.play();
+    await _releaseResume();
     widget.onInteraction();
   }
 
   @override
   void dispose() {
     _pendingSeek?.cancel();
+    _tapReleaseTimer?.cancel();
     super.dispose();
   }
 
@@ -630,10 +689,7 @@ class _ScrubBarState extends State<_ScrubBar> {
         final width = constraints.maxWidth;
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTapDown: (d) {
-            widget.onInteraction();
-            _throttledSeek(_positionFromDx(d.localPosition.dx, width));
-          },
+          onTapDown: (d) => _onTapSeek(d.localPosition.dx, width),
           onHorizontalDragStart: (d) =>
               _onDragStart(d.localPosition.dx, width),
           onHorizontalDragUpdate: (d) =>

@@ -42,7 +42,7 @@ class ChangelogEntry {
 const List<ChangelogEntry> kChangelog = [
   ChangelogEntry(
     version: '0.3.10',
-    date: '2026-09-08',
+    date: '2026-09-09',
     notes: {
       'en': {
         ChangeKind.fixed: [
@@ -52,6 +52,7 @@ const List<ChangelogEntry> kChangelog = [
           'Opening the WhatsApp “Archived” tab for the first time no longer stutters — building its thumbnails no longer blocks the screen while the tab slides in.',
           'The system “pasted from your clipboard” notice no longer pops up every time you switch back to the app — the clipboard is only read when the link field is empty.',
           'Clearing the link field with the × no longer stops the same link being auto-pasted again — copy it once more and it fills in.',
+          'Videos in Library and WhatsApp no longer freeze when you tap a point on the progress bar and then drag the slider — seeking by tap and by drag now behave the same way and playback resumes cleanly.',
         ],
       },
       'ru': {
@@ -62,6 +63,7 @@ const List<ChangelogEntry> kChangelog = [
           'Первое открытие вкладки «Архив» в разделе WhatsApp больше не подтормаживает — построение миниатюр больше не блокирует экран во время анимации перехода.',
           'Системное уведомление «вставлено из буфера обмена» больше не появляется при каждом возврате в приложение — буфер читается только когда поле ссылки пустое.',
           'Очистка поля ссылки крестиком больше не мешает повторно вставить ту же ссылку — скопируйте её снова, и она подставится.',
+          'Видео в «Библиотеке» и WhatsApp больше не зависают, если тапнуть по точке на шкале воспроизведения, а затем потянуть бегунок — перемотка тапом и перетаскиванием теперь работает одинаково, и воспроизведение корректно возобновляется.',
         ],
       },
       'kk': {
@@ -72,6 +74,7 @@ const List<ChangelogEntry> kChangelog = [
           'WhatsApp бөліміндегі «Мұрағат» қойындысын алғаш ашу енді кібіртіктемейді — нобайларды құру қойынды ашылып жатқанда экранды бөгемейді.',
           'Жүйелік «буферден қойылды» хабарламасы енді қолданбаға әр қайта кіргенде шықпайды — буфер тек сілтеме өрісі бос болғанда оқылады.',
           'Сілтеме өрісін × арқылы тазалау енді сол сілтемені қайта қоюға кедергі келтірмейді — оны қайта көшірсеңіз, өріске түседі.',
+          '«Кітапхана» мен WhatsApp-тағы бейнелер енді ойнату жолағындағы бір нүктені түртіп, сосын жүгірткіні сүйрегенде қатып қалмайды — түрту мен сүйреу арқылы алға өту енді біркелкі жұмыс істейді, ойнату дұрыс жалғасады.',
         ],
       },
     },
