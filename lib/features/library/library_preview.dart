@@ -161,7 +161,7 @@ class _LibraryPreviewItemState extends State<_LibraryPreviewItem> {
   // but not impossible. Full history in CLAUDE.md "Library".
   Timer? _stuckCheckTimer;
   Duration? _lastStuckCheckPosition;
-  int _stuckSamples = 0;
+  DateTime? _stalledSince;
   bool _recovering = false;
 
   void _scheduleStuckCheck() {
@@ -182,30 +182,33 @@ class _LibraryPreviewItemState extends State<_LibraryPreviewItem> {
       // drag) — not a freeze. Drop the baseline so the resume isn't judged
       // against a pre-pause position.
       _lastStuckCheckPosition = null;
-      _stuckSamples = 0;
+      _stalledSince = null;
       return;
     }
-    // A wedged Exynos H.264 decoder reports `isPlaying: true` *and*
-    // `isBuffering: true` and never advances again, so buffering is no
-    // longer a free pass. A real buffering hiccup on a local file clears
-    // within a check or two; only a position that hasn't moved across two
-    // consecutive 1s checks (~2s) is treated as a decoder freeze.
     final position = value.position;
     final lastPosition = _lastStuckCheckPosition;
     _lastStuckCheckPosition = position;
     if (lastPosition == null) {
-      _stuckSamples = 0;
+      _stalledSince = null;
       return;
     }
-    final stalled =
-        (position - lastPosition).abs() < const Duration(milliseconds: 200);
-    if (!stalled) {
-      _stuckSamples = 0;
+    final delta = position - lastPosition;
+    // Any real movement — normal playback, or a big jump from a seek that
+    // just landed / a loop wrapping / a prior recovery — means the decoder
+    // is alive. Restart the stall clock.
+    if (delta.abs() > const Duration(milliseconds: 1200) ||
+        delta >= const Duration(milliseconds: 300)) {
+      _stalledSince = null;
       return;
     }
-    _stuckSamples++;
-    if (_stuckSamples >= 2) {
-      _stuckSamples = 0;
+    // Position essentially frozen while still "playing". On a large video a
+    // seek can buffer for a few seconds and then resume on its own; only a
+    // genuinely wedged Exynos decoder (isPlaying: true, isBuffering often
+    // also true) stays frozen indefinitely. Recover only once it's been
+    // frozen for a sustained window.
+    final since = _stalledSince ??= DateTime.now();
+    if (DateTime.now().difference(since) >= const Duration(seconds: 6)) {
+      _stalledSince = null;
       await _recoverFromStuckDecoder();
     }
   }
@@ -230,7 +233,7 @@ class _LibraryPreviewItemState extends State<_LibraryPreviewItem> {
     } finally {
       _recovering = false;
       _lastStuckCheckPosition = null;
-      _stuckSamples = 0;
+      _stalledSince = null;
     }
   }
 

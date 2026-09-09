@@ -180,7 +180,7 @@ class _StatusPreviewItemState extends State<_StatusPreviewItem> {
   // field.
   Timer? _stuckCheckTimer;
   Duration? _lastStuckCheckPosition;
-  int _stuckSamples = 0;
+  DateTime? _stalledSince;
   bool _recovering = false;
 
   void _scheduleStuckCheck() {
@@ -200,29 +200,29 @@ class _StatusPreviewItemState extends State<_StatusPreviewItem> {
       // Genuinely not playing (user paused, or `_ScrubBar` paused for a
       // drag) — not a freeze.
       _lastStuckCheckPosition = null;
-      _stuckSamples = 0;
+      _stalledSince = null;
       return;
     }
-    // Buffering is no longer a free pass: a wedged decoder reports
-    // `isPlaying: true` + `isBuffering: true` forever. See
-    // `library_preview.dart` for the full rationale — needs two consecutive
-    // stalled 1s checks (~2s) before recreating the controller.
+    // See `library_preview.dart` for the full rationale. Recover only after
+    // the position has stayed frozen for a sustained window — a seek on a
+    // large file buffers for a few seconds and then resumes on its own;
+    // only a wedged decoder stays frozen indefinitely.
     final position = value.position;
     final lastPosition = _lastStuckCheckPosition;
     _lastStuckCheckPosition = position;
     if (lastPosition == null) {
-      _stuckSamples = 0;
+      _stalledSince = null;
       return;
     }
-    final stalled =
-        (position - lastPosition).abs() < const Duration(milliseconds: 200);
-    if (!stalled) {
-      _stuckSamples = 0;
+    final delta = position - lastPosition;
+    if (delta.abs() > const Duration(milliseconds: 1200) ||
+        delta >= const Duration(milliseconds: 300)) {
+      _stalledSince = null;
       return;
     }
-    _stuckSamples++;
-    if (_stuckSamples >= 2) {
-      _stuckSamples = 0;
+    final since = _stalledSince ??= DateTime.now();
+    if (DateTime.now().difference(since) >= const Duration(seconds: 6)) {
+      _stalledSince = null;
       await _recoverFromStuckDecoder();
     }
   }
@@ -247,7 +247,7 @@ class _StatusPreviewItemState extends State<_StatusPreviewItem> {
     } finally {
       _recovering = false;
       _lastStuckCheckPosition = null;
-      _stuckSamples = 0;
+      _stalledSince = null;
     }
   }
 
