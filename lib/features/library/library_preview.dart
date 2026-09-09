@@ -167,7 +167,7 @@ class _LibraryPreviewItemState extends State<_LibraryPreviewItem> {
   void _scheduleStuckCheck() {
     _stuckCheckTimer?.cancel();
     _stuckCheckTimer = Timer.periodic(
-      const Duration(seconds: 2),
+      const Duration(seconds: 1),
       (_) => _checkStuck(),
     );
   }
@@ -187,9 +187,9 @@ class _LibraryPreviewItemState extends State<_LibraryPreviewItem> {
     }
     // A wedged Exynos H.264 decoder reports `isPlaying: true` *and*
     // `isBuffering: true` and never advances again, so buffering is no
-    // longer a free pass. A real buffering hiccup on a large file clears
+    // longer a free pass. A real buffering hiccup on a local file clears
     // within a check or two; only a position that hasn't moved across two
-    // consecutive checks (~4s) is treated as a decoder freeze.
+    // consecutive 1s checks (~2s) is treated as a decoder freeze.
     final position = value.position;
     final lastPosition = _lastStuckCheckPosition;
     _lastStuckCheckPosition = position;

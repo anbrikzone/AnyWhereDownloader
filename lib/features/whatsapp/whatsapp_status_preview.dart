@@ -186,7 +186,7 @@ class _StatusPreviewItemState extends State<_StatusPreviewItem> {
   void _scheduleStuckCheck() {
     _stuckCheckTimer?.cancel();
     _stuckCheckTimer = Timer.periodic(
-      const Duration(seconds: 2),
+      const Duration(seconds: 1),
       (_) => _checkStuck(),
     );
   }
@@ -206,7 +206,7 @@ class _StatusPreviewItemState extends State<_StatusPreviewItem> {
     // Buffering is no longer a free pass: a wedged decoder reports
     // `isPlaying: true` + `isBuffering: true` forever. See
     // `library_preview.dart` for the full rationale — needs two consecutive
-    // stalled checks (~4s) before recreating the controller.
+    // stalled 1s checks (~2s) before recreating the controller.
     final position = value.position;
     final lastPosition = _lastStuckCheckPosition;
     _lastStuckCheckPosition = position;

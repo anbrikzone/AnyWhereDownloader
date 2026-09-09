@@ -521,11 +521,12 @@ class _SpeedButton extends StatelessWidget {
   }
 }
 
-/// Fat track, round drag-highlighted thumb. Throttles real `seekTo()` while
-/// dragging (unthrottled per-event seeks can wedge some hardware H.264
-/// decoders — see the preview pages' stuck-decoder recovery), always seeks
-/// precisely on release, and owns pause-during-drag / resume-after (captured
-/// at drag start, not inferred).
+/// Fat track, round drag-highlighted thumb. **Does not seek while dragging**
+/// — only the thumb and the time label track the finger; one real `seekTo()`
+/// runs on release. (Seeking on every drag frame, even throttled, flushes
+/// some hardware H.264 decoders into a stall — see the preview pages'
+/// stuck-decoder recovery.) Owns pause-during-scrub / resume-after (captured
+/// once, guarded by `_pausedByScrub`), shared with the tap-to-seek path.
 class _ScrubBar extends StatefulWidget {
   const _ScrubBar({
     required this.controller,
@@ -546,20 +547,17 @@ class _ScrubBar extends StatefulWidget {
 }
 
 class _ScrubBarState extends State<_ScrubBar> {
-  static const _throttle = Duration(milliseconds: 400);
-  // A tap-to-seek keeps playback paused this long before resuming, so the
-  // seek settles first and — if the tap is really the first half of a
-  // tap-then-grab-the-thumb gesture — the drag takes over the pause before
-  // any resume/re-pause churn reaches the decoder.
-  static const _tapSettle = Duration(milliseconds: 150);
+  // A tap-to-seek keeps playback paused this long after the seek before it
+  // resumes — a beat for the decoder to present the target frame, and a
+  // window for a drag that's really the second half of a tap-then-grab
+  // gesture to take over the pause first.
+  static const _tapSettle = Duration(milliseconds: 120);
   static const _track = 5.0;
   static const _thumb = 14.0;
   static const _thumbActive = 22.0;
   static const _row = 26.0;
 
   Duration? _dragPosition;
-  DateTime? _lastSeekAt;
-  Timer? _pendingSeek;
   Timer? _tapReleaseTimer;
   bool _wasPlaying = false;
   bool _dragging = false;
@@ -576,23 +574,6 @@ class _ScrubBarState extends State<_ScrubBar> {
     if (width <= 0 || duration == Duration.zero) return Duration.zero;
     final fraction = (dx / width).clamp(0.0, 1.0);
     return duration * fraction;
-  }
-
-  void _throttledSeek(Duration target) {
-    final now = DateTime.now();
-    final last = _lastSeekAt;
-    final elapsed = last == null ? _throttle : now.difference(last);
-    if (elapsed >= _throttle) {
-      _pendingSeek?.cancel();
-      _lastSeekAt = now;
-      widget.controller.seekTo(target);
-      return;
-    }
-    _pendingSeek?.cancel();
-    _pendingSeek = Timer(_throttle - elapsed, () {
-      _lastSeekAt = DateTime.now();
-      widget.controller.seekTo(target);
-    });
   }
 
   /// Pause the controller for a scrub and remember whether it was playing —
@@ -613,26 +594,23 @@ class _ScrubBarState extends State<_ScrubBar> {
     if (_wasPlaying) await widget.controller.play();
   }
 
-  /// A single tap on the track: seek there, but through the same
-  /// pause / throttled-seek / resume path a drag uses, rather than a bare
-  /// `seekTo()` on the still-playing controller (which — chained into a
-  /// drag that follows — was wedging the hardware decoder).
+  /// A single tap on the track: pause, seek once, resume after [_tapSettle]
+  /// — the same pause/resume ownership a drag uses, not a bare `seekTo()` on
+  /// the still-playing controller (which, chained into a drag that follows,
+  /// was stalling the decoder).
   void _onTapSeek(double dx, double width) {
     final target = _positionFromDx(dx, width);
     widget.onInteraction();
     _takeoverPause();
-    _dragPosition = target;
+    setState(() => _dragPosition = target);
     widget.onPositionPreview(target);
-    _throttledSeek(target);
+    widget.controller.seekTo(target);
     _tapReleaseTimer?.cancel();
     _tapReleaseTimer = Timer(_tapSettle, () async {
       // A drag that began inside the settle window cancelled this timer and
       // now owns the pause/resume; this only runs for a lone tap.
-      _pendingSeek?.cancel();
-      await widget.controller.seekTo(target);
-      _lastSeekAt = DateTime.now();
       if (!mounted) return;
-      _dragPosition = null;
+      setState(() => _dragPosition = null);
       widget.onPositionPreview(null);
       await _releaseResume();
       widget.onInteraction();
@@ -649,19 +627,19 @@ class _ScrubBarState extends State<_ScrubBar> {
     });
     widget.onPositionPreview(target);
     widget.onInteraction();
-    _throttledSeek(target);
+    // No seek here or in _onDragUpdate — only the thumb and the time label
+    // follow the finger. The one real seek runs on release; per-frame seeks
+    // are the flush storm that stalls the hardware decoder.
   }
 
   void _onDragUpdate(double dx, double width) {
     final target = _positionFromDx(dx, width);
     setState(() => _dragPosition = target);
     widget.onPositionPreview(target);
-    _throttledSeek(target);
   }
 
   Future<void> _onDragEnd() async {
     _tapReleaseTimer?.cancel();
-    _pendingSeek?.cancel();
     final target = _dragPosition;
     if (target != null) await widget.controller.seekTo(target);
     if (!mounted) return;
@@ -676,7 +654,6 @@ class _ScrubBarState extends State<_ScrubBar> {
 
   @override
   void dispose() {
-    _pendingSeek?.cancel();
     _tapReleaseTimer?.cancel();
     super.dispose();
   }
