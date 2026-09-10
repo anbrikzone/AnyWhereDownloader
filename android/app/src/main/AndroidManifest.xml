@@ -43,6 +43,17 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Appear in the system "Share" sheet of YouTube / TikTok /
+                 WhatsApp / X / Instagram / LinkedIn etc. The shared value is
+                 a text URL; MainActivity reads EXTRA_TEXT and hands it to
+                 Dart, which routes it through ExtractorRegistry the same way
+                 a pasted link is. Scoped to text/plain on purpose — file
+                 shares aren't handled. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="text/plain"/>
+            </intent-filter>
         </activity>
         <service
             android:name=".YtDlpDownloadService"

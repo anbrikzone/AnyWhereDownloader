@@ -46,6 +46,7 @@ const List<ChangelogEntry> kChangelog = [
     notes: {
       'en': {
         ChangeKind.added: [
+          'You can now share a link straight from YouTube, TikTok, WhatsApp, X, Instagram or LinkedIn into AnyWhere Downloader — pick it from the app’s “Share” sheet and the download screen opens with the link already filled in.',
           'Settings → About now links to the app\'s open-source code on GitHub.',
         ],
         ChangeKind.fixed: [
@@ -60,6 +61,7 @@ const List<ChangelogEntry> kChangelog = [
       },
       'ru': {
         ChangeKind.added: [
+          'Теперь ссылку можно отправить в AnyWhere Downloader прямо из YouTube, TikTok, WhatsApp, X, Instagram или LinkedIn — выберите приложение в системном меню «Поделиться», и экран загрузки откроется с уже подставленной ссылкой.',
           'В разделе «Настройки → О приложении» появилась ссылка на открытый исходный код приложения на GitHub.',
         ],
         ChangeKind.fixed: [
@@ -74,6 +76,7 @@ const List<ChangelogEntry> kChangelog = [
       },
       'kk': {
         ChangeKind.added: [
+          'Енді сілтемені AnyWhere Downloader-ге тікелей YouTube, TikTok, WhatsApp, X, Instagram немесе LinkedIn қолданбасынан жіберуге болады — жүйелік «Бөлісу» мәзірінен қолданбаны таңдасаңыз, жүктеу экраны сілтеме қойылған күйде ашылады.',
           '«Параметрлер → Қолданба туралы» бөлімінде қолданбаның GitHub-тағы ашық бастапқы кодына сілтеме пайда болды.',
         ],
         ChangeKind.fixed: [

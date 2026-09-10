@@ -6,6 +6,7 @@ import '../../core/clipboard/clipboard_link_tracker.dart';
 import '../../core/extraction/extractor_registry.dart';
 import '../../core/extraction/media_extractor.dart';
 import '../../core/settings/settings_providers.dart';
+import '../../core/share/share_intent_service.dart';
 import '../../core/update/update_providers.dart';
 import '../../services/instagram/instagram_extractor.dart';
 import '../../services/linkedin/linkedin_extractor.dart';
@@ -143,6 +144,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkClipboard());
+    // Home stays mounted for the app's whole life (index 0 of MainShell's
+    // IndexedStack), so it's the right place to receive share-sheet links —
+    // same as it owns the clipboard auto-detect.
+    ShareIntentService.instance.init(_handleSharedUrl);
   }
 
   @override
@@ -216,7 +221,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       return;
     }
     setState(() => _urlError = null);
-    switch (extractor.serviceType) {
+    _navigateForService(extractor.serviceType, url);
+  }
+
+  /// Handles a link handed to the app from another app's system "Share"
+  /// sheet. An explicit user action, so — unlike the clipboard check — it's
+  /// honoured regardless of which tab is showing; it drops the link into
+  /// the URL field and opens the matching service screen. An unrecognized
+  /// or disabled service gets a toast (visible from any tab) plus the usual
+  /// in-field error.
+  void _handleSharedUrl(String url) {
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    final extractor = _buildRegistry().resolve(url);
+    setState(() {
+      _urlController.text = url;
+      _urlError = extractor == null ? l10n.linkNotRecognized : null;
+    });
+    if (extractor == null) {
+      showAppToast(context, l10n.linkNotRecognized);
+      return;
+    }
+    // Keep the clipboard check from re-offering the same link right after.
+    ClipboardLinkTracker.instance.markHandled(url);
+    _navigateForService(extractor.serviceType, url);
+  }
+
+  void _navigateForService(ServiceType type, String url) {
+    switch (type) {
       case ServiceType.youtube:
         Navigator.of(
           context,
