@@ -16,7 +16,7 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 - Settings → About shows the build number next to the version — handy for telling test builds apart.
 
 **Fixed**
-- Videos in the player no longer show a green strip along an edge — including the wider band on videos with non-square pixels (a screen recording, say), which were also being drawn slightly stretched.
+- Videos in the player no longer show a green strip along an edge, and screen-recording-style clips no longer look slightly stretched — the player now draws through the same kind of video surface your phone's gallery uses.
 
 ### Русский
 
@@ -26,7 +26,7 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 - В «Настройки → О приложении» рядом с версией показывается номер сборки — удобно различать тестовые сборки.
 
 **Исправлено**
-- Видео в плеере больше не показывают зелёную полосу у края — в том числе широкую полосу на видео с неквадратными пикселями (например, запись экрана), которые к тому же отображались слегка растянутыми.
+- Видео в плеере больше не показывают зелёную полосу у края, а записи экрана больше не выглядят слегка растянутыми — плеер теперь рисует через такую же видеоповерхность, какую использует галерея телефона.
 
 ### Қазақша
 
@@ -36,7 +36,7 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 - «Параметрлер → Қолданба туралы» бөлімінде нұсқаның қасында құрастыру нөмірі көрсетіледі — сынақ құрастыруларын ажыратуға ыңғайлы.
 
 **Түзетілді**
-- Плеердегі бейнелер енді шетінде жасыл жолақ көрсетпейді — соның ішінде шаршы емес пиксельді бейнелердегі (мысалы, экран жазбасы) кең жолақ; ондай бейнелер оған қоса сәл созылып көрсетілетін.
+- Плеердегі бейнелер енді шетінде жасыл жолақ көрсетпейді, ал экран жазбалары сәл созылып көрінбейді — плеер енді телефон галереясы қолданатындай видео беткейі арқылы сурет салады.
 
 ---
 

@@ -15,8 +15,11 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 /// - double-tap the left / right half → seek −10s / +10s, with a ripple
 /// - drag the fat round scrubber thumb (it highlights while dragged) to seek
 /// - the speed chip cycles 1× → 1.5× → 2×
-/// A `VideoPlayer` in an `AspectRatio` box that never shows the thin green
-/// edge some hardware decoders bleed along the right / bottom of the frame.
+/// A texture-mode `VideoPlayer` in an `AspectRatio` box that hides the thin
+/// green edge some hardware decoders bleed along the right / bottom of the
+/// frame. Used by the **long-press peek previews only** — the full-screen
+/// player (`VideoPlayerView`) renders through a native ExoPlayer surface
+/// (`VideoViewType.platformView`) instead, which has no such artefact.
 ///
 /// The cause is sub-pixel: when the video texture is laid out a fraction
 /// larger than the decoded frame, the GPU's bilinear sampler reads past the
@@ -243,7 +246,17 @@ class _VideoPlayerViewState extends State<VideoPlayerView>
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Center(child: VideoSurface(_c)),
+          // The host builds this player's controller with
+          // `VideoViewType.platformView` — a native ExoPlayer surface that
+          // applies the codec crop rectangle itself, so no `VideoSurface`
+          // overscan-clip is needed here (that's only for the texture-mode
+          // peek previews).
+          Center(
+            child: AspectRatio(
+              aspectRatio: _c.value.aspectRatio > 0 ? _c.value.aspectRatio : 16 / 9,
+              child: VideoPlayer(_c),
+            ),
+          ),
 
           // Double-tap seek ripple, on the tapped half.
           Positioned.fill(

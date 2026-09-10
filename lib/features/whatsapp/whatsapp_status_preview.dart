@@ -234,7 +234,10 @@ class _StatusPreviewItemState extends State<_StatusPreviewItem> {
     _recovering = true;
     final resumePosition = oldController.value.position;
     try {
-      final newController = VideoPlayerController.file(File(playbackPath));
+      final newController = VideoPlayerController.file(
+        File(playbackPath),
+        viewType: VideoViewType.platformView,
+      );
       await newController.initialize();
       if (!mounted) {
         await newController.dispose();
@@ -308,7 +311,10 @@ class _StatusPreviewItemState extends State<_StatusPreviewItem> {
             _loading = false;
           });
         } else {
-          final controller = VideoPlayerController.file(File(path));
+          final controller = VideoPlayerController.file(
+            File(path),
+            viewType: VideoViewType.platformView,
+          );
           await controller.initialize();
           if (!mounted) {
             await controller.dispose();
@@ -345,7 +351,10 @@ class _StatusPreviewItemState extends State<_StatusPreviewItem> {
         final destPath =
             '${tempDir.path}/wa_preview_${DateTime.now().microsecondsSinceEpoch}_${item.name}';
         await _safStream.copyToLocalFile(item.uri, destPath);
-        final controller = VideoPlayerController.file(File(destPath));
+        final controller = VideoPlayerController.file(
+          File(destPath),
+          viewType: VideoViewType.platformView,
+        );
         await controller.initialize();
         if (!mounted) {
           await controller.dispose();

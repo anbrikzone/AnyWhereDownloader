@@ -220,7 +220,10 @@ class _LibraryPreviewItemState extends State<_LibraryPreviewItem> {
     _recovering = true;
     final resumePosition = oldController.value.position;
     try {
-      final newController = VideoPlayerController.file(file);
+      final newController = VideoPlayerController.file(
+        file,
+        viewType: VideoViewType.platformView,
+      );
       await newController.initialize();
       if (!mounted) {
         await newController.dispose();
@@ -330,7 +333,13 @@ class _LibraryPreviewItemState extends State<_LibraryPreviewItem> {
       // Play straight from the MediaStore-backed file — an earlier local
       // copy step was measured to dominate open time (~3.5s of ~3.7s for a
       // 547MB video) and wasn't what fixed the mute bug (the watchdog is).
-      final controller = VideoPlayerController.file(file);
+      // `platformView` = a native ExoPlayer surface (same as the system
+      // gallery), so the codec's frame-crop rectangle is applied and
+      // screen-recording-style clips don't show a green padding strip.
+      final controller = VideoPlayerController.file(
+        file,
+        viewType: VideoViewType.platformView,
+      );
       await controller.initialize();
       if (!mounted) {
         await controller.dispose();
