@@ -48,6 +48,7 @@ const List<ChangelogEntry> kChangelog = [
         ChangeKind.added: [
           'You can now share a link straight from YouTube, TikTok, WhatsApp, X, Instagram or LinkedIn into AnyWhere Downloader — pick it from the app’s “Share” sheet and the download screen opens with the link already filled in.',
           'Settings → About now links to the app\'s open-source code on GitHub.',
+          'Settings → About shows the build number next to the version — handy for telling test builds apart.',
         ],
         ChangeKind.fixed: [
           'Videos in the player no longer show a green strip along an edge — including the wider band on videos with non-square pixels (a screen recording, say), which were also being drawn slightly stretched.',
@@ -57,6 +58,7 @@ const List<ChangelogEntry> kChangelog = [
         ChangeKind.added: [
           'Теперь ссылку можно отправить в AnyWhere Downloader прямо из YouTube, TikTok, WhatsApp, X, Instagram или LinkedIn — выберите приложение в системном меню «Поделиться», и экран загрузки откроется с уже подставленной ссылкой.',
           'В разделе «Настройки → О приложении» появилась ссылка на открытый исходный код приложения на GitHub.',
+          'В «Настройки → О приложении» рядом с версией показывается номер сборки — удобно различать тестовые сборки.',
         ],
         ChangeKind.fixed: [
           'Видео в плеере больше не показывают зелёную полосу у края — в том числе широкую полосу на видео с неквадратными пикселями (например, запись экрана), которые к тому же отображались слегка растянутыми.',
@@ -66,6 +68,7 @@ const List<ChangelogEntry> kChangelog = [
         ChangeKind.added: [
           'Енді сілтемені AnyWhere Downloader-ге тікелей YouTube, TikTok, WhatsApp, X, Instagram немесе LinkedIn қолданбасынан жіберуге болады — жүйелік «Бөлісу» мәзірінен қолданбаны таңдасаңыз, жүктеу экраны сілтеме қойылған күйде ашылады.',
           '«Параметрлер → Қолданба туралы» бөлімінде қолданбаның GitHub-тағы ашық бастапқы кодына сілтеме пайда болды.',
+          '«Параметрлер → Қолданба туралы» бөлімінде нұсқаның қасында құрастыру нөмірі көрсетіледі — сынақ құрастыруларын ажыратуға ыңғайлы.',
         ],
         ChangeKind.fixed: [
           'Плеердегі бейнелер енді шетінде жасыл жолақ көрсетпейді — соның ішінде шаршы емес пиксельді бейнелердегі (мысалы, экран жазбасы) кең жолақ; ондай бейнелер оған қоса сәл созылып көрсетілетін.',

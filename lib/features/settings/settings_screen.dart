@@ -26,6 +26,8 @@ class SettingsScreen extends ConsumerWidget {
     final clipboardAutoPaste = ref.watch(clipboardAutoPasteEnabledProvider);
     final locale = ref.watch(localeProvider);
     final statusArchive = ref.watch(statusArchiveRetentionProvider);
+    final versionLabel =
+        ref.watch(appVersionLabelProvider).valueOrNull ?? kAppVersion;
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settingsTitle)),
@@ -114,7 +116,7 @@ class SettingsScreen extends ConsumerWidget {
           ),
           ListTile(
             title: Text(l10n.whatsNewTitle),
-            subtitle: Text(l10n.versionLabel(kAppVersion)),
+            subtitle: Text(l10n.versionLabel(versionLabel)),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const ChangelogScreen()),

@@ -33,6 +33,22 @@ class UpdateInstaller {
     return (list ?? const []).map((e) => e.toString()).toList();
   }
 
+  /// The installed package's `versionName` + `versionCode`, read from
+  /// `PackageManager` — the build number the user actually has, never a
+  /// compile-time constant that could be stale. Null if the channel fails.
+  Future<({String name, int code})?> appVersion() async {
+    try {
+      final m = await _channel.invokeMapMethod<String, Object?>('appVersion');
+      if (m == null) return null;
+      return (
+        name: (m['name'] as String?) ?? '',
+        code: (m['code'] as num?)?.toInt() ?? 0,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Whether the app already holds the per-source "install unknown apps"
   /// grant (`PackageManager.canRequestPackageInstalls`).
   Future<bool> canInstallPackages() async {

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../changelog/changelog.dart';
 import '../settings/app_settings_service.dart';
 import 'update_installer.dart';
 import 'update_service.dart';
@@ -178,3 +179,12 @@ final updateControllerProvider =
     StateNotifierProvider<UpdateController, UpdateState>(
   (ref) => UpdateController(),
 );
+
+/// `"<version> (<build>)"` for Settings → About — e.g. `0.3.11 (36)` — read
+/// live from the installed package so it's always the build actually on the
+/// device. Falls back to just [kAppVersion] if the native read fails.
+final appVersionLabelProvider = FutureProvider<String>((ref) async {
+  final v = await UpdateInstaller().appVersion();
+  if (v == null || v.name.isEmpty) return kAppVersion;
+  return v.code > 0 ? '${v.name} (${v.code})' : v.name;
+});

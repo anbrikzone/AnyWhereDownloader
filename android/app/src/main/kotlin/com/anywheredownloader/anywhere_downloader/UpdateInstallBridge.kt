@@ -24,6 +24,28 @@ class UpdateInstallBridge(private val appContext: Context) {
         when (call.method) {
             "getSupportedAbis" -> result.success(Build.SUPPORTED_ABIS.toList())
 
+            // The installed package's own versionName + versionCode, read
+            // straight from PackageManager so it can never drift from what's
+            // actually on the device (shown in Settings → About).
+            "appVersion" -> {
+                try {
+                    val info = appContext.packageManager
+                        .getPackageInfo(appContext.packageName, 0)
+                    val code =
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                            info.longVersionCode
+                        } else {
+                            @Suppress("DEPRECATION")
+                            info.versionCode.toLong()
+                        }
+                    result.success(
+                        mapOf("name" to info.versionName, "code" to code),
+                    )
+                } catch (e: Exception) {
+                    result.error("app_version_failed", e.message, null)
+                }
+            }
+
             "canInstallPackages" -> {
                 result.success(appContext.packageManager.canRequestPackageInstalls())
             }
