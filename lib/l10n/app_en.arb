@@ -231,6 +231,7 @@
   },
   "betaNoticeTitle": "Beta version",
   "betaNoticeBody": "This app is under active development. Some features may be unstable or change between updates.",
+  "sourceCodeTitle": "Source code",
 
   "checkForUpdatesTitle": "Check for updates",
   "updateChecking": "Checking…",

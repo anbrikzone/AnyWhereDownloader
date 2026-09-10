@@ -169,6 +169,9 @@ class UpdateController extends StateNotifier<UpdateState> {
     };
     if (info != null) await _installer.openUrl(info.htmlUrl);
   }
+
+  /// Opens the project's source repository (Settings → About link).
+  Future<void> openRepositoryPage() => _installer.openUrl(kRepoUrl);
 }
 
 final updateControllerProvider =

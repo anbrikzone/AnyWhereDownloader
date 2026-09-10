@@ -489,6 +489,9 @@ class AppLocalizationsKk extends AppLocalizations {
       'Қолданба белсенді әзірленуде. Кейбір функциялар тұрақсыз болуы немесе жаңартулар арасында өзгеруі мүмкін.';
 
   @override
+  String get sourceCodeTitle => 'Бастапқы код';
+
+  @override
   String get checkForUpdatesTitle => 'Жаңартуларды тексеру';
 
   @override

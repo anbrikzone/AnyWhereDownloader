@@ -13,6 +13,12 @@ import '../changelog/changelog.dart';
 /// treats a 404 the same as "no newer version" and returns null.
 const String kUpdateRepoSlug = 'anbrikzone/AnyWhereDownloader';
 
+/// Full URL of the source repository, for the Settings → About link.
+const String kRepoUrl = 'https://github.com/$kUpdateRepoSlug';
+
+/// Host + path only, shown as the link's subtitle in the UI.
+const String kRepoDisplayUrl = 'github.com/$kUpdateRepoSlug';
+
 /// One downloadable file attached to a GitHub release.
 class UpdateAsset {
   const UpdateAsset({

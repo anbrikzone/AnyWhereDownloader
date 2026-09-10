@@ -9,6 +9,7 @@ import '../../core/settings/app_settings_service.dart';
 import '../../core/settings/settings_providers.dart';
 import '../../core/settings/yt_dlp_status_provider.dart';
 import '../../core/update/update_providers.dart';
+import '../../core/update/update_service.dart' show kRepoDisplayUrl;
 import '../../l10n/app_localizations.dart';
 import 'changelog_screen.dart';
 import 'services_screen.dart';
@@ -102,6 +103,14 @@ class SettingsScreen extends ConsumerWidget {
             leading: const Icon(Icons.science_outlined),
             title: Text(l10n.betaNoticeTitle),
             subtitle: Text(l10n.betaNoticeBody),
+          ),
+          ListTile(
+            leading: const Icon(Icons.code),
+            title: Text(l10n.sourceCodeTitle),
+            subtitle: const Text(kRepoDisplayUrl),
+            trailing: const Icon(Icons.open_in_new, size: 18),
+            onTap: () =>
+                ref.read(updateControllerProvider.notifier).openRepositoryPage(),
           ),
           ListTile(
             title: Text(l10n.whatsNewTitle),

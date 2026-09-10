@@ -488,6 +488,9 @@ class AppLocalizationsRu extends AppLocalizations {
       'Приложение активно дорабатывается. Некоторые функции могут работать нестабильно или меняться между обновлениями.';
 
   @override
+  String get sourceCodeTitle => 'Исходный код';
+
+  @override
   String get checkForUpdatesTitle => 'Проверить обновления';
 
   @override

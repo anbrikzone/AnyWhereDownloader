@@ -165,6 +165,7 @@
   "versionLabel": "{version} нұсқасы",
   "betaNoticeTitle": "Бета-нұсқа",
   "betaNoticeBody": "Қолданба белсенді әзірленуде. Кейбір функциялар тұрақсыз болуы немесе жаңартулар арасында өзгеруі мүмкін.",
+  "sourceCodeTitle": "Бастапқы код",
 
   "checkForUpdatesTitle": "Жаңартуларды тексеру",
   "updateChecking": "Тексерілуде…",

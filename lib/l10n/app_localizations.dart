@@ -922,6 +922,12 @@ abstract class AppLocalizations {
   /// **'This app is under active development. Some features may be unstable or change between updates.'**
   String get betaNoticeBody;
 
+  /// No description provided for @sourceCodeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Source code'**
+  String get sourceCodeTitle;
+
   /// No description provided for @checkForUpdatesTitle.
   ///
   /// In en, this message translates to:

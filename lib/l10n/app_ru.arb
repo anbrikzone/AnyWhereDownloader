@@ -165,6 +165,7 @@
   "versionLabel": "Версия {version}",
   "betaNoticeTitle": "Бета-версия",
   "betaNoticeBody": "Приложение активно дорабатывается. Некоторые функции могут работать нестабильно или меняться между обновлениями.",
+  "sourceCodeTitle": "Исходный код",
 
   "checkForUpdatesTitle": "Проверить обновления",
   "updateChecking": "Проверка…",

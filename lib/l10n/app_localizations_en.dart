@@ -487,6 +487,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'This app is under active development. Some features may be unstable or change between updates.';
 
   @override
+  String get sourceCodeTitle => 'Source code';
+
+  @override
   String get checkForUpdatesTitle => 'Check for updates';
 
   @override
