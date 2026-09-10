@@ -439,6 +439,16 @@ class AppLocalizationsRu extends AppLocalizations {
       'Автоматически подставлять поддерживаемую ссылку, скопированную в буфер обмена';
 
   @override
+  String get playbackSection => 'Воспроизведение';
+
+  @override
+  String get repeatVideoTitle => 'Повтор видео';
+
+  @override
+  String get repeatVideoSubtitle =>
+      'Запускать видео сначала, когда оно доходит до конца';
+
+  @override
   String get whatsappSection => 'WhatsApp';
 
   @override

@@ -832,6 +832,24 @@ abstract class AppLocalizations {
   /// **'Automatically fill in a supported link copied to the clipboard'**
   String get clipboardAutoPasteSubtitle;
 
+  /// No description provided for @playbackSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Playback'**
+  String get playbackSection;
+
+  /// No description provided for @repeatVideoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat video'**
+  String get repeatVideoTitle;
+
+  /// No description provided for @repeatVideoSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restart a video from the beginning when it reaches the end'**
+  String get repeatVideoSubtitle;
+
   /// No description provided for @whatsappSection.
   ///
   /// In en, this message translates to:

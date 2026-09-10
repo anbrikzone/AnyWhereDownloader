@@ -3,9 +3,11 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../core/settings/settings_providers.dart';
 import '../preview/video_player_view.dart';
 
 /// Full-screen preview, pushed on tap. A `PageView` over [assets] from
@@ -120,7 +122,7 @@ class _LibraryPreviewPageState extends State<LibraryPreviewPage> {
 }
 
 /// One swipeable page: the image or video player plus its controls.
-class _LibraryPreviewItem extends StatefulWidget {
+class _LibraryPreviewItem extends ConsumerStatefulWidget {
   const _LibraryPreviewItem({
     super.key,
     required this.asset,
@@ -143,10 +145,11 @@ class _LibraryPreviewItem extends StatefulWidget {
   final ValueChanged<bool>? onZoomChanged;
 
   @override
-  State<_LibraryPreviewItem> createState() => _LibraryPreviewItemState();
+  ConsumerState<_LibraryPreviewItem> createState() =>
+      _LibraryPreviewItemState();
 }
 
-class _LibraryPreviewItemState extends State<_LibraryPreviewItem> {
+class _LibraryPreviewItemState extends ConsumerState<_LibraryPreviewItem> {
   File? _file;
   File? _videoFile;
   VideoPlayerController? _videoController;
@@ -230,7 +233,10 @@ class _LibraryPreviewItemState extends State<_LibraryPreviewItem> {
         return;
       }
       await newController.seekTo(resumePosition);
-      _attachController(newController);
+      _attachController(
+        newController,
+        loop: ref.read(repeatVideoEnabledProvider),
+      );
       await oldController.dispose();
       setState(() => _videoController = newController);
     } finally {
@@ -247,7 +253,7 @@ class _LibraryPreviewItemState extends State<_LibraryPreviewItem> {
   // Shared by both the initial load and stuck-recovery paths, so the two
   // can't drift apart (looping / volume / mute-watchdog setup). Playback is
   // started separately, only when [_active].
-  void _attachController(VideoPlayerController controller, {bool loop = true}) {
+  void _attachController(VideoPlayerController controller, {required bool loop}) {
     controller
       ..setLooping(loop)
       ..setVolume(1);
@@ -345,7 +351,7 @@ class _LibraryPreviewItemState extends State<_LibraryPreviewItem> {
         await controller.dispose();
         return;
       }
-      _attachController(controller);
+      _attachController(controller, loop: ref.read(repeatVideoEnabledProvider));
       setState(() {
         _videoController = controller;
         _videoFile = file;
@@ -371,6 +377,10 @@ class _LibraryPreviewItemState extends State<_LibraryPreviewItem> {
 
   @override
   Widget build(BuildContext context) {
+    // Apply a live "Repeat video" toggle to the already-playing controller.
+    ref.listen<bool>(repeatVideoEnabledProvider, (_, repeat) {
+      if (!_isAudio) _videoController?.setLooping(repeat);
+    });
     if (_loading) {
       return const Center(child: CircularProgressIndicator(color: Colors.white));
     }

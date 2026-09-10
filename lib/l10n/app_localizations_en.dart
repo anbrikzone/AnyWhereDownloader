@@ -438,6 +438,16 @@ class AppLocalizationsEn extends AppLocalizations {
       'Automatically fill in a supported link copied to the clipboard';
 
   @override
+  String get playbackSection => 'Playback';
+
+  @override
+  String get repeatVideoTitle => 'Repeat video';
+
+  @override
+  String get repeatVideoSubtitle =>
+      'Restart a video from the beginning when it reaches the end';
+
+  @override
   String get whatsappSection => 'WhatsApp';
 
   @override

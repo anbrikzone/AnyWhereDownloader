@@ -3,10 +3,12 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:saf_stream/saf_stream.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../core/settings/settings_providers.dart';
 import '../../core/storage/saf_service.dart';
 import '../../services/whatsapp/whatsapp_status_reader.dart';
 import '../preview/video_player_view.dart';
@@ -129,7 +131,7 @@ class _StatusPreviewPageState extends State<StatusPreviewPage> {
 /// used to own directly before it became a `PageView` of these. Logic is
 /// unchanged from before the swipe feature; only the enclosing `Scaffold`/
 /// `AppBar` moved up to the new parent widget.
-class _StatusPreviewItem extends StatefulWidget {
+class _StatusPreviewItem extends ConsumerStatefulWidget {
   const _StatusPreviewItem({
     super.key,
     required this.item,
@@ -152,10 +154,10 @@ class _StatusPreviewItem extends StatefulWidget {
   final ValueChanged<bool>? onZoomChanged;
 
   @override
-  State<_StatusPreviewItem> createState() => _StatusPreviewItemState();
+  ConsumerState<_StatusPreviewItem> createState() => _StatusPreviewItemState();
 }
 
-class _StatusPreviewItemState extends State<_StatusPreviewItem> {
+class _StatusPreviewItemState extends ConsumerState<_StatusPreviewItem> {
   final _safService = SafService();
   final _safStream = SafStream();
 
@@ -244,7 +246,10 @@ class _StatusPreviewItemState extends State<_StatusPreviewItem> {
         return;
       }
       await newController.seekTo(resumePosition);
-      _attachController(newController);
+      _attachController(
+        newController,
+        loop: ref.read(repeatVideoEnabledProvider),
+      );
       await oldController.dispose();
       setState(() => _videoController = newController);
     } finally {
@@ -260,9 +265,9 @@ class _StatusPreviewItemState extends State<_StatusPreviewItem> {
 
   // See `LibraryPreviewPage` for the full rationale — ported as-is.
   // Playback is started separately, only when [_active].
-  void _attachController(VideoPlayerController controller) {
+  void _attachController(VideoPlayerController controller, {required bool loop}) {
     controller
-      ..setLooping(true)
+      ..setLooping(loop)
       ..setVolume(1);
     controller.addListener(() {
       if (controller.value.volume == 0 && !controller.value.isCompleted) {
@@ -320,7 +325,10 @@ class _StatusPreviewItemState extends State<_StatusPreviewItem> {
             await controller.dispose();
             return;
           }
-          _attachController(controller);
+          _attachController(
+            controller,
+            loop: ref.read(repeatVideoEnabledProvider),
+          );
           setState(() {
             _videoController = controller;
             _playbackPath = path;
@@ -361,7 +369,10 @@ class _StatusPreviewItemState extends State<_StatusPreviewItem> {
           await File(destPath).delete();
           return;
         }
-        _attachController(controller);
+        _attachController(
+          controller,
+          loop: ref.read(repeatVideoEnabledProvider),
+        );
         setState(() {
           _videoController = controller;
           _tempPath = destPath;
@@ -395,6 +406,10 @@ class _StatusPreviewItemState extends State<_StatusPreviewItem> {
 
   @override
   Widget build(BuildContext context) {
+    // Apply a live "Repeat video" toggle to the already-playing controller.
+    ref.listen<bool>(repeatVideoEnabledProvider, (_, repeat) {
+      _videoController?.setLooping(repeat);
+    });
     if (_loading) {
       return const Center(child: CircularProgressIndicator(color: Colors.white));
     }

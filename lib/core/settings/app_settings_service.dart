@@ -26,6 +26,7 @@ class AppSettingsService {
   static const _themeModeKey = 'settings_theme_mode';
   static const _serviceEnabledPrefix = 'settings_service_enabled_';
   static const _clipboardAutoPasteKey = 'settings_clipboard_auto_paste';
+  static const _repeatVideoKey = 'settings_repeat_video';
   static const _localeKey = 'settings_locale';
   static const _lastUpdateCheckKey = 'settings_last_update_check_ms';
   static const _statusArchiveRetentionKey = 'settings_status_archive_retention';
@@ -69,6 +70,19 @@ class AppSettingsService {
   Future<void> setClipboardAutoPasteEnabled(bool enabled) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_clipboardAutoPasteKey, enabled);
+  }
+
+  /// Whether a video restarts when it reaches the end (both full-screen
+  /// preview players). Defaults to `false` — a video stops at the end, like
+  /// a normal player. Long-press "peek" previews always loop regardless.
+  Future<bool> getRepeatVideoEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_repeatVideoKey) ?? false;
+  }
+
+  Future<void> setRepeatVideoEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_repeatVideoKey, enabled);
   }
 
   /// Null means "System default" — `MaterialApp.locale` then lets Flutter

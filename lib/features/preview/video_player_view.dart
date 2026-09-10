@@ -197,6 +197,9 @@ class _VideoPlayerViewState extends State<VideoPlayerView>
         _controlsVisible = true;
         _hideTimer?.cancel();
       } else {
+        // After the video has ended (repeat off), the centre button is a
+        // Replay — rewind before playing, or play() just no-ops at the end.
+        if (_c.value.isCompleted) _c.seekTo(Duration.zero);
         _c.play();
         _controlsVisible = true;
         _restartHideTimer();

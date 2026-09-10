@@ -24,6 +24,7 @@ class SettingsScreen extends ConsumerWidget {
     final themeMode = ref.watch(themeModeProvider);
     final enabledServices = ref.watch(enabledServicesProvider);
     final clipboardAutoPaste = ref.watch(clipboardAutoPasteEnabledProvider);
+    final repeatVideo = ref.watch(repeatVideoEnabledProvider);
     final locale = ref.watch(localeProvider);
     final statusArchive = ref.watch(statusArchiveRetentionProvider);
     final versionLabel =
@@ -65,6 +66,16 @@ class SettingsScreen extends ConsumerWidget {
             value: clipboardAutoPaste,
             onChanged: (enabled) => ref
                 .read(clipboardAutoPasteEnabledProvider.notifier)
+                .setEnabled(enabled),
+          ),
+          const Divider(),
+          _SectionHeader(l10n.playbackSection),
+          SwitchListTile(
+            title: Text(l10n.repeatVideoTitle),
+            subtitle: Text(l10n.repeatVideoSubtitle),
+            value: repeatVideo,
+            onChanged: (enabled) => ref
+                .read(repeatVideoEnabledProvider.notifier)
                 .setEnabled(enabled),
           ),
           const Divider(),

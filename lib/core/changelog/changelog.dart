@@ -49,6 +49,7 @@ const List<ChangelogEntry> kChangelog = [
           'You can now share a link straight from YouTube, TikTok, WhatsApp, X, Instagram or LinkedIn into AnyWhere Downloader — pick it from the app’s “Share” sheet and the download screen opens with the link already filled in.',
           'Settings → About now links to the app\'s open-source code on GitHub.',
           'Settings → About shows the build number next to the version — handy for telling test builds apart.',
+          'New setting Settings → Playback → Repeat video. It\'s off by default, so a video now stops when it reaches the end instead of looping — turn it on to loop.',
         ],
         ChangeKind.fixed: [
           'Videos in the player no longer show a green strip along an edge, and screen-recording-style clips no longer look slightly stretched — the player now draws through the same kind of video surface your phone\'s gallery uses.',
@@ -59,6 +60,7 @@ const List<ChangelogEntry> kChangelog = [
           'Теперь ссылку можно отправить в AnyWhere Downloader прямо из YouTube, TikTok, WhatsApp, X, Instagram или LinkedIn — выберите приложение в системном меню «Поделиться», и экран загрузки откроется с уже подставленной ссылкой.',
           'В разделе «Настройки → О приложении» появилась ссылка на открытый исходный код приложения на GitHub.',
           'В «Настройки → О приложении» рядом с версией показывается номер сборки — удобно различать тестовые сборки.',
+          'Новая настройка «Настройки → Воспроизведение → Повтор видео». По умолчанию выключена — видео теперь останавливается в конце, а не играет по кругу; включите, чтобы зациклить.',
         ],
         ChangeKind.fixed: [
           'Видео в плеере больше не показывают зелёную полосу у края, а записи экрана больше не выглядят слегка растянутыми — плеер теперь рисует через такую же видеоповерхность, какую использует галерея телефона.',
@@ -69,6 +71,7 @@ const List<ChangelogEntry> kChangelog = [
           'Енді сілтемені AnyWhere Downloader-ге тікелей YouTube, TikTok, WhatsApp, X, Instagram немесе LinkedIn қолданбасынан жіберуге болады — жүйелік «Бөлісу» мәзірінен қолданбаны таңдасаңыз, жүктеу экраны сілтеме қойылған күйде ашылады.',
           '«Параметрлер → Қолданба туралы» бөлімінде қолданбаның GitHub-тағы ашық бастапқы кодына сілтеме пайда болды.',
           '«Параметрлер → Қолданба туралы» бөлімінде нұсқаның қасында құрастыру нөмірі көрсетіледі — сынақ құрастыруларын ажыратуға ыңғайлы.',
+          'Жаңа параметр «Параметрлер → Ойнату → Бейнені қайталау». Әдепкіде өшірулі — бейне енді соңында тоқтайды, айналып ойналмайды; қайталау үшін қосыңыз.',
         ],
         ChangeKind.fixed: [
           'Плеердегі бейнелер енді шетінде жасыл жолақ көрсетпейді, ал экран жазбалары сәл созылып көрінбейді — плеер енді телефон галереясы қолданатындай видео беткейі арқылы сурет салады.',

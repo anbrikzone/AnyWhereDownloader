@@ -440,6 +440,15 @@ class AppLocalizationsKk extends AppLocalizations {
       'Алмасу буферіне көшірілген қолдау көрсетілетін сілтемені автоматты түрде қою';
 
   @override
+  String get playbackSection => 'Ойнату';
+
+  @override
+  String get repeatVideoTitle => 'Бейнені қайталау';
+
+  @override
+  String get repeatVideoSubtitle => 'Бейне соңына жеткенде оны басынан бастау';
+
+  @override
   String get whatsappSection => 'WhatsApp';
 
   @override

@@ -92,6 +92,33 @@ final clipboardAutoPasteEnabledProvider =
       (ref) => ClipboardAutoPasteController(),
     );
 
+/// Whether the full-screen video players loop a clip when it ends. Starts
+/// `false` (stop at the end) and loads the persisted value the same
+/// "default now, correct once loaded" way as the other controllers here.
+class RepeatVideoController extends StateNotifier<bool> {
+  RepeatVideoController({AppSettingsService? settingsService})
+    : _settingsService = settingsService ?? AppSettingsService(),
+      super(false) {
+    _init();
+  }
+
+  final AppSettingsService _settingsService;
+
+  Future<void> _init() async {
+    state = await _settingsService.getRepeatVideoEnabled();
+  }
+
+  Future<void> setEnabled(bool enabled) async {
+    state = enabled;
+    await _settingsService.setRepeatVideoEnabled(enabled);
+  }
+}
+
+final repeatVideoEnabledProvider =
+    StateNotifierProvider<RepeatVideoController, bool>(
+      (ref) => RepeatVideoController(),
+    );
+
 /// Persisted UI language choice. Null means "System default" — `main.dart`
 /// passes this straight through as `MaterialApp.locale`, so null lets
 /// Flutter's own locale resolution pick the best match from
