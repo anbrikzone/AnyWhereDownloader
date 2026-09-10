@@ -50,7 +50,7 @@ const List<ChangelogEntry> kChangelog = [
           'Settings → About now links to the app\'s open-source code on GitHub.',
         ],
         ChangeKind.fixed: [
-          'A thin green line along the edge of some videos in the player is gone — the picture is now clipped just inside that edge, where certain phones leave a stray strip.',
+          'Videos in the player no longer show a green strip along an edge — including the wider band on videos with non-square pixels (a screen recording, say), which were also being drawn slightly stretched.',
         ],
       },
       'ru': {
@@ -59,7 +59,7 @@ const List<ChangelogEntry> kChangelog = [
           'В разделе «Настройки → О приложении» появилась ссылка на открытый исходный код приложения на GitHub.',
         ],
         ChangeKind.fixed: [
-          'Тонкая зелёная полоса у края некоторых видео в плеере убрана — изображение теперь обрезается чуть внутрь от края, где на некоторых телефонах оставалась паразитная полоска.',
+          'Видео в плеере больше не показывают зелёную полосу у края — в том числе широкую полосу на видео с неквадратными пикселями (например, запись экрана), которые к тому же отображались слегка растянутыми.',
         ],
       },
       'kk': {
@@ -68,7 +68,7 @@ const List<ChangelogEntry> kChangelog = [
           '«Параметрлер → Қолданба туралы» бөлімінде қолданбаның GitHub-тағы ашық бастапқы кодына сілтеме пайда болды.',
         ],
         ChangeKind.fixed: [
-          'Плеердегі кейбір бейнелердің шетіндегі жіңішке жасыл жолақ жойылды — сурет енді сол шеттен сәл ішке қарай қиылады, себебі кейбір телефондарда сол жерде бөтен жолақ қалатын.',
+          'Плеердегі бейнелер енді шетінде жасыл жолақ көрсетпейді — соның ішінде шаршы емес пиксельді бейнелердегі (мысалы, экран жазбасы) кең жолақ; ондай бейнелер оған қоса сәл созылып көрсетілетін.',
         ],
       },
     },
