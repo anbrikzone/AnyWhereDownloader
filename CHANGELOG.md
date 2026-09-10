@@ -6,13 +6,31 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 
 ---
 
-## 0.3.10 — 2026-09-09
+## 0.3.11 — 2026-09-10
 
 ### English
 
 **Added**
 - You can now share a link straight from YouTube, TikTok, WhatsApp, X, Instagram or LinkedIn into AnyWhere Downloader — pick it from the app's "Share" sheet and the download screen opens with the link already filled in.
 - Settings → About now links to the app's open-source code on GitHub.
+
+### Русский
+
+**Добавлено**
+- Теперь ссылку можно отправить в AnyWhere Downloader прямо из YouTube, TikTok, WhatsApp, X, Instagram или LinkedIn — выберите приложение в системном меню «Поделиться», и экран загрузки откроется с уже подставленной ссылкой.
+- В разделе «Настройки → О приложении» появилась ссылка на открытый исходный код приложения на GitHub.
+
+### Қазақша
+
+**Қосылды**
+- Енді сілтемені AnyWhere Downloader-ге тікелей YouTube, TikTok, WhatsApp, X, Instagram немесе LinkedIn қолданбасынан жіберуге болады — жүйелік «Бөлісу» мәзірінен қолданбаны таңдасаңыз, жүктеу экраны сілтеме қойылған күйде ашылады.
+- «Параметрлер → Қолданба туралы» бөлімінде қолданбаның GitHub-тағы ашық бастапқы кодына сілтеме пайда болды.
+
+---
+
+## 0.3.10 — 2026-09-09
+
+### English
 
 **Fixed**
 - YouTube videos saved at 720p or higher no longer play with the audio slightly out of sync — the offset was most noticeable in the phone's gallery app. Merged video and audio now stay aligned, and an audio track fully compatible with MP4 is preferred.
@@ -25,10 +43,6 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 
 ### Русский
 
-**Добавлено**
-- Теперь ссылку можно отправить в AnyWhere Downloader прямо из YouTube, TikTok, WhatsApp, X, Instagram или LinkedIn — выберите приложение в системном меню «Поделиться», и экран загрузки откроется с уже подставленной ссылкой.
-- В разделе «Настройки → О приложении» появилась ссылка на открытый исходный код приложения на GitHub.
-
 **Исправлено**
 - Видео с YouTube, сохранённые в 720p и выше, больше не воспроизводятся с рассинхроном звука — сдвиг был особенно заметен в галерее телефона. При склейке видео и звука дорожки теперь остаются синхронными, и выбирается аудиодорожка, полностью совместимая с MP4.
 - Варианты качества для загрузки с YouTube теперь совпадают с обозначениями самого YouTube (1080p, 1440p, …), в том числе для видео с нестандартным соотношением сторон, где раньше показывались странные числа вроде 960p.
@@ -39,10 +53,6 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 - Видео в «Библиотеке» и WhatsApp больше не зависают, если тапнуть по точке на шкале воспроизведения, а затем потянуть бегунок — перемотка тапом и перетаскиванием теперь работает одинаково, и воспроизведение корректно возобновляется.
 
 ### Қазақша
-
-**Қосылды**
-- Енді сілтемені AnyWhere Downloader-ге тікелей YouTube, TikTok, WhatsApp, X, Instagram немесе LinkedIn қолданбасынан жіберуге болады — жүйелік «Бөлісу» мәзірінен қолданбаны таңдасаңыз, жүктеу экраны сілтеме қойылған күйде ашылады.
-- «Параметрлер → Қолданба туралы» бөлімінде қолданбаның GitHub-тағы ашық бастапқы кодына сілтеме пайда болды.
 
 **Түзетілді**
 - 720p және одан жоғары сапада сақталған YouTube бейнелерінің дыбысы енді сәл сәйкессіз ойналмайды — бұл ауытқу телефон галереясында әсіресе байқалатын. Бейне мен дыбыс біріктірілгенде жолдар енді синхронды болып қалады және MP4 пішімімен толық үйлесімді аудиожол таңдалады.
