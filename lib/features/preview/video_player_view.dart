@@ -15,6 +15,42 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 /// - double-tap the left / right half → seek −10s / +10s, with a ripple
 /// - drag the fat round scrubber thumb (it highlights while dragged) to seek
 /// - the speed chip cycles 1× → 1.5× → 2×
+/// A `VideoPlayer` in an `AspectRatio` box that never shows the thin green
+/// edge some hardware decoders bleed along the right / bottom of the frame.
+///
+/// The cause is sub-pixel: when the video texture is laid out a fraction
+/// larger than the decoded frame, the GPU's bilinear sampler reads past the
+/// valid luma/chroma into undefined YUV (Y≈U≈V≈0), which converts to green.
+/// Fix: paint the picture a hair (`_overscan`) larger than its box and let
+/// the box clip it, so the bad edge falls just outside the visible area.
+/// The crop is ~0.5% per side — visually nil, and only ever hides the
+/// artefact strip, never real content.
+class VideoSurface extends StatelessWidget {
+  const VideoSurface(this.controller, {super.key, this.aspectRatioOverride});
+
+  final VideoPlayerController controller;
+
+  /// Ratio to use instead of the controller's own (for callers tracking a
+  /// late-settling value). Falls back to 16∶9 until a real ratio arrives.
+  final double? aspectRatioOverride;
+
+  static const double _overscan = 1.01;
+
+  @override
+  Widget build(BuildContext context) {
+    final raw = aspectRatioOverride ?? controller.value.aspectRatio;
+    return AspectRatio(
+      aspectRatio: raw > 0 ? raw : 16 / 9,
+      child: ClipRect(
+        child: Transform.scale(
+          scale: _overscan,
+          child: VideoPlayer(controller),
+        ),
+      ),
+    );
+  }
+}
+
 class VideoPlayerView extends StatefulWidget {
   const VideoPlayerView({
     super.key,
@@ -207,14 +243,7 @@ class _VideoPlayerViewState extends State<VideoPlayerView>
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Center(
-            child: AspectRatio(
-              aspectRatio: _c.value.aspectRatio == 0
-                  ? 16 / 9
-                  : _c.value.aspectRatio,
-              child: VideoPlayer(_c),
-            ),
-          ),
+          Center(child: VideoSurface(_c)),
 
           // Double-tap seek ripple, on the tapped half.
           Positioned.fill(

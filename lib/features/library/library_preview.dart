@@ -667,10 +667,7 @@ class _LibraryPeekPreviewState extends State<LibraryPeekPreview> {
       if (_isAudio) {
         return const Icon(Icons.music_note, color: Colors.white24, size: 96);
       }
-      return AspectRatio(
-        aspectRatio: controller.value.aspectRatio,
-        child: VideoPlayer(controller),
-      );
+      return VideoSurface(controller);
     }
     if (_imageBytes != null) {
       return Image.memory(_imageBytes!);

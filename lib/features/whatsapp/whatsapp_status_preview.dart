@@ -755,10 +755,7 @@ class _StatusPeekPreviewState extends State<StatusPeekPreview> {
     }
     final controller = _videoController;
     if (controller != null && controller.value.isInitialized) {
-      return AspectRatio(
-        aspectRatio: controller.value.aspectRatio,
-        child: VideoPlayer(controller),
-      );
+      return VideoSurface(controller);
     }
     return const CircularProgressIndicator(color: Colors.white);
   }

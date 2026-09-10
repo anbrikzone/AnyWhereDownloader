@@ -49,17 +49,26 @@ const List<ChangelogEntry> kChangelog = [
           'You can now share a link straight from YouTube, TikTok, WhatsApp, X, Instagram or LinkedIn into AnyWhere Downloader — pick it from the app’s “Share” sheet and the download screen opens with the link already filled in.',
           'Settings → About now links to the app\'s open-source code on GitHub.',
         ],
+        ChangeKind.fixed: [
+          'A thin green line along the edge of some videos in the player is gone — the picture is now clipped just inside that edge, where certain phones leave a stray strip.',
+        ],
       },
       'ru': {
         ChangeKind.added: [
           'Теперь ссылку можно отправить в AnyWhere Downloader прямо из YouTube, TikTok, WhatsApp, X, Instagram или LinkedIn — выберите приложение в системном меню «Поделиться», и экран загрузки откроется с уже подставленной ссылкой.',
           'В разделе «Настройки → О приложении» появилась ссылка на открытый исходный код приложения на GitHub.',
         ],
+        ChangeKind.fixed: [
+          'Тонкая зелёная полоса у края некоторых видео в плеере убрана — изображение теперь обрезается чуть внутрь от края, где на некоторых телефонах оставалась паразитная полоска.',
+        ],
       },
       'kk': {
         ChangeKind.added: [
           'Енді сілтемені AnyWhere Downloader-ге тікелей YouTube, TikTok, WhatsApp, X, Instagram немесе LinkedIn қолданбасынан жіберуге болады — жүйелік «Бөлісу» мәзірінен қолданбаны таңдасаңыз, жүктеу экраны сілтеме қойылған күйде ашылады.',
           '«Параметрлер → Қолданба туралы» бөлімінде қолданбаның GitHub-тағы ашық бастапқы кодына сілтеме пайда болды.',
+        ],
+        ChangeKind.fixed: [
+          'Плеердегі кейбір бейнелердің шетіндегі жіңішке жасыл жолақ жойылды — сурет енді сол шеттен сәл ішке қарай қиылады, себебі кейбір телефондарда сол жерде бөтен жолақ қалатын.',
         ],
       },
     },
