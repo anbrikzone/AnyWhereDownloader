@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 /// changelog entry's version. Keep this in sync with `pubspec.yaml`'s
 /// `version:` field and the top entry of both [kChangelog] and the
 /// project-root `CHANGELOG.md`.
-const String kAppVersion = '0.3.11';
+const String kAppVersion = '0.3.12';
 
 /// The kind of change a changelog line describes. Rendered as a small
 /// section header ("Added" / "Changed" / "Fixed"); a kind with no lines is
@@ -40,6 +40,27 @@ class ChangelogEntry {
 /// new" screen renders; the project-root `CHANGELOG.md` mirrors it for
 /// people reading the repo. Update both together on every release.
 const List<ChangelogEntry> kChangelog = [
+  ChangelogEntry(
+    version: '0.3.12',
+    date: '2026-09-11',
+    notes: {
+      'en': {
+        ChangeKind.added: [
+          'YouTube playlist downloads now get their own folder in the Library, shown as a "Playlists" row — tap one to see just that playlist instead of it mixing in with everything else.',
+        ],
+      },
+      'ru': {
+        ChangeKind.added: [
+          'Загрузки плейлистов YouTube теперь получают отдельную папку в «Библиотеке» — в строке «Плейлисты». Откройте её, чтобы увидеть только файлы этого плейлиста, а не вперемешку со всем остальным.',
+        ],
+      },
+      'kk': {
+        ChangeKind.added: [
+          'Енді YouTube ойнату тізімдерінің жүктеулері «Кітапханада» өз қалтасына түседі — «Ойнату тізімдері» жолында көрсетіледі. Оны ашсаңыз, тек сол тізімнің файлдары көрінеді, қалғанымен араласпайды.',
+        ],
+      },
+    },
+  ),
   ChangelogEntry(
     version: '0.3.11',
     date: '2026-09-10',

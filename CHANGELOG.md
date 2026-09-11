@@ -6,6 +6,25 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 
 ---
 
+## 0.3.12 — 2026-09-11
+
+### English
+
+**Added**
+- YouTube playlist downloads now get their own folder in the Library, shown as a "Playlists" row — tap one to see just that playlist instead of it mixing in with everything else.
+
+### Русский
+
+**Добавлено**
+- Загрузки плейлистов YouTube теперь получают отдельную папку в «Библиотеке» — в строке «Плейлисты». Откройте её, чтобы увидеть только файлы этого плейлиста, а не вперемешку со всем остальным.
+
+### Қазақша
+
+**Қосылды**
+- Енді YouTube ойнату тізімдерінің жүктеулері «Кітапханада» өз қалтасына түседі — «Ойнату тізімдері» жолында көрсетіледі. Оны ашсаңыз, тек сол тізімнің файлдары көрінеді, қалғанымен араласпайды.
+
+---
+
 ## 0.3.11 — 2026-09-10
 
 ### English
