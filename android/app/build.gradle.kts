@@ -94,6 +94,22 @@ android {
                 output.outputFileName =
                     "AnyWhereDownloader-${variant.versionName}" +
                     (if (abi != null) "-$abi" else "") + ".apk"
+                // The Flutter Gradle plugin itself (registered earlier, via
+                // the `dev.flutter.flutter-gradle-plugin` id above) already
+                // set versionCodeOverride here to `abiCode * 1000 +
+                // versionCode` — its per-ABI multiplier so Play Store can
+                // tell same-version split APKs apart. This callback runs
+                // after that one (later applicationVariants.all
+                // registration wins for the same output), so it's safe to
+                // reassign it back. We only ever distribute one APK per
+                // device via direct download/self-update (matched by ABI
+                // substring in the filename, not versionCode — see
+                // UpdateService), so that offset only made Settings -> About
+                // show a confusing build number that didn't match the debug
+                // build (e.g. "2039" vs. "39").
+                @Suppress("DEPRECATION")
+                (output as com.android.build.gradle.api.ApkVariantOutput).versionCodeOverride =
+                    variant.versionCode
             }
         }
     }
