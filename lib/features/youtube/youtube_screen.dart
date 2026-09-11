@@ -156,6 +156,7 @@ class _YouTubeScreenState extends ConsumerState<YouTubeScreen>
       totalInPlaylist: info.entries.length,
       quality: pick.quality,
       playlistTitle: info.title,
+      channelName: info.uploader,
     );
   }
 

@@ -204,7 +204,11 @@ class PlaylistEntryInfo {
 }
 
 class PlaylistInfoResult {
-  PlaylistInfoResult({required this.title, required this.entries});
+  PlaylistInfoResult({
+    required this.title,
+    required this.entries,
+    this.uploader = '',
+  });
 
   factory PlaylistInfoResult.fromMap(Map<Object?, Object?> map) {
     final raw = map['entries'];
@@ -218,11 +222,16 @@ class PlaylistInfoResult {
     }
     return PlaylistInfoResult(
       title: (map['title'] as String? ?? '').trim(),
+      uploader: (map['uploader'] as String? ?? '').trim(),
       entries: entries,
     );
   }
 
   final String title;
+
+  /// Channel/uploader name, when yt-dlp's flat-playlist dump includes one —
+  /// empty string if not (e.g. some non-channel playlist shapes).
+  final String uploader;
   final List<PlaylistEntryInfo> entries;
 }
 

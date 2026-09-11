@@ -260,6 +260,7 @@ class YouTubeController extends StateNotifier<YouTubeState> {
     required int totalInPlaylist,
     required PlaylistQuality quality,
     required String playlistTitle,
+    String channelName = '',
   }) async {
     if (state.busy) {
       state = state.copyWith(
@@ -277,11 +278,15 @@ class YouTubeController extends StateNotifier<YouTubeState> {
     final outputDir = Directory('${tempDir.path}/playlist_$processId');
     await outputDir.create(recursive: true);
     final targetCount = selectedPositions.length;
-    // A dedicated `AnyWhereDownloader - YouTube - <playlist>` sub-album
-    // (backlog #7) instead of the flat `_galAlbum`, so Library can group
-    // these into a drill-in folder instead of mixing them into every other
-    // YouTube download.
-    final playlistAlbum = albumNameForPlaylist('YouTube', playlistTitle);
+    // A dedicated `AnyWhereDownloader - YouTube - <Channel - Playlist>`
+    // sub-album (backlog #7) instead of the flat `_galAlbum`, so Library can
+    // group these into a drill-in folder instead of mixing them into every
+    // other YouTube download. The channel name is prefixed (when yt-dlp's
+    // flat-playlist dump provided one) so two different channels' playlists
+    // that happen to share a title don't collide into the same folder.
+    final playlistLabel =
+        channelName.trim().isEmpty ? playlistTitle : '$channelName - $playlistTitle';
+    final playlistAlbum = albumNameForPlaylist('YouTube', playlistLabel);
 
     state = state.copyWith(
       downloading: true,

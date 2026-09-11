@@ -240,6 +240,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get selectTooltip => 'Выбрать';
 
   @override
+  String get selectAllTooltip => 'Выбрать всё';
+
+  @override
+  String get deselectAllTooltip => 'Снять выделение';
+
+  @override
   String get refreshTooltip => 'Обновить';
 
   @override

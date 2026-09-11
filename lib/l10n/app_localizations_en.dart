@@ -239,6 +239,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get selectTooltip => 'Select';
 
   @override
+  String get selectAllTooltip => 'Select all';
+
+  @override
+  String get deselectAllTooltip => 'Deselect all';
+
+  @override
   String get refreshTooltip => 'Refresh';
 
   @override

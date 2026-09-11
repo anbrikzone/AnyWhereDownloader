@@ -92,6 +92,8 @@
   "itemsSelectedCount": "Таңдалды: {count}",
   "cancelSelectionTooltip": "Таңдауды болдырмау",
   "selectTooltip": "Таңдау",
+  "selectAllTooltip": "Барлығын таңдау",
+  "deselectAllTooltip": "Таңдауды алып тастау",
   "refreshTooltip": "Жаңарту",
   "changeFolderTooltip": "Қапшықты өзгерту",
   "whatsappPickFolderInstructions": "Статустарды көрсету үшін WhatsApp статус қапшығын таңдаңыз. Таңдау терезесі бірден керек жерде ашылады — тек «осы қапшықты пайдалану» түймесін басыңыз.",

@@ -61,6 +61,17 @@ class _PlaylistFolderPageState extends State<PlaylistFolderPage> {
     setState(() => _selectedIds = selected);
   }
 
+  /// Selects every item, or (if all are already selected) clears the
+  /// selection — deleting/sharing a whole playlist at once shouldn't require
+  /// tapping every tile individually.
+  void _toggleSelectAll() {
+    setState(() {
+      _selectedIds = _selectedIds.length == _items.length
+          ? {}
+          : _items.map((i) => i.asset.id).toSet();
+    });
+  }
+
   Future<void> _shareSelected() async {
     if (_selectedIds.isEmpty || _busy) return;
     setState(() => _busy = true);
@@ -118,6 +129,18 @@ class _PlaylistFolderPageState extends State<PlaylistFolderPage> {
               tooltip: l10n.selectTooltip,
               icon: const Icon(Icons.checklist),
               onPressed: _items.isEmpty ? null : _enterSelectionMode,
+            )
+          else
+            IconButton(
+              tooltip: _selectedIds.length == _items.length
+                  ? l10n.deselectAllTooltip
+                  : l10n.selectAllTooltip,
+              icon: Icon(
+                _selectedIds.length == _items.length
+                    ? Icons.deselect
+                    : Icons.select_all,
+              ),
+              onPressed: _toggleSelectAll,
             ),
         ],
       ),

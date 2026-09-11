@@ -264,6 +264,15 @@ class YtDlpBridge(private val appContext: Context) {
                 }
                 val map = mapOf(
                     "title" to json.optString("title", ""),
+                    // Channel/uploader name, when yt-dlp's flat-playlist dump
+                    // includes one — used to prefix the Library sub-album
+                    // name ("<Channel> - <Playlist>") so two differently-
+                    // uploaded playlists that happen to share a title don't
+                    // read as the same folder.
+                    "uploader" to json.optString(
+                        "uploader",
+                        json.optString("channel", ""),
+                    ),
                     "count" to entries.size,
                     "entries" to entries,
                 )

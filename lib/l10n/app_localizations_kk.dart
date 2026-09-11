@@ -241,6 +241,12 @@ class AppLocalizationsKk extends AppLocalizations {
   String get selectTooltip => 'Таңдау';
 
   @override
+  String get selectAllTooltip => 'Барлығын таңдау';
+
+  @override
+  String get deselectAllTooltip => 'Таңдауды алып тастау';
+
+  @override
   String get refreshTooltip => 'Жаңарту';
 
   @override

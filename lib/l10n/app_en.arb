@@ -116,6 +116,8 @@
   },
   "cancelSelectionTooltip": "Cancel selection",
   "selectTooltip": "Select",
+  "selectAllTooltip": "Select all",
+  "deselectAllTooltip": "Deselect all",
   "refreshTooltip": "Refresh",
   "changeFolderTooltip": "Change folder",
   "whatsappPickFolderInstructions": "To show statuses, pick your WhatsApp status folder. The picker will open already positioned there — just tap \"use this folder\".",

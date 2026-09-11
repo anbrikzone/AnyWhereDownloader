@@ -502,6 +502,18 @@ abstract class AppLocalizations {
   /// **'Select'**
   String get selectTooltip;
 
+  /// No description provided for @selectAllTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Select all'**
+  String get selectAllTooltip;
+
+  /// No description provided for @deselectAllTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Deselect all'**
+  String get deselectAllTooltip;
+
   /// No description provided for @refreshTooltip.
   ///
   /// In en, this message translates to:

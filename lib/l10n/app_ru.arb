@@ -92,6 +92,8 @@
   "itemsSelectedCount": "Выбрано: {count}",
   "cancelSelectionTooltip": "Отменить выбор",
   "selectTooltip": "Выбрать",
+  "selectAllTooltip": "Выбрать всё",
+  "deselectAllTooltip": "Снять выделение",
   "refreshTooltip": "Обновить",
   "changeFolderTooltip": "Сменить папку",
   "whatsappPickFolderInstructions": "Чтобы показать статусы, выберите папку статусов WhatsApp. Средство выбора откроется уже в нужном месте — просто нажмите «использовать эту папку».",
