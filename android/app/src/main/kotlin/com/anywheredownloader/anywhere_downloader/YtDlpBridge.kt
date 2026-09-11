@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import androidx.core.content.ContextCompat
 import com.yausername.youtubedl_android.YoutubeDL
 import com.yausername.youtubedl_android.YoutubeDLException
@@ -27,6 +28,13 @@ import java.util.concurrent.Executors
 class YtDlpBridge(private val appContext: Context) {
     private val executor = Executors.newSingleThreadExecutor()
     private val mainHandler = Handler(Looper.getMainLooper())
+
+    companion object {
+        // Toasts truncate long error messages to 3 lines; the full text
+        // (needed to diagnose e.g. SABR/player-client failures) still
+        // reaches logcat via this tag.
+        private const val TAG = "YtDlpBridge"
+    }
 
     fun handle(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
@@ -208,8 +216,10 @@ class YtDlpBridge(private val appContext: Context) {
                 val map = videoInfoToMap(info)
                 mainHandler.post { result.success(map) }
             } catch (e: YoutubeDLException) {
+                Log.e(TAG, "getInfo failed for $url", e)
                 mainHandler.post { result.error("yt_dlp_error", e.message, null) }
             } catch (e: Exception) {
+                Log.e(TAG, "getInfo failed for $url", e)
                 mainHandler.post { result.error("unknown_error", e.message, null) }
             }
         }
@@ -259,8 +269,10 @@ class YtDlpBridge(private val appContext: Context) {
                 )
                 mainHandler.post { result.success(map) }
             } catch (e: YoutubeDLException) {
+                Log.e(TAG, "getPlaylistInfo failed for $url", e)
                 mainHandler.post { result.error("yt_dlp_error", e.message, null) }
             } catch (e: Exception) {
+                Log.e(TAG, "getPlaylistInfo failed for $url", e)
                 mainHandler.post { result.error("unknown_error", e.message, null) }
             }
         }
