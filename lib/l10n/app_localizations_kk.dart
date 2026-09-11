@@ -314,6 +314,9 @@ class AppLocalizationsKk extends AppLocalizations {
   String get noFilesForFilter => 'Бұл сүзгі бойынша файлдар жоқ.';
 
   @override
+  String get libraryPlaylistsHeader => 'Ойнату тізімдері';
+
+  @override
   String get libraryAccessDenied =>
       'Рұқсат берілмеді. Төмендегі түймені басу ешнәрсе істемесе, Android жүйелік сұрауды көрсетуді тоқтатқан — параметрлерді ашып, рұқсатты қолмен беріңіз.';
 

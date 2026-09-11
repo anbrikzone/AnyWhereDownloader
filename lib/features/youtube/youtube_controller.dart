@@ -252,8 +252,8 @@ class YouTubeController extends StateNotifier<YouTubeState> {
 
   /// Downloads [selectedPositions] (1-based) of a playlist at one shared
   /// [quality], via a single foreground-service yt-dlp run. Each finished
-  /// item is saved to the standard YouTube album as it lands; a summary
-  /// notification is posted at the end.
+  /// item is saved to a dedicated per-playlist sub-album as it lands (see
+  /// [albumNameForPlaylist]); a summary notification is posted at the end.
   Future<void> downloadPlaylist({
     required String playlistUrl,
     required List<int> selectedPositions,
@@ -277,6 +277,11 @@ class YouTubeController extends StateNotifier<YouTubeState> {
     final outputDir = Directory('${tempDir.path}/playlist_$processId');
     await outputDir.create(recursive: true);
     final targetCount = selectedPositions.length;
+    // A dedicated `AnyWhereDownloader - YouTube - <playlist>` sub-album
+    // (backlog #7) instead of the flat `_galAlbum`, so Library can group
+    // these into a drill-in folder instead of mixing them into every other
+    // YouTube download.
+    final playlistAlbum = albumNameForPlaylist('YouTube', playlistTitle);
 
     state = state.copyWith(
       downloading: true,
@@ -301,11 +306,11 @@ class YouTubeController extends StateNotifier<YouTubeState> {
         if (quality.isAudio) {
           await _mediaSaveService.saveAudio(
             item.path,
-            album: _galAlbum,
+            album: playlistAlbum,
             isMp3: true,
           );
         } else {
-          await _mediaSaveService.saveVideo(item.path, album: _galAlbum);
+          await _mediaSaveService.saveVideo(item.path, album: playlistAlbum);
         }
         saved++;
       } catch (_) {

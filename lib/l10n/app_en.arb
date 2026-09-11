@@ -147,6 +147,7 @@
   },
   "filterAll": "All",
   "noFilesForFilter": "No files for this filter.",
+  "libraryPlaylistsHeader": "Playlists",
   "libraryAccessDenied": "Access was denied. If tapping below does nothing, Android has stopped showing the permission prompt — open Settings and allow access manually.",
   "libraryAllowAccessPrompt": "To show your downloaded files, allow access to your gallery.",
   "tryAgainButton": "Try again",

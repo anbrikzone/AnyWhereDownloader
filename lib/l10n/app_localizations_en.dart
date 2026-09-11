@@ -312,6 +312,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noFilesForFilter => 'No files for this filter.';
 
   @override
+  String get libraryPlaylistsHeader => 'Playlists';
+
+  @override
   String get libraryAccessDenied =>
       'Access was denied. If tapping below does nothing, Android has stopped showing the permission prompt — open Settings and allow access manually.';
 

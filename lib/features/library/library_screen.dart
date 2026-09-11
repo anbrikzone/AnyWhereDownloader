@@ -9,6 +9,7 @@ import '../../core/storage/media_library_service.dart';
 import '../../core/ui/app_toast.dart';
 import '../../l10n/app_localizations.dart';
 import 'library_controller.dart';
+import 'library_folder_screen.dart';
 import 'library_preview.dart';
 
 class LibraryScreen extends ConsumerWidget {
@@ -84,7 +85,7 @@ class LibraryScreen extends ConsumerWidget {
       ),
       body: _buildBody(context, l10n, state, controller),
       bottomNavigationBar: state.selectionMode && state.selectedIds.isNotEmpty
-          ? _ActionBar(
+          ? LibraryActionBar(
               count: state.selectedIds.length,
               busy: state.busy,
               onShare: controller.shareSelected,
@@ -129,6 +130,7 @@ class LibraryScreen extends ConsumerWidget {
           return _EmptyState(onRefresh: controller.refresh);
         }
         final visible = state.visibleItems ?? const [];
+        final folders = state.visibleFolders;
         return Column(
           children: [
             if (state.availableSources.length > 1)
@@ -137,10 +139,20 @@ class LibraryScreen extends ConsumerWidget {
                 selected: state.sourceFilter,
                 onSelected: controller.setSourceFilter,
               ),
+            // Folders (playlist downloads, backlog #7) hidden while
+            // selecting — the top-level selection model only knows about
+            // individual assets, not "select every item in this folder".
+            if (folders.isNotEmpty && !state.selectionMode)
+              _FolderRow(
+                folders: folders,
+                onOpened: controller.refresh,
+              ),
             Expanded(
               child: visible.isEmpty
-                  ? const _NoMatchesState()
-                  : _LibraryGrid(
+                  ? (folders.isEmpty
+                        ? const _NoMatchesState()
+                        : const SizedBox.shrink())
+                  : LibraryGrid(
                       items: visible,
                       selectedIds: state.selectedIds,
                       selectionMode: state.selectionMode,
@@ -208,6 +220,158 @@ class _SourceFilterRow extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// Horizontal row of playlist-download folders (backlog #7) — a Google
+/// Photos-style "albums strip" above the flat asset grid, rather than mixing
+/// folder tiles into that grid (which expects one [AssetEntity] per tile).
+class _FolderRow extends StatelessWidget {
+  const _FolderRow({required this.folders, required this.onOpened});
+
+  final List<LibraryFolder> folders;
+
+  /// Called after returning from a folder's drill-in page — a share/delete
+  /// there can change what the top-level grid should show, and refreshing
+  /// unconditionally is cheap (just a MediaStore re-read).
+  final VoidCallback onOpened;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+          child: Text(
+            l10n.libraryPlaylistsHeader,
+            style: Theme.of(context).textTheme.labelLarge,
+          ),
+        ),
+        SizedBox(
+          height: 132,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            itemCount: folders.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 8),
+            itemBuilder: (context, index) {
+              final folder = folders[index];
+              return _FolderCard(
+                folder: folder,
+                onReturn: onOpened,
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 4),
+      ],
+    );
+  }
+}
+
+class _FolderCard extends StatelessWidget {
+  const _FolderCard({required this.folder, required this.onReturn});
+
+  final LibraryFolder folder;
+  final VoidCallback onReturn;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 96,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () async {
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => PlaylistFolderPage(
+                title: folder.label,
+                items: folder.items,
+              ),
+            ),
+          );
+          onReturn();
+        },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    _FolderThumbnail(asset: folder.items.first.asset),
+                    const ColoredBox(color: Colors.black26),
+                    const Align(
+                      alignment: Alignment.center,
+                      child: Icon(
+                        Icons.folder,
+                        color: Colors.white70,
+                        size: 28,
+                      ),
+                    ),
+                    Positioned(
+                      right: 4,
+                      bottom: 4,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 1,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '${folder.count}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              folder.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FolderThumbnail extends StatelessWidget {
+  const _FolderThumbnail({required this.asset});
+
+  final AssetEntity asset;
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: Colors.black12,
+      child: FutureBuilder<Uint8List?>(
+        future: asset.type == AssetType.audio
+            ? Future<Uint8List?>.value(null)
+            : asset.thumbnailDataWithSize(const ThumbnailSize(160, 160)),
+        builder: (context, snapshot) {
+          final bytes = snapshot.data;
+          if (bytes == null) return const SizedBox.shrink();
+          return Image.memory(bytes, fit: BoxFit.cover);
+        },
       ),
     );
   }
@@ -337,8 +501,9 @@ class _ErrorState extends StatelessWidget {
   }
 }
 
-class _ActionBar extends StatelessWidget {
-  const _ActionBar({
+class LibraryActionBar extends StatelessWidget {
+  const LibraryActionBar({
+    super.key,
     required this.count,
     required this.busy,
     required this.onShare,
@@ -390,8 +555,9 @@ class _ActionBar extends StatelessWidget {
 /// "video freezes, play/pause stop responding" reports during scrolling —
 /// rapid, overlapping controller creation/disposal is a known way to
 /// exhaust the platform's video decoder/texture resources on Android.
-class _LibraryGrid extends StatefulWidget {
-  const _LibraryGrid({
+class LibraryGrid extends StatefulWidget {
+  const LibraryGrid({
+    super.key,
     required this.items,
     required this.selectedIds,
     required this.selectionMode,
@@ -404,10 +570,10 @@ class _LibraryGrid extends StatefulWidget {
   final ValueChanged<int> onTap;
 
   @override
-  State<_LibraryGrid> createState() => _LibraryGridState();
+  State<LibraryGrid> createState() => LibraryGridState();
 }
 
-class _LibraryGridState extends State<_LibraryGrid> {
+class LibraryGridState extends State<LibraryGrid> {
   final ScrollController _scrollController = ScrollController();
   VoidCallback? _closeActivePeek;
 

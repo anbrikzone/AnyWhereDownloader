@@ -313,6 +313,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get noFilesForFilter => 'Нет файлов по этому фильтру.';
 
   @override
+  String get libraryPlaylistsHeader => 'Плейлисты';
+
+  @override
   String get libraryAccessDenied =>
       'В доступе отказано. Если нажатие ниже ничего не делает, значит Android перестал показывать системный запрос — откройте настройки и разрешите доступ вручную.';
 

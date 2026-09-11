@@ -7,6 +7,18 @@ import '../../core/storage/media_library_service.dart';
 
 enum LibrarySortOption { dateNewest, dateOldest, nameAZ, nameZA }
 
+/// One drill-in folder in Library — every item sharing a (source,
+/// playlistLabel) pair (see `LibraryItem.playlistLabel`), newest-first.
+class LibraryFolder {
+  LibraryFolder({required this.source, required this.label, required this.items});
+
+  final String source;
+  final String label;
+  final List<LibraryItem> items;
+
+  int get count => items.length;
+}
+
 class LibraryState {
   const LibraryState({
     this.checkingPermission = true,
@@ -58,13 +70,16 @@ class LibraryState {
   }
 
   /// [items], filtered by [sourceFilter] and sorted by [sortOption]. Only
-  /// meaningful once [items] has data — null while loading/erroring.
+  /// meaningful once [items] has data — null while loading/erroring. Excludes
+  /// playlist items (`playlistLabel != null`) — those are shown grouped via
+  /// [visibleFolders] instead of mixed into this flat list.
   List<LibraryItem>? get visibleItems {
     final all = items.valueOrNull;
     if (all == null) return null;
-    final filtered = sourceFilter == null
-        ? all
-        : all.where((i) => i.source == sourceFilter).toList();
+    final filtered = all
+        .where((i) => i.playlistLabel == null)
+        .where((i) => sourceFilter == null || i.source == sourceFilter)
+        .toList();
     filtered.sort((a, b) {
       switch (sortOption) {
         case LibrarySortOption.dateNewest:
@@ -78,6 +93,36 @@ class LibraryState {
       }
     });
     return filtered;
+  }
+
+  /// Playlist folders present, filtered by [sourceFilter] and sorted
+  /// newest-first by their most recent item. Empty until [items] has data.
+  List<LibraryFolder> get visibleFolders {
+    final all = items.valueOrNull;
+    if (all == null) return const [];
+    final grouped = <(String, String), List<LibraryItem>>{};
+    for (final item in all) {
+      final label = item.playlistLabel;
+      if (label == null) continue;
+      if (sourceFilter != null && item.source != sourceFilter) continue;
+      grouped.putIfAbsent((item.source, label), () => []).add(item);
+    }
+    final folders = grouped.entries.map((entry) {
+      final list = entry.value
+        ..sort(
+          (a, b) => b.asset.createDateTime.compareTo(a.asset.createDateTime),
+        );
+      return LibraryFolder(
+        source: entry.key.$1,
+        label: entry.key.$2,
+        items: list,
+      );
+    }).toList();
+    folders.sort(
+      (a, b) => b.items.first.asset.createDateTime
+          .compareTo(a.items.first.asset.createDateTime),
+    );
+    return folders;
   }
 
   LibraryState copyWith({

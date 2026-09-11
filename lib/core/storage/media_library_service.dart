@@ -18,13 +18,59 @@ const _unknownSource = 'Unknown';
 String albumNameForSource(String source) =>
     '$libraryAlbumPrefix - ${source.replaceAll(RegExp(r'[\\/]'), '-')}';
 
-/// One file in the Library, tagged with the source derived from its
-/// containing album name.
+/// The gallery album name for one item of a downloaded playlist — adds a
+/// third segment to [albumNameForSource] so Library can group these into a
+/// drill-in folder instead of mixing them into the flat per-service list —
+/// e.g. `albumNameForPlaylist('YouTube', 'Chill Mix')` ->
+/// `AnyWhereDownloader - YouTube - Chill Mix`.
+///
+/// [playlistTitle] gets the same `/`/`\` sanitizing as [albumNameForSource]'s
+/// [source] (see its doc — a literal separator here would nest the album
+/// under a different bucket instead of naming it) and is capped to 80 chars,
+/// matching the filename cap already used for downloaded files
+/// (`YouTubeController.suggestedFileName`), so an unusually long playlist
+/// title can't overflow a MediaStore path component.
+String albumNameForPlaylist(String source, String playlistTitle) {
+  var label = playlistTitle.replaceAll(RegExp(r'[\\/]'), '-').trim();
+  if (label.length > 80) label = label.substring(0, 80);
+  if (label.isEmpty) label = 'Playlist';
+  return '${albumNameForSource(source)} - $label';
+}
+
+/// Parses a gallery album name back into (source, playlistLabel) — the
+/// inverse of [albumNameForSource]/[albumNameForPlaylist]. Returns null for
+/// an album that doesn't carry the shared [libraryAlbumPrefix] at all (not
+/// expected in practice — callers only ever run this over an already
+/// prefix-filtered album list).
+({String source, String? playlistLabel})? parseLibraryAlbumName(String albumName) {
+  if (albumName == libraryAlbumPrefix) {
+    return (source: _unknownSource, playlistLabel: null);
+  }
+  final prefixDash = '$libraryAlbumPrefix - ';
+  if (!albumName.startsWith(prefixDash)) return null;
+  final tail = albumName.substring(prefixDash.length);
+  // A playlist album has a third " - "-separated segment (see
+  // `albumNameForPlaylist`); split on the *first* occurrence only — a plain
+  // service name never contains " - " today, but a playlist title
+  // legitimately might.
+  final sep = tail.indexOf(' - ');
+  if (sep == -1) return (source: tail, playlistLabel: null);
+  return (source: tail.substring(0, sep), playlistLabel: tail.substring(sep + 3));
+}
+
+/// One file in the Library, tagged with the source and (for a playlist
+/// download) the sub-folder label derived from its containing album name —
+/// see [albumNameForPlaylist].
 class LibraryItem {
-  LibraryItem({required this.asset, required this.source});
+  LibraryItem({required this.asset, required this.source, this.playlistLabel});
 
   final AssetEntity asset;
   final String source;
+
+  /// Non-null for a playlist item — the third album-name segment. Library
+  /// groups items sharing a (source, playlistLabel) pair into one folder
+  /// instead of listing them individually at the top level.
+  final String? playlistLabel;
 }
 
 /// Thin wrapper over `photo_manager`, isolating the package the same way
@@ -70,13 +116,20 @@ class MediaLibraryService {
 
     final items = <LibraryItem>[];
     for (final path in matching) {
-      final source = path.name == libraryAlbumPrefix
-          ? _unknownSource
-          : path.name.substring('$libraryAlbumPrefix - '.length);
+      final parsed = parseLibraryAlbumName(path.name);
+      if (parsed == null) continue;
       final count = await path.assetCountAsync;
       if (count == 0) continue;
       final assets = await path.getAssetListRange(start: 0, end: count);
-      items.addAll(assets.map((a) => LibraryItem(asset: a, source: source)));
+      items.addAll(
+        assets.map(
+          (a) => LibraryItem(
+            asset: a,
+            source: parsed.source,
+            playlistLabel: parsed.playlistLabel,
+          ),
+        ),
+      );
     }
 
     items.sort(

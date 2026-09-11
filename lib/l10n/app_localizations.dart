@@ -628,6 +628,12 @@ abstract class AppLocalizations {
   /// **'No files for this filter.'**
   String get noFilesForFilter;
 
+  /// No description provided for @libraryPlaylistsHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlists'**
+  String get libraryPlaylistsHeader;
+
   /// No description provided for @libraryAccessDenied.
   ///
   /// In en, this message translates to:
