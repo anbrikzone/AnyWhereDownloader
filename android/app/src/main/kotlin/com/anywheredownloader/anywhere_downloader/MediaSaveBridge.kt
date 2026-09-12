@@ -300,50 +300,78 @@ class MediaSaveBridge(private val appContext: Context) {
      * `RELATIVE_PATH` instead of `BUCKET_ID`) still moved zero rows, now
      * failing loudly with `IllegalArgumentException: Movement of
      * content://media/external/file which isn't part of well-defined
-     * collection not allowed`. First guess — the generic `MediaStore.Files`
-     * collection was the problem — was wrong too: switching to
-     * type-specific collections (`Images.Media`/`Video.Media`/`Audio.Media`)
-     * with the same bulk `WHERE RELATIVE_PATH = ?` still failed identically
-     * against *every* one of them, confirmed via logcat. The real
-     * constraint, now confirmed by exhausting the alternatives rather than
-     * assumed: MediaProvider only honors a `RELATIVE_PATH` change (a file
-     * move) against a **single identified row** (a URI with the row's `_ID`
-     * appended), never a bulk selection that could match more than one row
-     * at once — which is exactly the shape `photo_manager`'s own
-     * `AndroidQDBUtils.moveToGallery` uses (`ContentUris.withAppendedId`
-     * + a single `_ID` selection), not the "generic vs typed collection"
-     * distinction bug #2's first attempt assumed. Fixed by querying every
-     * row's `_ID` under [oldRelativePath] first, then updating each one
-     * individually via its own appended-ID URI.
+     * collection not allowed`. Switching to type-specific collections
+     * (`Images.Media`/`Video.Media`/`Audio.Media`) with the same bulk
+     * `WHERE RELATIVE_PATH = ?` still failed identically against every one
+     * of them, confirmed via logcat.
+     *
+     * **On-device bug #3 (2026-09-12)**: the real constraint behind bug #2's
+     * error was row cardinality, not collection type — MediaProvider only
+     * honors a `RELATIVE_PATH` change against a single identified row (a
+     * URI with the row's `_ID` appended), never a bulk selection. Fixed by
+     * querying every row's `_ID` under [oldRelativePath] first and updating
+     * each individually via its own appended-ID URI — but still through the
+     * *generic* `MediaStore.Files` collection.
+     *
+     * **On-device bug #4 (2026-09-12)**: bug #3's per-row fix still moved
+     * zero rows, now failing with `SecurityException: <app> has no access
+     * to content://media/external/file/<id>` for every row, even though
+     * this app inserted every one of them. The generic `MediaStore.Files`
+     * collection URI (`content://media/external/file/...`) does **not**
+     * carry the "own row" write grant Android extends to an app for files
+     * it inserted — that grant is only honored against the **type-specific**
+     * collection URI (`Images.Media`/`Video.Media`/`Audio.Media`) matching
+     * the row's actual media type, even for a single appended-`_ID` URI.
+     * Bug #2 and bug #3 were each half the fix: this combines both — per
+     * row (bug #3), through that row's own typed collection (bug #2's
+     * collection, applied correctly this time: per-row, not bulk).
      */
     private fun moveBucket(oldRelativePath: String, newRelativePath: String): Int {
         val resolver = appContext.contentResolver
-        val collection = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
-        val ids = mutableListOf<Long>()
+        val filesCollection = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
+        data class Row(val id: Long, val mediaType: Int)
+        val rows = mutableListOf<Row>()
         resolver.query(
-            collection,
-            arrayOf(MediaStore.MediaColumns._ID),
+            filesCollection,
+            arrayOf(MediaStore.MediaColumns._ID, MediaStore.Files.FileColumns.MEDIA_TYPE),
             "${MediaStore.MediaColumns.RELATIVE_PATH} = ?",
             arrayOf(oldRelativePath),
             null,
         )?.use { cursor ->
             val idCol = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns._ID)
-            while (cursor.moveToNext()) ids.add(cursor.getLong(idCol))
+            val typeCol = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.MEDIA_TYPE)
+            while (cursor.moveToNext()) {
+                rows.add(Row(cursor.getLong(idCol), cursor.getInt(typeCol)))
+            }
         }
         val values = ContentValues().apply {
             put(MediaStore.MediaColumns.RELATIVE_PATH, newRelativePath)
         }
         var moved = 0
-        for (id in ids) {
+        for (row in rows) {
+            val typedCollection = when (row.mediaType) {
+                MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE ->
+                    MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+                MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO ->
+                    MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+                MediaStore.Files.FileColumns.MEDIA_TYPE_AUDIO ->
+                    MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+                else -> filesCollection
+            }
             try {
-                moved += resolver.update(ContentUris.withAppendedId(collection, id), values, null, null)
+                moved += resolver.update(
+                    ContentUris.withAppendedId(typedCollection, row.id),
+                    values,
+                    null,
+                    null,
+                )
             } catch (e: Exception) {
-                Log.e(TAG, "moveBucket '$oldRelativePath' failed to move row $id", e)
+                Log.e(TAG, "moveBucket '$oldRelativePath' failed to move row ${row.id}", e)
             }
         }
         Log.i(
             TAG,
-            "moveBucket '$oldRelativePath' -> '$newRelativePath': $moved/${ids.size} row(s)",
+            "moveBucket '$oldRelativePath' -> '$newRelativePath': $moved/${rows.size} row(s)",
         )
         return moved
     }
