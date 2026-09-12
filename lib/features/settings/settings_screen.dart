@@ -17,12 +17,13 @@ import 'changelog_screen.dart';
 import 'services_screen.dart';
 import 'update_sheet.dart';
 
-/// Fixed width for the two "Save location" dropdowns (`_Dropdown`'s `width`
-/// param) — wide enough for `AudioSaveRoot`'s longest label
-/// (`Notifications`) so the arrow lands at the same spot on both rows
-/// regardless of the shorter `MediaSaveRoot` values (`Pictures`/`DCIM`/
-/// `Movies`) it's also used for.
-const _saveLocationDropdownWidth = 130.0;
+/// Fixed width shared by the WhatsApp archive and "Save location" dropdowns
+/// (`_Dropdown`'s `width` param) — wide enough for `AudioSaveRoot`'s longest
+/// label (`Notifications`) so the value text starts at the same indent and
+/// the arrow lands at the same spot on every row, regardless of how short
+/// that row's own selected label is (`Off`, `Pictures`, `DCIM`, `Movies`,
+/// `Music`, ...).
+const _dropdownAlignedWidth = 130.0;
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -104,6 +105,7 @@ class SettingsScreen extends ConsumerWidget {
               onChanged: (value) => ref
                   .read(statusArchiveRetentionProvider.notifier)
                   .setRetention(value),
+              width: _dropdownAlignedWidth,
             ),
           ),
           const Divider(),
@@ -122,7 +124,7 @@ class SettingsScreen extends ConsumerWidget {
               // below regardless of which option is selected — see the
               // width param's doc on `_Dropdown`. Wide enough for the
               // longest label either dropdown can show ("Notifications").
-              width: _saveLocationDropdownWidth,
+              width: _dropdownAlignedWidth,
             ),
           ),
           ListTile(
@@ -135,7 +137,7 @@ class SettingsScreen extends ConsumerWidget {
                   root: root.androidDirectoryName,
               },
               onChanged: (value) => _onAudioSaveRootChanged(context, ref, l10n, value),
-              width: _saveLocationDropdownWidth,
+              width: _dropdownAlignedWidth,
             ),
           ),
           const Divider(),
