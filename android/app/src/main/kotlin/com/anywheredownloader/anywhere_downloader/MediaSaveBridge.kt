@@ -11,6 +11,7 @@ import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
+import android.util.Log
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
@@ -29,6 +30,10 @@ import java.util.concurrent.Executors
  */
 class MediaSaveBridge(private val appContext: Context) {
 
+    companion object {
+        private const val TAG = "MediaSaveBridge"
+    }
+
     // MethodChannel handlers run on the platform (main) thread. These ops
     // hit the filesystem / MediaMetadataRetriever / ContentResolver and
     // must not block it — a burst of archived-video thumbnail decodes on
@@ -44,6 +49,7 @@ class MediaSaveBridge(private val appContext: Context) {
     ) {
         executor.execute {
             val outcome = runCatching(op)
+            outcome.onFailure { Log.e(TAG, "$errorCode: ${it.message}", it) }
             mainHandler.post {
                 outcome.fold(
                     onSuccess = { result.success(it) },
@@ -94,13 +100,13 @@ class MediaSaveBridge(private val appContext: Context) {
             }
 
             "moveBucket" -> {
-                val bucketId = call.argument<String>("bucketId")
+                val oldRelativePath = call.argument<String>("oldRelativePath")
                 val newRelativePath = call.argument<String>("newRelativePath")
-                if (bucketId == null || newRelativePath == null) {
-                    result.error("bad_args", "Missing bucketId/newRelativePath", null)
+                if (oldRelativePath == null || newRelativePath == null) {
+                    result.error("bad_args", "Missing oldRelativePath/newRelativePath", null)
                     return
                 }
-                runAsync(result, "move_failed") { moveBucket(bucketId, newRelativePath) }
+                runAsync(result, "move_failed") { moveBucket(oldRelativePath, newRelativePath) }
             }
 
             "videoThumbnail" -> {
@@ -282,30 +288,44 @@ class MediaSaveBridge(private val appContext: Context) {
                 result[bucketId] = relPath
             }
         }
+        Log.i(TAG, "queryLibraryBucketPaths found ${result.size} bucket(s): $result")
         return result
     }
 
     /**
-     * Moves every file in bucket [bucketId] to [newRelativePath] in one
-     * bulk `ContentResolver.update()` — Android's documented way for an app
-     * to move/rename media files it owns by rewriting `RELATIVE_PATH`
-     * (confirmed by reading `photo_manager`'s own Android source: its
-     * `AndroidQDBUtils.moveToGallery` does the identical single-row form of
-     * this same update). One bucket-wide selection here instead of a loop
-     * of per-row calls. Returns how many rows moved.
+     * Moves every file whose `RELATIVE_PATH` is exactly [oldRelativePath] to
+     * [newRelativePath] in one bulk `ContentResolver.update()` — Android's
+     * documented way for an app to move/rename media files it owns by
+     * rewriting `RELATIVE_PATH` (confirmed by reading `photo_manager`'s own
+     * Android source: its `AndroidQDBUtils.moveToGallery` does the identical
+     * single-row form of this same update, selecting on `_ID`). One
+     * bucket-wide selection here instead of a loop of per-row calls.
+     *
+     * Matches on `RELATIVE_PATH` itself rather than `BUCKET_ID` — the
+     * latter is a value MediaProvider *computes* from the path at query
+     * time, not a genuine underlying column, and while it's confirmed to
+     * work in a `SELECT`'s `WHERE` (see `pruneAlbum`'s `BUCKET_DISPLAY_NAME`
+     * use, exercised on-device), an earlier version of this method used it
+     * for `UPDATE` too and that was never actually verified to match any
+     * rows there — `photo_manager`'s own precedent only uses a real column.
+     * `RELATIVE_PATH` is a real column, so this is the safer bet.
+     *
+     * Returns how many rows moved.
      */
-    private fun moveBucket(bucketId: String, newRelativePath: String): Int {
+    private fun moveBucket(oldRelativePath: String, newRelativePath: String): Int {
         val resolver = appContext.contentResolver
         val collection = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
         val values = ContentValues().apply {
             put(MediaStore.MediaColumns.RELATIVE_PATH, newRelativePath)
         }
-        return resolver.update(
+        val moved = resolver.update(
             collection,
             values,
-            "${MediaStore.MediaColumns.BUCKET_ID} = ?",
-            arrayOf(bucketId),
+            "${MediaStore.MediaColumns.RELATIVE_PATH} = ?",
+            arrayOf(oldRelativePath),
         )
+        Log.i(TAG, "moveBucket '$oldRelativePath' -> '$newRelativePath': $moved row(s)")
+        return moved
     }
 
     private fun saveAudio(

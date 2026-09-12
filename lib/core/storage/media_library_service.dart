@@ -1,6 +1,5 @@
 import 'package:photo_manager/photo_manager.dart';
 
-import '../settings/app_settings_service.dart';
 import 'media_save_service.dart';
 
 const libraryAlbumPrefix = 'AnyWhereDownloader';
@@ -175,12 +174,10 @@ class LibraryItem {
 /// matching bucket regardless of which root that is, and merges them into
 /// one list so the rest of the app sees a single library either way.
 class MediaLibraryService {
-  MediaLibraryService({MediaSaveService? saveService, AppSettingsService? settings})
-    : _saveService = saveService ?? MediaSaveService(),
-      _settings = settings ?? AppSettingsService();
+  MediaLibraryService({MediaSaveService? saveService})
+    : _saveService = saveService ?? MediaSaveService();
 
   final MediaSaveService _saveService;
-  final AppSettingsService _settings;
 
   /// Checks the current permission without prompting.
   Future<PermissionState> currentPermission() {
@@ -200,7 +197,12 @@ class MediaLibraryService {
   Future<void> openSettings() => PhotoManager.openSetting();
 
   Future<List<LibraryItem>> loadDownloadedAssets() async {
-    await _migrateLegacyFoldersOnce();
+    // Must run — and finish — before the bucket-path lookup below: moving a
+    // bucket's files changes their `BUCKET_ID` (it's computed from the
+    // path), so a `bucketPaths` map fetched *before* migration would still
+    // key a just-migrated bucket by its old id and silently drop those
+    // items from this pass.
+    await _migrateLegacyFolders();
 
     final paths = await PhotoManager.getAssetPathList(
       hasAll: false,
@@ -243,45 +245,54 @@ class MediaLibraryService {
     return PhotoManager.editor.deleteWithIds(ids);
   }
 
-  /// One-time (per install) migration of every old flat
-  /// `AnyWhereDownloader - <Service>[ - <Playlist>]` bucket into the new
-  /// nested `AnyWhereDownloader/<Service>[/<Playlist>]` layout — added
+  /// Migrates every old flat, dash-joined bucket still found (see
+  /// [albumNameForSource]/[albumNameForPlaylist]) into the new nested
+  /// layout (see [relativePathForSource]/[relativePathForPlaylist]) — added
   /// 2026-09-12 after the user pointed out the flat buckets sat mixed in
-  /// directly under `Pictures/` alongside every other app's albums, with no
-  /// shared parent folder of their own to sort them apart from the rest.
+  /// directly
+  /// under `Pictures/` alongside every other app's albums, with no shared
+  /// parent folder of their own to sort them apart from the rest.
+  ///
+  /// Deliberately **not** gated by a persisted "already ran" flag — an
+  /// earlier version was, and a real bug in [MediaSaveService.moveBucket]
+  /// (matching on a MediaProvider-*computed* `BUCKET_ID` in an `UPDATE`,
+  /// never actually verified to work there — `photo_manager`'s own
+  /// precedent only ever does this against a genuine column) meant the
+  /// first on-device attempt silently moved nothing, and the flag then
+  /// permanently skipped every later attempt too. Re-scanning on every
+  /// [loadDownloadedAssets] call instead is self-healing: it's a cheap
+  /// no-op once nothing legacy remains, and a failed attempt simply retries
+  /// next time Library loads rather than getting stuck forever.
   ///
   /// Moves each legacy bucket's files in one bulk `ContentResolver.update()`
-  /// per bucket (`MediaSaveService.moveBucket` — Android's documented way to
-  /// move media files an app owns by rewriting `RELATIVE_PATH`, confirmed by
-  /// reading `photo_manager`'s own Android source doing the identical
-  /// single-row form of this same update), then best-effort cleans up the
-  /// now-empty old flat directory. Best-effort throughout — a failure here
-  /// must never block Library from loading; an unmigrated bucket is still
-  /// found and shown correctly via [parseLibraryRelativePath]'s legacy-flat
-  /// branch, just not yet moved.
-  Future<void> _migrateLegacyFoldersOnce() async {
-    if (await _settings.getLibraryNestedMigrationDone()) return;
+  /// per bucket, matched by the bucket's actual `RELATIVE_PATH` value (a
+  /// real column) rather than its `BUCKET_ID`. Then best-effort cleans up
+  /// the now-empty old flat directory. Best-effort throughout — a failure
+  /// here must never block Library from loading; an unmigrated bucket is
+  /// still found and shown correctly via [parseLibraryRelativePath]'s
+  /// legacy-flat branch, just not yet moved.
+  Future<void> _migrateLegacyFolders() async {
     try {
       final bucketPaths = await _saveService.queryLibraryBucketPaths();
       for (final entry in bucketPaths.entries) {
-        final parsed = parseLibraryRelativePath(entry.value);
+        final oldRelativePath = entry.value;
+        final parsed = parseLibraryRelativePath(oldRelativePath);
         if (parsed == null || !parsed.isLegacyFlat) continue;
         final newSuffix = parsed.playlistLabel == null
             ? relativePathForSource(parsed.source)
             : relativePathForPlaylist(parsed.source, parsed.playlistLabel!);
         final root = parsed.isAudio ? 'Music' : 'Pictures';
-        final moved = await _saveService.moveBucket(entry.key, '$root/$newSuffix');
+        final moved = await _saveService.moveBucket(oldRelativePath, '$root/$newSuffix');
         if (moved > 0) {
           await _saveService.cleanupEmptyAlbumDir(
-            _stripRoot(entry.value),
+            _stripRoot(oldRelativePath),
             isAudio: parsed.isAudio,
           );
         }
       }
     } catch (_) {
-      // Best-effort, one-time — never block Library from loading over this.
+      // Best-effort — never block Library from loading over this.
     }
-    await _settings.setLibraryNestedMigrationDone(true);
   }
 
   /// Strips the leading `Pictures/`/`Music/` root and any trailing slash

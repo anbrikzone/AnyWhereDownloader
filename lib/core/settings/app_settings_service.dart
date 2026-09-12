@@ -31,7 +31,6 @@ class AppSettingsService {
   static const _lastUpdateCheckKey = 'settings_last_update_check_ms';
   static const _statusArchiveRetentionKey = 'settings_status_archive_retention';
   static const _legacyArchivePurgedKey = 'settings_legacy_wa_archive_purged';
-  static const _libraryNestedMigrationDoneKey = 'settings_library_nested_migration_done';
 
   Future<ThemeMode> getThemeMode() async {
     final prefs = await SharedPreferences.getInstance();
@@ -144,19 +143,5 @@ class AppSettingsService {
   Future<void> setLegacyArchivePurged(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_legacyArchivePurgedKey, value);
-  }
-
-  /// Whether the one-time migration of the old flat
-  /// `AnyWhereDownloader - <Service>[ - <Playlist>]` gallery albums into
-  /// real nested `AnyWhereDownloader/<Service>[/<Playlist>]` folders has
-  /// already run (backlog #7 follow-up — see `MediaLibraryService`).
-  Future<bool> getLibraryNestedMigrationDone() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_libraryNestedMigrationDoneKey) ?? false;
-  }
-
-  Future<void> setLibraryNestedMigrationDone(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_libraryNestedMigrationDoneKey, value);
   }
 }

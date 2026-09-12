@@ -124,13 +124,15 @@ class MediaSaveService {
     }
   }
 
-  /// Moves every file in gallery bucket [bucketId] to [newRelativePath] in
-  /// one shot (see `MediaSaveBridge.moveBucket`). Returns how many files
-  /// moved; 0 on any failure. Never throws.
-  Future<int> moveBucket(String bucketId, String newRelativePath) async {
+  /// Moves every file whose gallery bucket has relativePath
+  /// [oldRelativePath] to [newRelativePath] in one shot (see
+  /// `MediaSaveBridge.moveBucket` — matches on the real `RELATIVE_PATH`
+  /// column, not the bucket id). Returns how many files moved; 0 on any
+  /// failure. Never throws.
+  Future<int> moveBucket(String oldRelativePath, String newRelativePath) async {
     try {
       final n = await _audioChannel.invokeMethod<int>('moveBucket', {
-        'bucketId': bucketId,
+        'oldRelativePath': oldRelativePath,
         'newRelativePath': newRelativePath,
       });
       return n ?? 0;
