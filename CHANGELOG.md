@@ -6,22 +6,46 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 
 ---
 
-## 0.3.12 — 2026-09-11
+## 0.3.12 — 2026-09-12
 
 ### English
 
 **Added**
-- YouTube playlist downloads now get their own folder in the Library, shown as a "Playlists" row — tap one to see just that playlist instead of it mixing in with everything else.
+- Downloads are now organized into real folders in your gallery — grouped by service and, for YouTube, by playlist. Existing downloads move into the new layout automatically, with a one-time prompt to allow it.
+- New setting: Settings → Save location lets you choose which folder new photos/videos and audio (MP3) get saved to — and optionally move your existing downloads there too.
+
+**Changed**
+- The audio player now works just like the video player: tap anywhere to show or hide the controls, double-tap left or right to skip ±10 seconds, and the speed button sits right next to the progress bar.
+
+**Fixed**
+- Changing the save-location folder no longer leaves the old, now-empty folder behind.
+- The dropdown menus in Settings are now aligned consistently instead of sitting at different indents.
 
 ### Русский
 
 **Добавлено**
-- Загрузки плейлистов YouTube теперь получают отдельную папку в «Библиотеке» — в строке «Плейлисты». Откройте её, чтобы увидеть только файлы этого плейлиста, а не вперемешку со всем остальным.
+- Загрузки теперь организуются в настоящие папки в галерее — по сервису, а для YouTube ещё и по плейлисту. Уже скачанные файлы автоматически переносятся в новую структуру — один раз появится запрос на разрешение.
+- Новая настройка: «Настройки → Место сохранения» позволяет выбрать, в какую папку сохранять новые фото/видео и аудио (MP3) — и по желанию перенести туда же уже скачанные файлы.
+
+**Изменено**
+- Аудиоплеер теперь работает точно так же, как видеоплеер: тап в любом месте показывает/скрывает управление, двойной тап слева или справа перематывает на ±10 секунд, а кнопка скорости расположена рядом с полосой прогресса.
+
+**Исправлено**
+- При смене папки сохранения старая, теперь пустая папка больше не остаётся — она удаляется.
+- Выпадающие списки в настройках теперь выровнены одинаково, а не на разных отступах.
 
 ### Қазақша
 
 **Қосылды**
-- Енді YouTube ойнату тізімдерінің жүктеулері «Кітапханада» өз қалтасына түседі — «Ойнату тізімдері» жолында көрсетіледі. Оны ашсаңыз, тек сол тізімнің файлдары көрінеді, қалғанымен араласпайды.
+- Жүктеулер енді галереяда нақты қалталарға топтастырылады — қызмет бойынша, ал YouTube үшін ойнату тізімі бойынша да. Бұрын жүктелген файлдар жаңа құрылымға автоматты түрде көшіріледі — бұған рұқсат сұрайтын хабарлама бір рет шығады.
+- Жаңа параметр: «Параметрлер → Сақтау орны» жаңа фото/бейне мен аудионы (MP3) қай қалтаға сақтау керектігін таңдауға мүмкіндік береді — қаласаңыз, бұрын жүктелген файлдарды да сол жерге көшіруге болады.
+
+**Өзгертілді**
+- Аудио ойнатқыш енді бейне ойнатқышпен бірдей жұмыс істейді: кез келген жерді түрту басқаруды көрсетеді/жасырады, сол не оң жақты қос түрту ±10 секундқа айналдырады, ал жылдамдық түймесі прогресс жолағының қасында тұрады.
+
+**Түзетілді**
+- Сақтау қалтасын ауыстырғанда, ескі, енді бос қалта қалып қоймайды — ол жойылады.
+- Параметрлердегі ашылмалы тізімдер енді әртүрлі шегіністе емес, бірдей тураланған.
 
 ---
 
