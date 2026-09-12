@@ -17,6 +17,13 @@ import 'changelog_screen.dart';
 import 'services_screen.dart';
 import 'update_sheet.dart';
 
+/// Fixed width for the two "Save location" dropdowns (`_Dropdown`'s `width`
+/// param) — wide enough for `AudioSaveRoot`'s longest label
+/// (`Notifications`) so the arrow lands at the same spot on both rows
+/// regardless of the shorter `MediaSaveRoot` values (`Pictures`/`DCIM`/
+/// `Movies`) it's also used for.
+const _saveLocationDropdownWidth = 130.0;
+
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -111,6 +118,11 @@ class SettingsScreen extends ConsumerWidget {
                   root: root.androidDirectoryName,
               },
               onChanged: (value) => _onMediaSaveRootChanged(context, ref, l10n, value),
+              // Fixed so this row's arrow lines up with the audio row's
+              // below regardless of which option is selected — see the
+              // width param's doc on `_Dropdown`. Wide enough for the
+              // longest label either dropdown can show ("Notifications").
+              width: _saveLocationDropdownWidth,
             ),
           ),
           ListTile(
@@ -123,6 +135,7 @@ class SettingsScreen extends ConsumerWidget {
                   root: root.androidDirectoryName,
               },
               onChanged: (value) => _onAudioSaveRootChanged(context, ref, l10n, value),
+              width: _saveLocationDropdownWidth,
             ),
           ),
           const Divider(),
@@ -288,23 +301,36 @@ Future<void> _offerToMoveExisting({
 /// Compact dropdown for a settings row — takes far less vertical space than
 /// a `RadioListTile` group when there are only a few mutually-exclusive
 /// options, at the cost of the options not all being visible at once.
+///
+/// [width] is optional — without it (the default, every other row using
+/// this) the button hugs its own selected label, so two rows whose values
+/// differ in length (e.g. `Movies` vs `Music`) show their dropdown arrow at
+/// different horizontal positions, which reads as misaligned when the rows
+/// sit directly under each other (reported on-device 2026-09-13, the two
+/// "Save location" rows). Passing a fixed [width] (with `isExpanded: true`)
+/// pins the arrow to the same right edge on every row regardless of the
+/// selected label's length, at the cost of a visible gap before the arrow
+/// for a short label in a [width] sized for a longer one.
 class _Dropdown<T> extends StatelessWidget {
   const _Dropdown({
     required this.value,
     required this.items,
     required this.onChanged,
+    this.width,
   });
 
   final T value;
   final Map<T, String> items;
   final ValueChanged<T> onChanged;
+  final double? width;
 
   @override
   Widget build(BuildContext context) {
-    return DropdownButtonHideUnderline(
+    final button = DropdownButtonHideUnderline(
       child: DropdownButton<T>(
         value: value,
         isDense: true,
+        isExpanded: width != null,
         items: [
           for (final entry in items.entries)
             DropdownMenuItem<T>(value: entry.key, child: Text(entry.value)),
@@ -316,6 +342,7 @@ class _Dropdown<T> extends StatelessWidget {
         },
       ),
     );
+    return width == null ? button : SizedBox(width: width, child: button);
   }
 }
 
