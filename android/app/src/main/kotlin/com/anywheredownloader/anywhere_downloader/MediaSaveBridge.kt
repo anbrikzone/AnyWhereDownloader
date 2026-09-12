@@ -294,53 +294,57 @@ class MediaSaveBridge(private val appContext: Context) {
 
     /**
      * Moves every file whose `RELATIVE_PATH` is exactly [oldRelativePath] to
-     * [newRelativePath], matched on `RELATIVE_PATH` itself (a real column —
-     * see the second bug note below for why not `BUCKET_ID`). Returns how
-     * many rows moved.
+     * [newRelativePath]. Returns how many rows moved.
      *
-     * **On-device bug #2 (2026-09-12)**: the first fix (matching on
+     * **On-device bug #2 (2026-09-12)**: bug #1's fix (matching on
      * `RELATIVE_PATH` instead of `BUCKET_ID`) still moved zero rows, now
      * failing loudly with `IllegalArgumentException: Movement of
      * content://media/external/file which isn't part of well-defined
-     * collection not allowed`. Root cause: the update was issued against
-     * `MediaStore.Files.getContentUri()` — the generic collection spanning
-     * every media type — and MediaProvider refuses a `RELATIVE_PATH` move
-     * through it, since it can't tell *which* typed collection (images,
-     * video, audio) the affected row(s) actually belong to. `photo_manager`'s
-     * own `AndroidQDBUtils.moveToGallery` uses this exact same generic URI
-     * for its own single-row move — evidently an unexercised path in that
-     * library, not a working precedent as assumed. The fix: issue the
-     * update against each type-specific collection URI in turn
-     * (`MediaStore.Images.Media` / `Video.Media` / `Audio.Media`) — each is
-     * unambiguously "well-defined" on its own, and one bucket's files can
-     * span more than one type (e.g. a WhatsApp/Instagram/X/LinkedIn folder
-     * mixes photos and videos), so all three are always attempted; a
-     * collection matching no rows in this bucket just updates 0 rows,
-     * harmlessly.
+     * collection not allowed`. First guess — the generic `MediaStore.Files`
+     * collection was the problem — was wrong too: switching to
+     * type-specific collections (`Images.Media`/`Video.Media`/`Audio.Media`)
+     * with the same bulk `WHERE RELATIVE_PATH = ?` still failed identically
+     * against *every* one of them, confirmed via logcat. The real
+     * constraint, now confirmed by exhausting the alternatives rather than
+     * assumed: MediaProvider only honors a `RELATIVE_PATH` change (a file
+     * move) against a **single identified row** (a URI with the row's `_ID`
+     * appended), never a bulk selection that could match more than one row
+     * at once — which is exactly the shape `photo_manager`'s own
+     * `AndroidQDBUtils.moveToGallery` uses (`ContentUris.withAppendedId`
+     * + a single `_ID` selection), not the "generic vs typed collection"
+     * distinction bug #2's first attempt assumed. Fixed by querying every
+     * row's `_ID` under [oldRelativePath] first, then updating each one
+     * individually via its own appended-ID URI.
      */
     private fun moveBucket(oldRelativePath: String, newRelativePath: String): Int {
         val resolver = appContext.contentResolver
+        val collection = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
+        val ids = mutableListOf<Long>()
+        resolver.query(
+            collection,
+            arrayOf(MediaStore.MediaColumns._ID),
+            "${MediaStore.MediaColumns.RELATIVE_PATH} = ?",
+            arrayOf(oldRelativePath),
+            null,
+        )?.use { cursor ->
+            val idCol = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns._ID)
+            while (cursor.moveToNext()) ids.add(cursor.getLong(idCol))
+        }
         val values = ContentValues().apply {
             put(MediaStore.MediaColumns.RELATIVE_PATH, newRelativePath)
         }
-        val selection = "${MediaStore.MediaColumns.RELATIVE_PATH} = ?"
-        val args = arrayOf(oldRelativePath)
-        val collections = listOf(
-            "image" to MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL),
-            "video" to MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL),
-            "audio" to MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL),
-        )
         var moved = 0
-        for ((label, collection) in collections) {
+        for (id in ids) {
             try {
-                val n = resolver.update(collection, values, selection, args)
-                moved += n
-                if (n > 0) Log.i(TAG, "moveBucket '$oldRelativePath': moved $n $label row(s)")
+                moved += resolver.update(ContentUris.withAppendedId(collection, id), values, null, null)
             } catch (e: Exception) {
-                Log.e(TAG, "moveBucket '$oldRelativePath' failed for $label collection", e)
+                Log.e(TAG, "moveBucket '$oldRelativePath' failed to move row $id", e)
             }
         }
-        Log.i(TAG, "moveBucket '$oldRelativePath' -> '$newRelativePath': $moved row(s) total")
+        Log.i(
+            TAG,
+            "moveBucket '$oldRelativePath' -> '$newRelativePath': $moved/${ids.size} row(s)",
+        )
         return moved
     }
 
