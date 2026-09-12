@@ -13,14 +13,16 @@ import '../../core/storage/media_library_service.dart';
 import '../../core/storage/media_save_service.dart';
 import '../../services/x_twitter/x_twitter_extractor.dart';
 
-// Not 'X/Twitter' — that `/` isn't just cosmetic here. `albumNameForSource`'s
+// Not 'X/Twitter' — that `/` isn't just cosmetic here. `relativePathForSource`'s
 // result ends up as a MediaStore `RELATIVE_PATH` (see `MediaSaveService`),
-// where Android treats any `/` as a real folder separator: this created a
-// literal nested "AnyWhereDownloader - X" / "Twitter" folder pair instead
-// of one album, so its bucket name was just "Twitter" — never matching
-// `MediaLibraryService`'s `libraryAlbumPrefix` check, so Library silently
-// never showed these downloads at all. Found on-device, not guessed.
-final _galAlbum = albumNameForSource('X-Twitter');
+// where Android treats any `/` as a real folder separator: an unsanitized
+// literal slash inside the *source* name (as opposed to the deliberate
+// structural slash `relativePathForSource` itself adds between the shared
+// root and the service) created a literal nested "AnyWhereDownloader" /
+// "X" / "Twitter" folder chain instead of one "X-Twitter" folder, so its
+// bucket name was just "Twitter" — never matching `parseLibraryRelativePath`.
+// Found on-device, not guessed.
+final _galAlbum = relativePathForSource('X-Twitter');
 
 class XTwitterState {
   const XTwitterState({

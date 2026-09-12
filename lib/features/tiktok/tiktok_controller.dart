@@ -13,7 +13,7 @@ import '../../core/storage/media_library_service.dart';
 import '../../core/storage/media_save_service.dart';
 import '../../services/tiktok/tiktok_extractor.dart';
 
-final _galAlbum = albumNameForSource('TikTok');
+final _galAlbum = relativePathForSource('TikTok');
 
 class TikTokState {
   const TikTokState({

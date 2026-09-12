@@ -20,9 +20,12 @@ import java.util.concurrent.Executors
 /**
  * Saves an audio file into the MediaStore audio collection
  * (`Music/<album>/`) — `photo_manager` has no audio save API — silently
- * prunes old files from an app-owned gallery album, and decodes a
- * thumbnail frame from a local (private) video file. Same defensive
- * try/catch → channel-error style as [MediaNotificationBridge].
+ * prunes old files from an app-owned gallery album, decodes a thumbnail
+ * frame from a local (private) video file, and (backlog #7) reads/rewrites
+ * raw MediaStore `RELATIVE_PATH`s so Library's nested playlist-folder model
+ * can identify and migrate buckets `photo_manager`'s own bucket-name-only
+ * API can't see the hierarchy of. Same defensive try/catch → channel-error
+ * style as [MediaNotificationBridge].
  */
 class MediaSaveBridge(private val appContext: Context) {
 
@@ -84,6 +87,20 @@ class MediaSaveBridge(private val appContext: Context) {
                     return
                 }
                 runAsync(result, "cleanup_failed") { cleanupEmptyAlbumDir(album, isAudio) }
+            }
+
+            "queryLibraryBucketPaths" -> {
+                runAsync(result, "query_failed") { queryLibraryBucketPaths() }
+            }
+
+            "moveBucket" -> {
+                val bucketId = call.argument<String>("bucketId")
+                val newRelativePath = call.argument<String>("newRelativePath")
+                if (bucketId == null || newRelativePath == null) {
+                    result.error("bad_args", "Missing bucketId/newRelativePath", null)
+                    return
+                }
+                runAsync(result, "move_failed") { moveBucket(bucketId, newRelativePath) }
             }
 
             "videoThumbnail" -> {
@@ -197,18 +214,98 @@ class MediaSaveBridge(private val appContext: Context) {
      * try/catch and a `Boolean` result the caller doesn't need to check
      * (deletion of the MediaStore rows already succeeded either way; this
      * is pure tidiness, not a correctness requirement).
+     *
+     * [albumRelativePath] may be multi-segment (e.g.
+     * `AnyWhereDownloader/YouTube/Chill Mix` for a nested playlist folder,
+     * see the "Playlist folders" section in `library/CLAUDE.md`) — this
+     * walks upward deleting each now-empty directory in turn (so emptying
+     * the last playlist under a service also cleans up the now-empty
+     * service folder, and the shared `AnyWhereDownloader` root itself),
+     * stopping at the first non-empty directory or at [base].
      */
-    private fun cleanupEmptyAlbumDir(album: String, isAudio: Boolean): Boolean {
+    private fun cleanupEmptyAlbumDir(albumRelativePath: String, isAudio: Boolean): Boolean {
         @Suppress("DEPRECATION")
         val base = Environment.getExternalStoragePublicDirectory(
             if (isAudio) Environment.DIRECTORY_MUSIC else Environment.DIRECTORY_PICTURES,
         )
-        val dir = File(base, album)
-        return try {
-            dir.isDirectory && dir.list()?.isEmpty() == true && dir.delete()
+        var dir: File? = File(base, albumRelativePath)
+        var removedAny = false
+        try {
+            while (dir != null && dir.path != base.path &&
+                dir.isDirectory && dir.list()?.isEmpty() == true
+            ) {
+                if (dir.delete()) removedAny = true
+                dir = dir.parentFile
+            }
         } catch (e: Exception) {
-            false
+            // Best-effort — see the doc above.
         }
+        return removedAny
+    }
+
+    /**
+     * Maps every gallery bucket under this app's shared `AnyWhereDownloader`
+     * root (old flat `Pictures/AnyWhereDownloader - X` or new nested
+     * `Pictures/AnyWhereDownloader/X[/Y]`, same under `Music/`) to its raw
+     * MediaStore `RELATIVE_PATH`, keyed by `BUCKET_ID` — the same id
+     * `photo_manager`'s `AssetPathEntity.id` uses (confirmed by reading its
+     * Android source, `AndroidQDBUtils.kt`, directly: it builds
+     * `AssetPathEntity(id = BUCKET_ID, ...)`). `photo_manager`'s own bucket
+     * listing only exposes `BUCKET_DISPLAY_NAME` — the immediate parent
+     * folder's plain name, with no hierarchy information at all — so
+     * identifying *which* bucket is genuinely ours, and where in the tree
+     * it sits, needs this raw column read directly.
+     */
+    private fun queryLibraryBucketPaths(): Map<String, String> {
+        val resolver = appContext.contentResolver
+        val collection = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
+        val selection =
+            "(${MediaStore.MediaColumns.RELATIVE_PATH} LIKE 'Pictures/AnyWhereDownloader%' OR " +
+                "${MediaStore.MediaColumns.RELATIVE_PATH} LIKE 'Music/AnyWhereDownloader%') AND " +
+                "${MediaStore.Files.FileColumns.MEDIA_TYPE} IN (" +
+                "${MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE}," +
+                "${MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO}," +
+                "${MediaStore.Files.FileColumns.MEDIA_TYPE_AUDIO})"
+        val result = HashMap<String, String>()
+        resolver.query(
+            collection,
+            arrayOf(MediaStore.MediaColumns.BUCKET_ID, MediaStore.MediaColumns.RELATIVE_PATH),
+            selection,
+            null,
+            null,
+        )?.use { cursor ->
+            val bucketCol = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.BUCKET_ID)
+            val pathCol = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.RELATIVE_PATH)
+            while (cursor.moveToNext()) {
+                val bucketId = cursor.getString(bucketCol) ?: continue
+                val relPath = cursor.getString(pathCol) ?: continue
+                result[bucketId] = relPath
+            }
+        }
+        return result
+    }
+
+    /**
+     * Moves every file in bucket [bucketId] to [newRelativePath] in one
+     * bulk `ContentResolver.update()` — Android's documented way for an app
+     * to move/rename media files it owns by rewriting `RELATIVE_PATH`
+     * (confirmed by reading `photo_manager`'s own Android source: its
+     * `AndroidQDBUtils.moveToGallery` does the identical single-row form of
+     * this same update). One bucket-wide selection here instead of a loop
+     * of per-row calls. Returns how many rows moved.
+     */
+    private fun moveBucket(bucketId: String, newRelativePath: String): Int {
+        val resolver = appContext.contentResolver
+        val collection = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
+        val values = ContentValues().apply {
+            put(MediaStore.MediaColumns.RELATIVE_PATH, newRelativePath)
+        }
+        return resolver.update(
+            collection,
+            values,
+            "${MediaStore.MediaColumns.BUCKET_ID} = ?",
+            arrayOf(bucketId),
+        )
     }
 
     private fun saveAudio(

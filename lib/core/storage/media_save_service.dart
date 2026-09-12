@@ -25,7 +25,12 @@ class MediaSaveException implements Exception {
 /// Both media types save under `Pictures/<album>`, matching the on-device
 /// behavior confirmed via `adb shell` (an album name is enough to force
 /// `DIRECTORY_PICTURES` regardless of type); splitting videos into
-/// `Movies/` would fragment existing libraries for no gain.
+/// `Movies/` would fragment existing libraries for no gain. [album] is a
+/// full relativePath suffix (e.g. `AnyWhereDownloader/YouTube/Chill Mix`,
+/// see `MediaLibraryService.relativePathForSource`/`relativePathForPlaylist`)
+/// as of 2026-09-12, not a single flat name — `RELATIVE_PATH` already
+/// supports multi-segment paths natively, so this class needed no change at
+/// all, only what its callers pass in.
 class MediaSaveService {
   static const _audioChannel = MethodChannel('anywhere_downloader/media_save');
 
@@ -86,7 +91,9 @@ class MediaSaveService {
   /// empty (every file in it was just deleted) — see the native
   /// `MediaSaveBridge.cleanupEmptyAlbumDir` doc for why this isn't
   /// guaranteed to work on every device and why that's fine to ignore.
-  /// Never throws.
+  /// [album] may be multi-segment (e.g. `AnyWhereDownloader/YouTube/Chill
+  /// Mix`) — the native side walks upward, cleaning up now-empty parents
+  /// too. Never throws.
   Future<void> cleanupEmptyAlbumDir(String album, {required bool isAudio}) async {
     try {
       await _audioChannel.invokeMethod('cleanupEmptyAlbumDir', {
@@ -96,6 +103,39 @@ class MediaSaveService {
     } catch (_) {
       // Best-effort tidiness only — the actual file/row deletion already
       // succeeded regardless of whether this does.
+    }
+  }
+
+  /// Every gallery bucket genuinely under this app's shared
+  /// `AnyWhereDownloader` root, keyed by bucket id (matches
+  /// `AssetPathEntity.id`) and valued with its raw MediaStore
+  /// `RELATIVE_PATH` — see `MediaSaveBridge.queryLibraryBucketPaths` for why
+  /// this can't be derived from `photo_manager`'s own bucket-name-only
+  /// listing. Empty map on any failure.
+  Future<Map<String, String>> queryLibraryBucketPaths() async {
+    try {
+      final result = await _audioChannel.invokeMapMethod<String, Object?>(
+        'queryLibraryBucketPaths',
+      );
+      if (result == null) return const {};
+      return result.map((key, value) => MapEntry(key, value as String));
+    } catch (_) {
+      return const {};
+    }
+  }
+
+  /// Moves every file in gallery bucket [bucketId] to [newRelativePath] in
+  /// one shot (see `MediaSaveBridge.moveBucket`). Returns how many files
+  /// moved; 0 on any failure. Never throws.
+  Future<int> moveBucket(String bucketId, String newRelativePath) async {
+    try {
+      final n = await _audioChannel.invokeMethod<int>('moveBucket', {
+        'bucketId': bucketId,
+        'newRelativePath': newRelativePath,
+      });
+      return n ?? 0;
+    } catch (_) {
+      return 0;
     }
   }
 

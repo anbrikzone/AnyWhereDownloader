@@ -13,7 +13,7 @@ import '../../core/storage/media_library_service.dart';
 import '../../core/storage/media_save_service.dart';
 import '../../services/linkedin/linkedin_extractor.dart';
 
-final _galAlbum = albumNameForSource('LinkedIn');
+final _galAlbum = relativePathForSource('LinkedIn');
 
 class LinkedInState {
   const LinkedInState({

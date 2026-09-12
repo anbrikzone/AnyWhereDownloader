@@ -72,4 +72,73 @@ void main() {
       expect(parsed?.playlistLabel, 'Great threads');
     });
   });
+
+  group('relativePathForSource / relativePathForPlaylist', () {
+    test('builds a real nested path, not a dash-joined name', () {
+      expect(relativePathForSource('YouTube'), 'AnyWhereDownloader/YouTube');
+      expect(
+        relativePathForPlaylist('YouTube', 'Chill Mix'),
+        'AnyWhereDownloader/YouTube/Chill Mix',
+      );
+    });
+
+    test('sanitizes a literal / or \\ within a segment', () {
+      expect(relativePathForSource('X/Twitter'), 'AnyWhereDownloader/X-Twitter');
+      expect(
+        relativePathForPlaylist('YouTube', 'Rock/Pop mix'),
+        'AnyWhereDownloader/YouTube/Rock-Pop mix',
+      );
+    });
+
+    test('caps an unusually long playlist title at 80 chars', () {
+      final path = relativePathForPlaylist('YouTube', 'x' * 200);
+      final label = path.split('/').last;
+      expect(label.length, 80);
+    });
+  });
+
+  group('parseLibraryRelativePath', () {
+    test('parses a new nested service folder', () {
+      final parsed = parseLibraryRelativePath('Pictures/AnyWhereDownloader/YouTube/');
+      expect(parsed?.source, 'YouTube');
+      expect(parsed?.playlistLabel, isNull);
+      expect(parsed?.isAudio, isFalse);
+      expect(parsed?.isLegacyFlat, isFalse);
+    });
+
+    test('parses a new nested playlist folder, including under Music/', () {
+      final parsed = parseLibraryRelativePath(
+        'Music/AnyWhereDownloader/YouTube/Channel - Chill Mix/',
+      );
+      expect(parsed?.source, 'YouTube');
+      expect(parsed?.playlistLabel, 'Channel - Chill Mix');
+      expect(parsed?.isAudio, isTrue);
+      expect(parsed?.isLegacyFlat, isFalse);
+    });
+
+    test('still recognizes a not-yet-migrated legacy flat bucket', () {
+      final parsed = parseLibraryRelativePath('Pictures/AnyWhereDownloader - YouTube - Old Mix/');
+      expect(parsed?.source, 'YouTube');
+      expect(parsed?.playlistLabel, 'Old Mix');
+      expect(parsed?.isLegacyFlat, isTrue);
+    });
+
+    test('the bare nested root with no service is "Unknown"', () {
+      final parsed = parseLibraryRelativePath('Pictures/AnyWhereDownloader/');
+      expect(parsed?.source, 'Unknown');
+      expect(parsed?.isLegacyFlat, isFalse);
+    });
+
+    test('an unrelated relative path is not parsed', () {
+      expect(parseLibraryRelativePath('Pictures/Canva/'), isNull);
+    });
+
+    test('round-trips through relativePathForPlaylist', () {
+      final path = relativePathForPlaylist('LinkedIn', 'Great posts');
+      final parsed = parseLibraryRelativePath('Pictures/$path/');
+      expect(parsed?.source, 'LinkedIn');
+      expect(parsed?.playlistLabel, 'Great posts');
+      expect(parsed?.isLegacyFlat, isFalse);
+    });
+  });
 }

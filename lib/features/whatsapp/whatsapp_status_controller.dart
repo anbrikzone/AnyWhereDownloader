@@ -17,7 +17,7 @@ import '../../core/storage/status_archive_service.dart';
 import '../../services/whatsapp/whatsapp_status_reader.dart';
 
 const _prefsKey = 'whatsapp_status_folder';
-final _galAlbum = albumNameForSource('WhatsApp');
+final _galAlbum = relativePathForSource('WhatsApp');
 
 class WhatsAppStatusState {
   const WhatsAppStatusState({

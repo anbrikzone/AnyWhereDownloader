@@ -13,7 +13,7 @@ import '../../core/storage/media_library_service.dart';
 import '../../core/storage/media_save_service.dart';
 import '../../services/instagram/instagram_extractor.dart';
 
-final _galAlbum = albumNameForSource('Instagram');
+final _galAlbum = relativePathForSource('Instagram');
 
 class InstagramState {
   const InstagramState({

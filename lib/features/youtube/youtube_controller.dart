@@ -16,7 +16,7 @@ import '../../core/yt_dlp_engine/yt_dlp_engine.dart';
 import '../../services/youtube/youtube_extractor.dart';
 import '../../services/youtube/youtube_playlist.dart';
 
-final _galAlbum = albumNameForSource('YouTube');
+final _galAlbum = relativePathForSource('YouTube');
 
 class YouTubeState {
   const YouTubeState({
@@ -252,8 +252,8 @@ class YouTubeController extends StateNotifier<YouTubeState> {
 
   /// Downloads [selectedPositions] (1-based) of a playlist at one shared
   /// [quality], via a single foreground-service yt-dlp run. Each finished
-  /// item is saved to a dedicated per-playlist sub-album as it lands (see
-  /// [albumNameForPlaylist]); a summary notification is posted at the end.
+  /// item is saved to a dedicated nested playlist folder as it lands (see
+  /// [relativePathForPlaylist]); a summary notification is posted at the end.
   Future<void> downloadPlaylist({
     required String playlistUrl,
     required List<int> selectedPositions,
@@ -278,15 +278,15 @@ class YouTubeController extends StateNotifier<YouTubeState> {
     final outputDir = Directory('${tempDir.path}/playlist_$processId');
     await outputDir.create(recursive: true);
     final targetCount = selectedPositions.length;
-    // A dedicated `AnyWhereDownloader - YouTube - <Channel - Playlist>`
-    // sub-album (backlog #7) instead of the flat `_galAlbum`, so Library can
+    // A dedicated `AnyWhereDownloader/YouTube/<Channel - Playlist>` nested
+    // folder (backlog #7) instead of the flat `_galAlbum`, so Library can
     // group these into a drill-in folder instead of mixing them into every
     // other YouTube download. The channel name is prefixed (when yt-dlp's
     // flat-playlist dump provided one) so two different channels' playlists
     // that happen to share a title don't collide into the same folder.
     final playlistLabel =
         channelName.trim().isEmpty ? playlistTitle : '$channelName - $playlistTitle';
-    final playlistAlbum = albumNameForPlaylist('YouTube', playlistLabel);
+    final playlistAlbum = relativePathForPlaylist('YouTube', playlistLabel);
 
     state = state.copyWith(
       downloading: true,
