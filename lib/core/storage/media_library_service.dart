@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:photo_manager/photo_manager.dart';
 
 import 'media_save_service.dart';
@@ -202,7 +203,7 @@ class MediaLibraryService {
     // path), so a `bucketPaths` map fetched *before* migration would still
     // key a just-migrated bucket by its old id and silently drop those
     // items from this pass.
-    await _migrateLegacyFolders();
+    await migrateLegacyFolders();
 
     final paths = await PhotoManager.getAssetPathList(
       hasAll: false,
@@ -286,7 +287,14 @@ class MediaLibraryService {
   /// Best-effort throughout — a failure here must never block Library from
   /// loading; an unmigrated bucket is still found and shown correctly via
   /// [parseLibraryRelativePath]'s legacy-flat branch, just not yet moved.
-  Future<void> _migrateLegacyFolders() async {
+  ///
+  /// Not underscore-private so `media_library_service_test.dart` can drive
+  /// it directly (via [MediaLibraryService]'s `saveService` injection point)
+  /// without going through [loadDownloadedAssets]'s `photo_manager` calls,
+  /// which aren't mockable from a plain unit test — [@visibleForTesting]
+  /// marks it as not otherwise part of the public API.
+  @visibleForTesting
+  Future<void> migrateLegacyFolders() async {
     try {
       final bucketPaths = await _saveService.queryLibraryBucketPaths();
       final pendingMoves = <({String oldPath, String newPath, bool isAudio})>[];

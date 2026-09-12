@@ -1,5 +1,54 @@
 import 'package:anywhere_downloader/core/storage/media_library_service.dart';
+import 'package:anywhere_downloader/core/storage/media_save_service.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+/// Records every call instead of touching a real native bridge, so
+/// [MediaLibraryService.migrateLegacyFolders]'s orchestration (attempt every
+/// bucket, batch any bug-#5 `needsPermissionUris` into one consent prompt,
+/// retry once) can be driven directly via the `saveService` injection point.
+class _FakeMediaSaveService extends MediaSaveService {
+  _FakeMediaSaveService({
+    required this.buckets,
+    this.permissionNeededOldPaths = const {},
+    this.grantWriteAccess = true,
+  });
+
+  /// bucket id -> raw relativePath, as `queryLibraryBucketPaths` would return.
+  final Map<String, String> buckets;
+
+  /// Old relativePaths whose *first* [moveBucket] call reports a row needing
+  /// consent (simulating a bug-#5 `RecoverableSecurityException`).
+  final Set<String> permissionNeededOldPaths;
+  final bool grantWriteAccess;
+
+  final Map<String, int> moveBucketCallCounts = {};
+  final List<List<String>> requestWriteAccessCalls = [];
+  final List<String> cleanupCalls = [];
+
+  @override
+  Future<Map<String, String>> queryLibraryBucketPaths() async => Map.of(buckets);
+
+  @override
+  Future<MoveBucketOutcome> moveBucket(String oldRelativePath, String newRelativePath) async {
+    final callCount = (moveBucketCallCounts[oldRelativePath] ?? 0) + 1;
+    moveBucketCallCounts[oldRelativePath] = callCount;
+    if (permissionNeededOldPaths.contains(oldRelativePath) && callCount == 1) {
+      return (moved: 0, total: 1, needsPermissionUris: ['content://fake/$oldRelativePath']);
+    }
+    return (moved: 1, total: 1, needsPermissionUris: const <String>[]);
+  }
+
+  @override
+  Future<bool> requestWriteAccess(List<String> uris) async {
+    requestWriteAccessCalls.add(uris);
+    return grantWriteAccess;
+  }
+
+  @override
+  Future<void> cleanupEmptyAlbumDir(String album, {required bool isAudio}) async {
+    cleanupCalls.add(album);
+  }
+}
 
 void main() {
   group('albumNameForPlaylist', () {
@@ -139,6 +188,78 @@ void main() {
       expect(parsed?.source, 'LinkedIn');
       expect(parsed?.playlistLabel, 'Great posts');
       expect(parsed?.isLegacyFlat, isFalse);
+    });
+  });
+
+  group('MediaLibraryService.migrateLegacyFolders', () {
+    test('is a no-op when nothing legacy is found', () async {
+      final fake = _FakeMediaSaveService(
+        buckets: {'1': 'Pictures/AnyWhereDownloader/YouTube/'},
+      );
+      await MediaLibraryService(saveService: fake).migrateLegacyFolders();
+
+      expect(fake.moveBucketCallCounts, isEmpty);
+      expect(fake.requestWriteAccessCalls, isEmpty);
+      expect(fake.cleanupCalls, isEmpty);
+    });
+
+    test('moves every legacy bucket once and cleans each up when nothing needs consent', () async {
+      final fake = _FakeMediaSaveService(
+        buckets: {
+          '1': 'Pictures/AnyWhereDownloader - YouTube - Old Mix/',
+          '2': 'Pictures/AnyWhereDownloader - WhatsApp/',
+        },
+      );
+      await MediaLibraryService(saveService: fake).migrateLegacyFolders();
+
+      expect(fake.moveBucketCallCounts, {
+        'Pictures/AnyWhereDownloader - YouTube - Old Mix/': 1,
+        'Pictures/AnyWhereDownloader - WhatsApp/': 1,
+      });
+      expect(fake.requestWriteAccessCalls, isEmpty);
+      expect(fake.cleanupCalls, unorderedEquals(['AnyWhereDownloader - YouTube - Old Mix', 'AnyWhereDownloader - WhatsApp']));
+    });
+
+    test(
+      'batches every bucket needing consent into a single requestWriteAccess prompt, then retries once',
+      () async {
+        final fake = _FakeMediaSaveService(
+          buckets: {
+            '1': 'Pictures/AnyWhereDownloader - YouTube - Old Mix/',
+            '2': 'Pictures/AnyWhereDownloader - WhatsApp/',
+          },
+          permissionNeededOldPaths: {
+            'Pictures/AnyWhereDownloader - YouTube - Old Mix/',
+            'Pictures/AnyWhereDownloader - WhatsApp/',
+          },
+        );
+        await MediaLibraryService(saveService: fake).migrateLegacyFolders();
+
+        // One prompt covering both buckets' URIs — not one dialog per bucket.
+        expect(fake.requestWriteAccessCalls, hasLength(1));
+        expect(fake.requestWriteAccessCalls.single, hasLength(2));
+
+        // Each bucket attempted twice: the refused first pass, then the
+        // post-consent retry that succeeds.
+        expect(fake.moveBucketCallCounts, {
+          'Pictures/AnyWhereDownloader - YouTube - Old Mix/': 2,
+          'Pictures/AnyWhereDownloader - WhatsApp/': 2,
+        });
+        expect(fake.cleanupCalls, hasLength(2));
+      },
+    );
+
+    test('leaves buckets unmigrated with no retry or cleanup when consent is declined', () async {
+      final fake = _FakeMediaSaveService(
+        buckets: {'1': 'Pictures/AnyWhereDownloader - YouTube - Old Mix/'},
+        permissionNeededOldPaths: {'Pictures/AnyWhereDownloader - YouTube - Old Mix/'},
+        grantWriteAccess: false,
+      );
+      await MediaLibraryService(saveService: fake).migrateLegacyFolders();
+
+      expect(fake.requestWriteAccessCalls, hasLength(1));
+      expect(fake.moveBucketCallCounts['Pictures/AnyWhereDownloader - YouTube - Old Mix/'], 1);
+      expect(fake.cleanupCalls, isEmpty);
     });
   });
 }
