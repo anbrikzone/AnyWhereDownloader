@@ -24,6 +24,7 @@ class _FakeMediaSaveService extends MediaSaveService {
   final Map<String, int> moveBucketCallCounts = {};
   final List<List<String>> requestWriteAccessCalls = [];
   final List<String> cleanupCalls = [];
+  final List<({String album, String root})> cleanupCallsWithRoot = [];
 
   @override
   Future<Map<String, String>> queryLibraryBucketPaths() async => Map.of(buckets);
@@ -47,6 +48,7 @@ class _FakeMediaSaveService extends MediaSaveService {
   @override
   Future<void> cleanupEmptyAlbumDir(String album, {required String root}) async {
     cleanupCalls.add(album);
+    cleanupCallsWithRoot.add((album: album, root: root));
   }
 }
 
@@ -344,6 +346,29 @@ void main() {
         'Pictures/AnyWhereDownloader/YouTube/Chill Mix/',
       );
     });
+
+    test(
+      'cleans up the empty directory under the actual old root, not a hardcoded Pictures/Music guess',
+      () async {
+        // Regression test for a real bug (2026-09-13): cleanup used to
+        // hardcode `isAudio ? 'Music' : 'Pictures'`, which was only ever
+        // correct for `attemptMigration`'s legacy buckets. A move away from
+        // any other standard root (e.g. Movies, as here) left the real
+        // empty folder behind because cleanup looked in the wrong place.
+        final fake = _FakeMediaSaveService(
+          buckets: {'1': 'Movies/AnyWhereDownloader/YouTube/'},
+        );
+        await MediaLibraryService(saveService: fake).attemptMoveRoot(
+          isAudio: false,
+          fromRoot: 'Movies',
+          toRoot: 'Pictures',
+        );
+
+        expect(fake.cleanupCallsWithRoot, [
+          (album: 'AnyWhereDownloader/YouTube', root: 'Movies'),
+        ]);
+      },
+    );
 
     test('batches consent across every matching bucket, then retries once', () async {
       final fake = _FakeMediaSaveService(

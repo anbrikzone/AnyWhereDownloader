@@ -480,12 +480,22 @@ class MediaLibraryService {
       final outcome = await _saveService.moveBucket(move.oldPath, move.newPath);
       needsPermission.addAll(outcome.needsPermissionUris);
       if (outcome.total > 0 && outcome.moved == outcome.total) {
-        // The legacy flat naming predates the Settings save-location
-        // feature entirely — every legacy bucket always lived under
-        // exactly `Pictures`/`Music`, never a user-chosen alternative.
+        // Bug, found 2026-09-13 from on-device feedback: this used to
+        // hardcode `isAudio ? 'Music' : 'Pictures'`, which was correct back
+        // when this helper only served `attemptMigration` (a legacy flat
+        // bucket always lived under exactly one of those two). Once
+        // `attemptMoveRoot` started reusing this same helper for a move
+        // between *any* two standard roots (e.g. `Movies` -> `Pictures`),
+        // that hardcoded guess was wrong for every old root other than the
+        // two it checked — `cleanupEmptyAlbumDir` silently looked in the
+        // wrong directory, found nothing to delete, and the real
+        // now-empty folder was left behind forever. Fixed by reading the
+        // row's actual old root straight out of `move.oldPath` itself
+        // instead of guessing it from `isAudio`.
+        final oldRoot = move.oldPath.substring(0, move.oldPath.indexOf('/'));
         await _saveService.cleanupEmptyAlbumDir(
           _stripRoot(move.oldPath),
-          root: move.isAudio ? 'Music' : 'Pictures',
+          root: oldRoot,
         );
       }
     }
