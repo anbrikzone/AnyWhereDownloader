@@ -146,6 +146,7 @@ class LibraryScreen extends ConsumerWidget {
               _FolderRow(
                 folders: folders,
                 onOpened: controller.refresh,
+                onDelete: controller.deleteFolder,
               ),
             Expanded(
               child: visible.isEmpty
@@ -229,7 +230,11 @@ class _SourceFilterRow extends StatelessWidget {
 /// Photos-style "albums strip" above the flat asset grid, rather than mixing
 /// folder tiles into that grid (which expects one [AssetEntity] per tile).
 class _FolderRow extends StatelessWidget {
-  const _FolderRow({required this.folders, required this.onOpened});
+  const _FolderRow({
+    required this.folders,
+    required this.onOpened,
+    required this.onDelete,
+  });
 
   final List<LibraryFolder> folders;
 
@@ -237,6 +242,10 @@ class _FolderRow extends StatelessWidget {
   /// there can change what the top-level grid should show, and refreshing
   /// unconditionally is cheap (just a MediaStore re-read).
   final VoidCallback onOpened;
+
+  /// Long-press a card's "Delete playlist" action — deletes every item in
+  /// the folder without opening it first.
+  final ValueChanged<LibraryFolder> onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -263,6 +272,7 @@ class _FolderRow extends StatelessWidget {
               return _FolderCard(
                 folder: folder,
                 onReturn: onOpened,
+                onDelete: () => onDelete(folder),
               );
             },
           ),
@@ -274,10 +284,31 @@ class _FolderRow extends StatelessWidget {
 }
 
 class _FolderCard extends StatelessWidget {
-  const _FolderCard({required this.folder, required this.onReturn});
+  const _FolderCard({
+    required this.folder,
+    required this.onReturn,
+    required this.onDelete,
+  });
 
   final LibraryFolder folder;
   final VoidCallback onReturn;
+  final VoidCallback onDelete;
+
+  Future<void> _showActions(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    final delete = await showModalBottomSheet<bool>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: ListTile(
+          leading: const Icon(Icons.delete_outline),
+          title: Text(l10n.deletePlaylistTooltip),
+          onTap: () => Navigator.of(context).pop(true),
+        ),
+      ),
+    );
+    if (delete == true) onDelete();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -296,6 +327,7 @@ class _FolderCard extends StatelessWidget {
           );
           onReturn();
         },
+        onLongPress: () => _showActions(context),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

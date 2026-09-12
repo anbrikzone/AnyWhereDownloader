@@ -323,6 +323,9 @@ class AppLocalizationsKk extends AppLocalizations {
   String get libraryPlaylistsHeader => 'Ойнату тізімдері';
 
   @override
+  String get deletePlaylistTooltip => 'Ойнату тізімін жою';
+
+  @override
   String get libraryAccessDenied =>
       'Рұқсат берілмеді. Төмендегі түймені басу ешнәрсе істемесе, Android жүйелік сұрауды көрсетуді тоқтатқан — параметрлерді ашып, рұқсатты қолмен беріңіз.';
 

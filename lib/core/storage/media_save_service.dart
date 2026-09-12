@@ -82,6 +82,23 @@ class MediaSaveService {
     }
   }
 
+  /// Best-effort attempt to remove [album]'s on-disk directory once it's
+  /// empty (every file in it was just deleted) — see the native
+  /// `MediaSaveBridge.cleanupEmptyAlbumDir` doc for why this isn't
+  /// guaranteed to work on every device and why that's fine to ignore.
+  /// Never throws.
+  Future<void> cleanupEmptyAlbumDir(String album, {required bool isAudio}) async {
+    try {
+      await _audioChannel.invokeMethod('cleanupEmptyAlbumDir', {
+        'album': album,
+        'isAudio': isAudio,
+      });
+    } catch (_) {
+      // Best-effort tidiness only — the actual file/row deletion already
+      // succeeded regardless of whether this does.
+    }
+  }
+
   /// Decodes a thumbnail frame from a local video file into [destPath] as a
   /// JPEG (scaled to fit [width]x[height]). For archived WhatsApp statuses —
   /// private app files that aren't MediaStore assets, so `photo_manager`

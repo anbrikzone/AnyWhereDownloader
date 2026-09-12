@@ -321,6 +321,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get libraryPlaylistsHeader => 'Playlists';
 
   @override
+  String get deletePlaylistTooltip => 'Delete playlist';
+
+  @override
   String get libraryAccessDenied =>
       'Access was denied. If tapping below does nothing, Android has stopped showing the permission prompt — open Settings and allow access manually.';
 

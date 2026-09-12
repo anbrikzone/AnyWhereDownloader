@@ -646,6 +646,12 @@ abstract class AppLocalizations {
   /// **'Playlists'**
   String get libraryPlaylistsHeader;
 
+  /// No description provided for @deletePlaylistTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete playlist'**
+  String get deletePlaylistTooltip;
+
   /// No description provided for @libraryAccessDenied.
   ///
   /// In en, this message translates to:

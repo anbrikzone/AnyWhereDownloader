@@ -76,6 +76,16 @@ class MediaSaveBridge(private val appContext: Context) {
                 runAsync(result, "prune_failed") { pruneAlbum(album, olderThanMillis) }
             }
 
+            "cleanupEmptyAlbumDir" -> {
+                val album = call.argument<String>("album")
+                val isAudio = call.argument<Boolean>("isAudio") ?: false
+                if (album == null) {
+                    result.error("bad_args", "Missing album", null)
+                    return
+                }
+                runAsync(result, "cleanup_failed") { cleanupEmptyAlbumDir(album, isAudio) }
+            }
+
             "videoThumbnail" -> {
                 val path = call.argument<String>("path")
                 val destPath = call.argument<String>("destPath")
@@ -167,6 +177,38 @@ class MediaSaveBridge(private val appContext: Context) {
             }
         }
         return deleted
+    }
+
+    /**
+     * Best-effort cleanup of a now-empty gallery album directory left behind
+     * after deleting every MediaStore row that was in it — `ContentResolver`
+     * has no notion of "directory", so `deleteWithIds`/`pruneAlbum` removing
+     * the last file in a `RELATIVE_PATH` never removes the physical
+     * (now-empty) folder itself, only the rows.
+     *
+     * Not guaranteed to work on every device/OS version: scoped storage
+     * (API 29+) generally restricts direct `java.io.File` access to public
+     * media directories this app doesn't hold broader storage permissions
+     * for — this app deliberately doesn't request `MANAGE_EXTERNAL_STORAGE`
+     * (see the Telegram investigation in the root `CLAUDE.md`). In practice
+     * many devices *do* allow deleting an empty directory an app's own
+     * MediaStore inserts created, since removing an empty directory touches
+     * no tracked file — but that's unverified here, hence the plain
+     * try/catch and a `Boolean` result the caller doesn't need to check
+     * (deletion of the MediaStore rows already succeeded either way; this
+     * is pure tidiness, not a correctness requirement).
+     */
+    private fun cleanupEmptyAlbumDir(album: String, isAudio: Boolean): Boolean {
+        @Suppress("DEPRECATION")
+        val base = Environment.getExternalStoragePublicDirectory(
+            if (isAudio) Environment.DIRECTORY_MUSIC else Environment.DIRECTORY_PICTURES,
+        )
+        val dir = File(base, album)
+        return try {
+            dir.isDirectory && dir.list()?.isEmpty() == true && dir.delete()
+        } catch (e: Exception) {
+            false
+        }
     }
 
     private fun saveAudio(

@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:photo_manager/photo_manager.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../core/storage/media_library_service.dart';
+import '../../core/storage/media_save_service.dart';
 import '../../l10n/app_localizations.dart';
 import 'library_preview.dart';
 import 'library_screen.dart';
@@ -28,6 +32,7 @@ class PlaylistFolderPage extends StatefulWidget {
 
 class _PlaylistFolderPageState extends State<PlaylistFolderPage> {
   final _service = MediaLibraryService();
+  final _saveService = MediaSaveService();
   late List<LibraryItem> _items;
   bool _selectionMode = false;
   Set<String> _selectedIds = {};
@@ -97,10 +102,24 @@ class _PlaylistFolderPageState extends State<PlaylistFolderPage> {
   Future<void> _deleteSelected() async {
     if (_selectedIds.isEmpty || _busy) return;
     setState(() => _busy = true);
+    final targeted = _items.where((i) => _selectedIds.contains(i.asset.id)).toList();
     final deleted = await _service.delete(_selectedIds.toList());
+    final deletedSet = deleted.toSet();
+    // Best-effort: if that emptied the playlist's whole album directory,
+    // try to remove it too (see `MediaSaveService.cleanupEmptyAlbumDir`) —
+    // deleting a whole downloaded playlist shouldn't leave a bare empty
+    // folder behind.
+    final albums = <(String, bool)>{
+      for (final item in targeted)
+        if (deletedSet.contains(item.asset.id))
+          (item.albumName, item.asset.type == AssetType.audio),
+    };
+    for (final (album, isAudio) in albums) {
+      unawaited(_saveService.cleanupEmptyAlbumDir(album, isAudio: isAudio));
+    }
     if (!mounted) return;
     setState(() {
-      _items.removeWhere((i) => deleted.contains(i.asset.id));
+      _items.removeWhere((i) => deletedSet.contains(i.asset.id));
       _selectedIds = {};
       _busy = false;
     });

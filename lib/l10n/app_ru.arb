@@ -117,6 +117,7 @@
   "filterAll": "Все",
   "noFilesForFilter": "Нет файлов по этому фильтру.",
   "libraryPlaylistsHeader": "Плейлисты",
+  "deletePlaylistTooltip": "Удалить плейлист",
   "libraryAccessDenied": "В доступе отказано. Если нажатие ниже ничего не делает, значит Android перестал показывать системный запрос — откройте настройки и разрешите доступ вручную.",
   "libraryAllowAccessPrompt": "Чтобы показать скачанные файлы, разрешите доступ к галерее.",
   "tryAgainButton": "Повторить попытку",

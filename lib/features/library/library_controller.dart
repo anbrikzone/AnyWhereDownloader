@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../core/l10n/status_message.dart';
 import '../../core/storage/media_library_service.dart';
+import '../../core/storage/media_save_service.dart';
 
 enum LibrarySortOption { dateNewest, dateOldest, nameAZ, nameZA }
 
@@ -157,13 +160,15 @@ class LibraryState {
 }
 
 class LibraryController extends StateNotifier<LibraryState> {
-  LibraryController({MediaLibraryService? service})
+  LibraryController({MediaLibraryService? service, MediaSaveService? saveService})
     : _service = service ?? MediaLibraryService(),
+      _saveService = saveService ?? MediaSaveService(),
       super(const LibraryState()) {
     _init();
   }
 
   final MediaLibraryService _service;
+  final MediaSaveService _saveService;
 
   /// Only *checks* the current permission — does not prompt. Actually
   /// requesting (which shows the system dialog, at least the first time)
@@ -259,9 +264,13 @@ class LibraryController extends StateNotifier<LibraryState> {
 
   Future<void> deleteSelected() async {
     if (state.selectedIds.isEmpty || state.busy) return;
+    final targeted = (state.items.valueOrNull ?? const [])
+        .where((i) => state.selectedIds.contains(i.asset.id))
+        .toList();
     state = state.copyWith(busy: true, clearStatusMessage: true);
     try {
       final deleted = await _service.delete(state.selectedIds.toList());
+      unawaited(_cleanupEmptyAlbums(targeted, deleted.toSet()));
       state = state.copyWith(
         busy: false,
         selectedIds: {},
@@ -279,6 +288,54 @@ class LibraryController extends StateNotifier<LibraryState> {
           error: error.toString(),
         ),
       );
+    }
+  }
+
+  /// Deletes every item in [folder] at once — added after on-device feedback
+  /// that removing a whole downloaded playlist meant opening its drill-in
+  /// page and selecting every tile individually.
+  Future<void> deleteFolder(LibraryFolder folder) async {
+    if (state.busy) return;
+    state = state.copyWith(busy: true, clearStatusMessage: true);
+    try {
+      final ids = folder.items.map((i) => i.asset.id).toList();
+      final deleted = await _service.delete(ids);
+      unawaited(_cleanupEmptyAlbums(folder.items, deleted.toSet()));
+      state = state.copyWith(
+        busy: false,
+        statusMessage: StatusMessage(
+          StatusMessageKey.deletedCount,
+          count: deleted.length,
+        ),
+      );
+      await refresh();
+    } catch (error) {
+      state = state.copyWith(
+        busy: false,
+        statusMessage: StatusMessage(
+          StatusMessageKey.deleteFailed,
+          error: error.toString(),
+        ),
+      );
+    }
+  }
+
+  /// Best-effort: for every distinct album a just-deleted item came from,
+  /// try to remove the now-possibly-empty on-disk directory. Deliberately
+  /// fire-and-forget from the caller's perspective (never throws, doesn't
+  /// affect the already-reported delete result either way — see
+  /// `MediaSaveService.cleanupEmptyAlbumDir`).
+  Future<void> _cleanupEmptyAlbums(
+    List<LibraryItem> targeted,
+    Set<String> deletedIds,
+  ) async {
+    final albums = <(String, bool)>{
+      for (final item in targeted)
+        if (deletedIds.contains(item.asset.id))
+          (item.albumName, item.asset.type == AssetType.audio),
+    };
+    for (final (album, isAudio) in albums) {
+      await _saveService.cleanupEmptyAlbumDir(album, isAudio: isAudio);
     }
   }
 }

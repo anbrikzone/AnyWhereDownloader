@@ -62,7 +62,12 @@ String albumNameForPlaylist(String source, String playlistTitle) {
 /// download) the sub-folder label derived from its containing album name —
 /// see [albumNameForPlaylist].
 class LibraryItem {
-  LibraryItem({required this.asset, required this.source, this.playlistLabel});
+  LibraryItem({
+    required this.asset,
+    required this.source,
+    required this.albumName,
+    this.playlistLabel,
+  });
 
   final AssetEntity asset;
   final String source;
@@ -71,6 +76,14 @@ class LibraryItem {
   /// groups items sharing a (source, playlistLabel) pair into one folder
   /// instead of listing them individually at the top level.
   final String? playlistLabel;
+
+  /// The raw gallery album (bucket) name this item was read from — kept
+  /// verbatim (not reconstructed from [source]/[playlistLabel]) so a caller
+  /// that needs the real on-disk album, e.g. to clean up a now-empty
+  /// directory after deleting every item in it (see
+  /// `MediaSaveService.cleanupEmptyAlbumDir`), can't drift from what
+  /// `albumNameForSource`/`albumNameForPlaylist` actually produced.
+  final String albumName;
 }
 
 /// Thin wrapper over `photo_manager`, isolating the package the same way
@@ -126,6 +139,7 @@ class MediaLibraryService {
           (a) => LibraryItem(
             asset: a,
             source: parsed.source,
+            albumName: path.name,
             playlistLabel: parsed.playlistLabel,
           ),
         ),
