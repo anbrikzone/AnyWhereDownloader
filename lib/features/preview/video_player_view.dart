@@ -392,24 +392,34 @@ class _VideoPlayerViewState extends State<VideoPlayerView>
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              _RoundIconButton(
+                icon: Icons.replay_10,
+                size: 30,
+                onTap: () => _seekRelative(-_seekStep),
+              ),
+              const SizedBox(width: 20),
               ValueListenableBuilder<VideoPlayerValue>(
                 valueListenable: _c,
-                builder: (context, value, _) => IconButton(
-                  iconSize: 64,
-                  color: Colors.white,
-                  icon: Icon(
-                    value.isPlaying
-                        ? Icons.pause_circle_filled
-                        : Icons.play_circle_filled,
-                  ),
-                  onPressed: () =>
-                      value.isPlaying ? _c.pause() : _c.play(),
+                builder: (context, value, _) => _RoundIconButton(
+                  icon: value.isPlaying
+                      ? Icons.pause
+                      : (value.isCompleted
+                            ? Icons.replay
+                            : Icons.play_arrow),
+                  size: 44,
+                  onTap: _togglePlay,
                 ),
               ),
-              const SizedBox(width: 12),
-              _SpeedButton(speed: _speed, onTap: _cycleSpeed),
+              const SizedBox(width: 20),
+              _RoundIconButton(
+                icon: Icons.forward_10,
+                size: 30,
+                onTap: () => _seekRelative(_seekStep),
+              ),
             ],
           ),
+          const SizedBox(height: 16),
+          _SpeedButton(speed: _speed, onTap: _cycleSpeed),
         ],
       ),
     );
