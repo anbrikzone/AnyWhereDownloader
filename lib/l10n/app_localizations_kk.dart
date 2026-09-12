@@ -419,6 +419,27 @@ class AppLocalizationsKk extends AppLocalizations {
   }
 
   @override
+  String get migrationIncomplete =>
+      'Кейбір файлдар әлі жылжытылмады — Кітапхананы келесі ашқанда қайта көреміз';
+
+  @override
+  String get migrationPostponed =>
+      'Әзірге жылжытылмады — Кітапхананы келесі ашқанда қайта сұраймыз';
+
+  @override
+  String get migrationConsentDialogTitle => 'Жүктемелерді қалталарға реттеу';
+
+  @override
+  String get migrationConsentDialogBody =>
+      'Енді AnyWhereDownloader жүктемелерді әр қызмет бойынша бөлек қалталарда сақтайды. Осы өзгеріске дейін жүктелген файлдарды жылжыту үшін Android рұқсаты қажет — келесі жүйелік терезе шығады. Жаңа жүктемелер бәрібір жаңа қалталарды пайдаланады.';
+
+  @override
+  String get migrationConsentContinue => 'Жалғастыру';
+
+  @override
+  String get migrationConsentNotNow => 'Қазір емес';
+
+  @override
   String get settingsTitle => 'Параметрлер';
 
   @override

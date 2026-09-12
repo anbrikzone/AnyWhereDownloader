@@ -417,6 +417,28 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get migrationIncomplete =>
+      'Some files couldn\'t be moved yet — we\'ll try again next time you open Library';
+
+  @override
+  String get migrationPostponed =>
+      'Not moved yet — we\'ll ask again next time you open Library';
+
+  @override
+  String get migrationConsentDialogTitle =>
+      'Organize your downloads into folders';
+
+  @override
+  String get migrationConsentDialogBody =>
+      'AnyWhereDownloader now keeps downloads in per-service folders. To finish moving files you downloaded before this change, Android needs your permission next — you\'ll see a system dialog asking to allow it. New downloads already use the new folders either way.';
+
+  @override
+  String get migrationConsentContinue => 'Continue';
+
+  @override
+  String get migrationConsentNotNow => 'Not now';
+
+  @override
   String get settingsTitle => 'Settings';
 
   @override

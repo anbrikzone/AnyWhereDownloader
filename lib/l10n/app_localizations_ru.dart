@@ -418,6 +418,27 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String get migrationIncomplete =>
+      'Не все файлы удалось перенести — попробуем ещё раз при следующем открытии Библиотеки';
+
+  @override
+  String get migrationPostponed =>
+      'Пока не перенесено — спросим снова при следующем открытии Библиотеки';
+
+  @override
+  String get migrationConsentDialogTitle => 'Разложить загрузки по папкам';
+
+  @override
+  String get migrationConsentDialogBody =>
+      'Теперь AnyWhereDownloader хранит загрузки в отдельных папках по сервисам. Чтобы перенести файлы, скачанные до этого изменения, дальше потребуется разрешение Android — появится системное окно с запросом. Новые загрузки уже используют новые папки в любом случае.';
+
+  @override
+  String get migrationConsentContinue => 'Продолжить';
+
+  @override
+  String get migrationConsentNotNow => 'Не сейчас';
+
+  @override
   String get settingsTitle => 'Настройки';
 
   @override

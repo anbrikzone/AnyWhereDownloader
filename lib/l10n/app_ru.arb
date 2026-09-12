@@ -143,6 +143,12 @@
   "deletedCount": "Удалено: {count}",
   "deleteFailed": "Не удалось удалить: {error}",
   "statusesArchivedCount": "В Библиотеку добавлено: {count}",
+  "migrationIncomplete": "Не все файлы удалось перенести — попробуем ещё раз при следующем открытии Библиотеки",
+  "migrationPostponed": "Пока не перенесено — спросим снова при следующем открытии Библиотеки",
+  "migrationConsentDialogTitle": "Разложить загрузки по папкам",
+  "migrationConsentDialogBody": "Теперь AnyWhereDownloader хранит загрузки в отдельных папках по сервисам. Чтобы перенести файлы, скачанные до этого изменения, дальше потребуется разрешение Android — появится системное окно с запросом. Новые загрузки уже используют новые папки в любом случае.",
+  "migrationConsentContinue": "Продолжить",
+  "migrationConsentNotNow": "Не сейчас",
 
   "settingsTitle": "Настройки",
   "appearanceSection": "Оформление",

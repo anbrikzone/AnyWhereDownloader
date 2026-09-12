@@ -143,6 +143,12 @@
   "deletedCount": "Жойылды: {count}",
   "deleteFailed": "Жою сәтсіз аяқталды: {error}",
   "statusesArchivedCount": "Кітапханаға қосылды: {count}",
+  "migrationIncomplete": "Кейбір файлдар әлі жылжытылмады — Кітапхананы келесі ашқанда қайта көреміз",
+  "migrationPostponed": "Әзірге жылжытылмады — Кітапхананы келесі ашқанда қайта сұраймыз",
+  "migrationConsentDialogTitle": "Жүктемелерді қалталарға реттеу",
+  "migrationConsentDialogBody": "Енді AnyWhereDownloader жүктемелерді әр қызмет бойынша бөлек қалталарда сақтайды. Осы өзгеріске дейін жүктелген файлдарды жылжыту үшін Android рұқсаты қажет — келесі жүйелік терезе шығады. Жаңа жүктемелер бәрібір жаңа қалталарды пайдаланады.",
+  "migrationConsentContinue": "Жалғастыру",
+  "migrationConsentNotNow": "Қазір емес",
 
   "settingsTitle": "Параметрлер",
   "appearanceSection": "Сыртқы түрі",

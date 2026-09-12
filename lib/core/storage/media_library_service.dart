@@ -134,6 +134,19 @@ String relativePathForPlaylist(String source, String playlistTitle) {
   );
 }
 
+/// A batch of legacy-folder moves that got as far as they could without
+/// interactive user consent (see [MediaLibraryService.attemptMigration] and
+/// [MediaLibraryService.completeMigrationAfterConsent] — split into two
+/// steps specifically so the caller can *explain why* before the system
+/// consent dialog appears, rather than it popping up with no warning).
+/// Opaque to callers beyond checking it's non-null and handing it back.
+class PendingMigrationConsent {
+  PendingMigrationConsent._(this._moves, this._uris);
+
+  final List<({String oldPath, String newPath, bool isAudio})> _moves;
+  final List<String> _uris;
+}
+
 /// One file in the Library, tagged with the source and (for a playlist
 /// download) the sub-folder label derived from its containing album's
 /// relative path — see [parseLibraryRelativePath].
@@ -197,13 +210,21 @@ class MediaLibraryService {
   /// no-ops after a prior denial.
   Future<void> openSettings() => PhotoManager.openSetting();
 
-  Future<List<LibraryItem>> loadDownloadedAssets() async {
+  /// Returns the loaded [items] plus, non-null, a [PendingMigrationConsent]
+  /// the caller should explain to the user before calling
+  /// [completeMigrationAfterConsent] with it (see that method's doc for why
+  /// this doesn't just prompt automatically). Items still list correctly
+  /// either way — an unmigrated bucket is found via
+  /// [parseLibraryRelativePath]'s legacy-flat branch regardless of whether
+  /// consent has been granted yet.
+  Future<({List<LibraryItem> items, PendingMigrationConsent? pendingConsent})>
+      loadDownloadedAssets() async {
     // Must run — and finish — before the bucket-path lookup below: moving a
     // bucket's files changes their `BUCKET_ID` (it's computed from the
     // path), so a `bucketPaths` map fetched *before* migration would still
     // key a just-migrated bucket by its old id and silently drop those
     // items from this pass.
-    await migrateLegacyFolders();
+    final pendingConsent = await attemptMigration();
 
     final paths = await PhotoManager.getAssetPathList(
       hasAll: false,
@@ -239,7 +260,7 @@ class MediaLibraryService {
     items.sort(
       (a, b) => b.asset.createDateTime.compareTo(a.asset.createDateTime),
     );
-    return items;
+    return (items: items, pendingConsent: pendingConsent);
   }
 
   Future<List<String>> delete(List<String> ids) {
@@ -275,14 +296,33 @@ class MediaLibraryService {
   /// a `RELATIVE_PATH` move without explicit interactive consent
   /// (`RecoverableSecurityException`) — [MediaSaveService.moveBucket]
   /// surfaces the affected content URIs as `needsPermissionUris` instead of
-  /// moving them. Rather than prompt once per bucket (which would mean one
-  /// system dialog after another for a library with several legacy
-  /// buckets), every bucket's move is attempted first, all the URIs needing
-  /// consent are batched across the whole migration, and
-  /// [MediaSaveService.requestWriteAccess] is asked **once** for the lot —
-  /// then every bucket is retried a single time. If the user declines,
-  /// buckets stay legacy-flat and simply get asked again next time Library
-  /// loads (this method's self-healing re-scan, not a retry loop here).
+  /// moving them.
+  ///
+  /// **On-device feedback (2026-09-13)**: the first version of this method
+  /// called [MediaSaveService.requestWriteAccess] itself, so the system
+  /// consent dialog could appear with zero warning the moment Library
+  /// opened — confirmed working, but the user asked for an explanation
+  /// *before* that dialog, and for a clear notice if it's ever declined
+  /// (moving pre-existing downloads into the new layout isn't optional —
+  /// the app now always organizes into folders, so an unmigrated bucket
+  /// should keep getting asked about, not silently give up). Split into
+  /// two steps so `LibraryController` can drive that UI: this method
+  /// attempts every legacy bucket's move once (no prompt), batches every
+  /// URI any of them reported needing consent into one
+  /// [PendingMigrationConsent], and returns it for the caller to explain
+  /// before calling [completeMigrationAfterConsent] — never null unless
+  /// nothing legacy remains or everything moved cleanly on this first
+  /// pass. If the caller never calls [completeMigrationAfterConsent] (or
+  /// the user declines its system dialog), the affected buckets simply
+  /// stay legacy-flat — [loadDownloadedAssets] still shows them correctly
+  /// via [parseLibraryRelativePath]'s legacy-flat branch — and get a fresh
+  /// [PendingMigrationConsent] (asked about again) the next time Library
+  /// loads, since nothing here is gated by a persisted "gave up" flag.
+  ///
+  /// Regardless of whether an existing download ever gets migrated, every
+  /// *new* download already lands directly in the nested layout —
+  /// migration only concerns files saved before this rework, never a
+  /// reason a fresh save would fall back to the old flat naming.
   ///
   /// Best-effort throughout — a failure here must never block Library from
   /// loading; an unmigrated bucket is still found and shown correctly via
@@ -294,7 +334,7 @@ class MediaLibraryService {
   /// which aren't mockable from a plain unit test — [@visibleForTesting]
   /// marks it as not otherwise part of the public API.
   @visibleForTesting
-  Future<void> migrateLegacyFolders() async {
+  Future<PendingMigrationConsent?> attemptMigration() async {
     try {
       final bucketPaths = await _saveService.queryLibraryBucketPaths();
       final pendingMoves = <({String oldPath, String newPath, bool isAudio})>[];
@@ -312,15 +352,33 @@ class MediaLibraryService {
           isAudio: parsed.isAudio,
         ));
       }
-      if (pendingMoves.isEmpty) return;
+      if (pendingMoves.isEmpty) return null;
 
       final needsPermission = await _runMoves(pendingMoves);
-      if (needsPermission.isNotEmpty) {
-        final granted = await _saveService.requestWriteAccess(needsPermission);
-        if (granted) await _runMoves(pendingMoves);
-      }
+      if (needsPermission.isEmpty) return null;
+      return PendingMigrationConsent._(pendingMoves, needsPermission);
     } catch (_) {
       // Best-effort — never block Library from loading over this.
+      return null;
+    }
+  }
+
+  /// Shows the batched system write-access consent dialog for [pending] —
+  /// one prompt covering every row [attemptMigration] found needing it,
+  /// never one dialog per bucket — and, if granted, retries every affected
+  /// bucket a single time. Returns whether every bucket in [pending] ended
+  /// up fully migrated; `false` (never throws) if the user declined or
+  /// anything else went wrong, in which case the caller should tell the
+  /// user their files will be organized the next time Library opens rather
+  /// than implying the migration is done for good.
+  Future<bool> completeMigrationAfterConsent(PendingMigrationConsent pending) async {
+    try {
+      final granted = await _saveService.requestWriteAccess(pending._uris);
+      if (!granted) return false;
+      final stillNeeded = await _runMoves(pending._moves);
+      return stillNeeded.isEmpty;
+    } catch (_) {
+      return false;
     }
   }
 

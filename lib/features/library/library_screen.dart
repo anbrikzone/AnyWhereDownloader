@@ -27,6 +27,14 @@ class LibraryScreen extends ConsumerWidget {
         final text = resolveStatusMessage(l10n, message);
         showAppToast(context, text);
       }
+      // Only on the null -> non-null transition — a decline clears this
+      // back to null (see `LibraryController.postponeMigration`), and the
+      // next `attemptMigration()` (next time Library loads) sets a fresh
+      // one, which should prompt again rather than silently give up.
+      final pendingConsent = next.pendingMigrationConsent;
+      if (pendingConsent != null && previous?.pendingMigrationConsent == null) {
+        _showMigrationConsentDialog(context, controller, l10n);
+      }
     });
 
     return Scaffold(
@@ -180,6 +188,42 @@ class LibraryScreen extends ConsumerWidget {
         );
       },
     );
+  }
+}
+
+/// Explains *why* before the system write-access consent dialog appears —
+/// added after on-device feedback that it otherwise popped up with no
+/// warning. "Not now" (or dismissing) postpones; Library asks again next
+/// time it loads (see `LibraryController.postponeMigration`) rather than
+/// giving up, since pre-existing downloads always end up migrated
+/// eventually and new downloads already use the new layout either way.
+Future<void> _showMigrationConsentDialog(
+  BuildContext context,
+  LibraryController controller,
+  AppLocalizations l10n,
+) async {
+  final proceed = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(l10n.migrationConsentDialogTitle),
+      content: Text(l10n.migrationConsentDialogBody),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: Text(l10n.migrationConsentNotNow),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: Text(l10n.migrationConsentContinue),
+        ),
+      ],
+    ),
+  );
+  if (!context.mounted) return;
+  if (proceed == true) {
+    await controller.confirmMigration();
+  } else {
+    controller.postponeMigration();
   }
 }
 

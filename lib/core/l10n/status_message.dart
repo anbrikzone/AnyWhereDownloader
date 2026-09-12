@@ -36,6 +36,8 @@ enum StatusMessageKey {
   playlistSaved,
   deletedCount,
   deleteFailed,
+  migrationIncomplete,
+  migrationPostponed,
 }
 
 /// A [StatusMessageKey] plus whatever interpolation data it needs (e.g. an
@@ -120,5 +122,9 @@ String resolveStatusMessage(AppLocalizations l10n, StatusMessage message) {
       return l10n.deletedCount(message.count ?? 0);
     case StatusMessageKey.deleteFailed:
       return l10n.deleteFailed(message.error ?? '');
+    case StatusMessageKey.migrationIncomplete:
+      return l10n.migrationIncomplete;
+    case StatusMessageKey.migrationPostponed:
+      return l10n.migrationPostponed;
   }
 }

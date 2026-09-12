@@ -196,8 +196,9 @@ void main() {
       final fake = _FakeMediaSaveService(
         buckets: {'1': 'Pictures/AnyWhereDownloader/YouTube/'},
       );
-      await MediaLibraryService(saveService: fake).migrateLegacyFolders();
+      final pending = await MediaLibraryService(saveService: fake).attemptMigration();
 
+      expect(pending, isNull);
       expect(fake.moveBucketCallCounts, isEmpty);
       expect(fake.requestWriteAccessCalls, isEmpty);
       expect(fake.cleanupCalls, isEmpty);
@@ -210,14 +211,19 @@ void main() {
           '2': 'Pictures/AnyWhereDownloader - WhatsApp/',
         },
       );
-      await MediaLibraryService(saveService: fake).migrateLegacyFolders();
+      final pending = await MediaLibraryService(saveService: fake).attemptMigration();
 
+      // Nothing needed interactive consent, so there's no pending step left.
+      expect(pending, isNull);
       expect(fake.moveBucketCallCounts, {
         'Pictures/AnyWhereDownloader - YouTube - Old Mix/': 1,
         'Pictures/AnyWhereDownloader - WhatsApp/': 1,
       });
       expect(fake.requestWriteAccessCalls, isEmpty);
-      expect(fake.cleanupCalls, unorderedEquals(['AnyWhereDownloader - YouTube - Old Mix', 'AnyWhereDownloader - WhatsApp']));
+      expect(
+        fake.cleanupCalls,
+        unorderedEquals(['AnyWhereDownloader - YouTube - Old Mix', 'AnyWhereDownloader - WhatsApp']),
+      );
     });
 
     test(
@@ -233,8 +239,15 @@ void main() {
             'Pictures/AnyWhereDownloader - WhatsApp/',
           },
         );
-        await MediaLibraryService(saveService: fake).migrateLegacyFolders();
+        final service = MediaLibraryService(saveService: fake);
+        final pending = await service.attemptMigration();
 
+        expect(pending, isNotNull);
+        expect(fake.requestWriteAccessCalls, isEmpty); // not prompted yet
+
+        final fullyMigrated = await service.completeMigrationAfterConsent(pending!);
+
+        expect(fullyMigrated, isTrue);
         // One prompt covering both buckets' URIs — not one dialog per bucket.
         expect(fake.requestWriteAccessCalls, hasLength(1));
         expect(fake.requestWriteAccessCalls.single, hasLength(2));
@@ -255,8 +268,13 @@ void main() {
         permissionNeededOldPaths: {'Pictures/AnyWhereDownloader - YouTube - Old Mix/'},
         grantWriteAccess: false,
       );
-      await MediaLibraryService(saveService: fake).migrateLegacyFolders();
+      final service = MediaLibraryService(saveService: fake);
+      final pending = await service.attemptMigration();
+      expect(pending, isNotNull);
 
+      final fullyMigrated = await service.completeMigrationAfterConsent(pending!);
+
+      expect(fullyMigrated, isFalse);
       expect(fake.requestWriteAccessCalls, hasLength(1));
       expect(fake.moveBucketCallCounts['Pictures/AnyWhereDownloader - YouTube - Old Mix/'], 1);
       expect(fake.cleanupCalls, isEmpty);

@@ -203,6 +203,12 @@
   "@statusesArchivedCount": {
     "placeholders": { "count": { "type": "int" } }
   },
+  "migrationIncomplete": "Some files couldn't be moved yet — we'll try again next time you open Library",
+  "migrationPostponed": "Not moved yet — we'll ask again next time you open Library",
+  "migrationConsentDialogTitle": "Organize your downloads into folders",
+  "migrationConsentDialogBody": "AnyWhereDownloader now keeps downloads in per-service folders. To finish moving files you downloaded before this change, Android needs your permission next — you'll see a system dialog asking to allow it. New downloads already use the new folders either way.",
+  "migrationConsentContinue": "Continue",
+  "migrationConsentNotNow": "Not now",
 
   "settingsTitle": "Settings",
   "appearanceSection": "Appearance",

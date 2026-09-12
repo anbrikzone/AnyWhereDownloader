@@ -796,6 +796,42 @@ abstract class AppLocalizations {
   /// **'Archived {count} to the Library'**
   String statusesArchivedCount(int count);
 
+  /// No description provided for @migrationIncomplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Some files couldn\'t be moved yet — we\'ll try again next time you open Library'**
+  String get migrationIncomplete;
+
+  /// No description provided for @migrationPostponed.
+  ///
+  /// In en, this message translates to:
+  /// **'Not moved yet — we\'ll ask again next time you open Library'**
+  String get migrationPostponed;
+
+  /// No description provided for @migrationConsentDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Organize your downloads into folders'**
+  String get migrationConsentDialogTitle;
+
+  /// No description provided for @migrationConsentDialogBody.
+  ///
+  /// In en, this message translates to:
+  /// **'AnyWhereDownloader now keeps downloads in per-service folders. To finish moving files you downloaded before this change, Android needs your permission next — you\'ll see a system dialog asking to allow it. New downloads already use the new folders either way.'**
+  String get migrationConsentDialogBody;
+
+  /// No description provided for @migrationConsentContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get migrationConsentContinue;
+
+  /// No description provided for @migrationConsentNotNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get migrationConsentNotNow;
+
   /// No description provided for @settingsTitle.
   ///
   /// In en, this message translates to:

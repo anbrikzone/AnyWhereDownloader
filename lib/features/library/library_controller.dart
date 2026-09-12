@@ -34,6 +34,7 @@ class LibraryState {
     this.selectedIds = const {},
     this.busy = false,
     this.statusMessage,
+    this.pendingMigrationConsent,
   });
 
   final bool checkingPermission;
@@ -60,6 +61,13 @@ class LibraryState {
   final Set<String> selectedIds;
   final bool busy;
   final StatusMessage? statusMessage;
+
+  /// Non-null when [MediaLibraryService.attemptMigration] found legacy
+  /// folders it couldn't finish moving without interactive consent — the
+  /// screen should explain why, then call [LibraryController.confirmMigration]
+  /// (or [LibraryController.postponeMigration] if the user declines to see
+  /// the system dialog right now).
+  final PendingMigrationConsent? pendingMigrationConsent;
 
   bool get hasAccess => permission?.isAuth == true || permission?.hasAccess == true;
 
@@ -141,6 +149,8 @@ class LibraryState {
     bool? busy,
     StatusMessage? statusMessage,
     bool clearStatusMessage = false,
+    PendingMigrationConsent? pendingMigrationConsent,
+    bool clearPendingMigrationConsent = false,
   }) {
     return LibraryState(
       checkingPermission: checkingPermission ?? this.checkingPermission,
@@ -155,6 +165,9 @@ class LibraryState {
       statusMessage: clearStatusMessage
           ? null
           : (statusMessage ?? this.statusMessage),
+      pendingMigrationConsent: clearPendingMigrationConsent
+          ? null
+          : (pendingMigrationConsent ?? this.pendingMigrationConsent),
     );
   }
 }
@@ -204,11 +217,52 @@ class LibraryController extends StateNotifier<LibraryState> {
     if (!state.hasAccess) return;
     state = state.copyWith(items: const AsyncValue.loading());
     try {
-      final items = await _service.loadDownloadedAssets();
-      state = state.copyWith(items: AsyncValue.data(items));
+      final result = await _service.loadDownloadedAssets();
+      state = state.copyWith(
+        items: AsyncValue.data(result.items),
+        pendingMigrationConsent: result.pendingConsent,
+        clearPendingMigrationConsent: result.pendingConsent == null,
+      );
     } catch (error, stackTrace) {
       state = state.copyWith(items: AsyncValue.error(error, stackTrace));
     }
+  }
+
+  /// The user has seen the screen's explanation and agreed to see the
+  /// system write-access dialog — see [LibraryState.pendingMigrationConsent].
+  /// New downloads already use the new folder layout regardless; this only
+  /// affects when *pre-existing* downloads actually get moved into it.
+  Future<void> confirmMigration() async {
+    final pending = state.pendingMigrationConsent;
+    if (pending == null || state.busy) return;
+    state = state.copyWith(
+      busy: true,
+      clearStatusMessage: true,
+      clearPendingMigrationConsent: true,
+    );
+    final fullyMigrated = await _service.completeMigrationAfterConsent(pending);
+    state = state.copyWith(
+      busy: false,
+      statusMessage: fullyMigrated
+          ? null
+          : const StatusMessage(StatusMessageKey.migrationIncomplete),
+    );
+    // Whether it fully succeeded or not, re-list so anything that did move
+    // shows up under its new folder right away.
+    await refresh();
+  }
+
+  /// The user declined to see the system dialog right now — leaves the
+  /// affected buckets exactly as [attemptMigration] found them. Nothing is
+  /// lost or skipped for good: [refresh] re-attempts migration and, if
+  /// still needed, reports a fresh [LibraryState.pendingMigrationConsent]
+  /// every time Library loads, so this is only ever a "not right now", and
+  /// new downloads keep using the new layout regardless.
+  void postponeMigration() {
+    state = state.copyWith(
+      clearPendingMigrationConsent: true,
+      statusMessage: const StatusMessage(StatusMessageKey.migrationPostponed),
+    );
   }
 
   void setSourceFilter(String? source) {
