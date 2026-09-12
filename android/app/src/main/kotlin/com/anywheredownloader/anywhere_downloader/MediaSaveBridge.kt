@@ -294,37 +294,53 @@ class MediaSaveBridge(private val appContext: Context) {
 
     /**
      * Moves every file whose `RELATIVE_PATH` is exactly [oldRelativePath] to
-     * [newRelativePath] in one bulk `ContentResolver.update()` — Android's
-     * documented way for an app to move/rename media files it owns by
-     * rewriting `RELATIVE_PATH` (confirmed by reading `photo_manager`'s own
-     * Android source: its `AndroidQDBUtils.moveToGallery` does the identical
-     * single-row form of this same update, selecting on `_ID`). One
-     * bucket-wide selection here instead of a loop of per-row calls.
+     * [newRelativePath], matched on `RELATIVE_PATH` itself (a real column —
+     * see the second bug note below for why not `BUCKET_ID`). Returns how
+     * many rows moved.
      *
-     * Matches on `RELATIVE_PATH` itself rather than `BUCKET_ID` — the
-     * latter is a value MediaProvider *computes* from the path at query
-     * time, not a genuine underlying column, and while it's confirmed to
-     * work in a `SELECT`'s `WHERE` (see `pruneAlbum`'s `BUCKET_DISPLAY_NAME`
-     * use, exercised on-device), an earlier version of this method used it
-     * for `UPDATE` too and that was never actually verified to match any
-     * rows there — `photo_manager`'s own precedent only uses a real column.
-     * `RELATIVE_PATH` is a real column, so this is the safer bet.
-     *
-     * Returns how many rows moved.
+     * **On-device bug #2 (2026-09-12)**: the first fix (matching on
+     * `RELATIVE_PATH` instead of `BUCKET_ID`) still moved zero rows, now
+     * failing loudly with `IllegalArgumentException: Movement of
+     * content://media/external/file which isn't part of well-defined
+     * collection not allowed`. Root cause: the update was issued against
+     * `MediaStore.Files.getContentUri()` — the generic collection spanning
+     * every media type — and MediaProvider refuses a `RELATIVE_PATH` move
+     * through it, since it can't tell *which* typed collection (images,
+     * video, audio) the affected row(s) actually belong to. `photo_manager`'s
+     * own `AndroidQDBUtils.moveToGallery` uses this exact same generic URI
+     * for its own single-row move — evidently an unexercised path in that
+     * library, not a working precedent as assumed. The fix: issue the
+     * update against each type-specific collection URI in turn
+     * (`MediaStore.Images.Media` / `Video.Media` / `Audio.Media`) — each is
+     * unambiguously "well-defined" on its own, and one bucket's files can
+     * span more than one type (e.g. a WhatsApp/Instagram/X/LinkedIn folder
+     * mixes photos and videos), so all three are always attempted; a
+     * collection matching no rows in this bucket just updates 0 rows,
+     * harmlessly.
      */
     private fun moveBucket(oldRelativePath: String, newRelativePath: String): Int {
         val resolver = appContext.contentResolver
-        val collection = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
         val values = ContentValues().apply {
             put(MediaStore.MediaColumns.RELATIVE_PATH, newRelativePath)
         }
-        val moved = resolver.update(
-            collection,
-            values,
-            "${MediaStore.MediaColumns.RELATIVE_PATH} = ?",
-            arrayOf(oldRelativePath),
+        val selection = "${MediaStore.MediaColumns.RELATIVE_PATH} = ?"
+        val args = arrayOf(oldRelativePath)
+        val collections = listOf(
+            "image" to MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL),
+            "video" to MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL),
+            "audio" to MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL),
         )
-        Log.i(TAG, "moveBucket '$oldRelativePath' -> '$newRelativePath': $moved row(s)")
+        var moved = 0
+        for ((label, collection) in collections) {
+            try {
+                val n = resolver.update(collection, values, selection, args)
+                moved += n
+                if (n > 0) Log.i(TAG, "moveBucket '$oldRelativePath': moved $n $label row(s)")
+            } catch (e: Exception) {
+                Log.e(TAG, "moveBucket '$oldRelativePath' failed for $label collection", e)
+            }
+        }
+        Log.i(TAG, "moveBucket '$oldRelativePath' -> '$newRelativePath': $moved row(s) total")
         return moved
     }
 
