@@ -439,6 +439,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get migrationConsentNotNow => 'Not now';
 
   @override
+  String get rootMoveConfirmTitle => 'Move existing downloads too?';
+
+  @override
+  String rootMoveConfirmBody(String root) {
+    return 'Also move your existing downloads to $root? New downloads will use it either way.';
+  }
+
+  @override
+  String get rootMoveConfirmYes => 'Move them too';
+
+  @override
+  String get rootMoveConfirmNo => 'Not now';
+
+  @override
+  String get rootMoveInProgress => 'Moving your downloads…';
+
+  @override
+  String get rootMoveDone => 'Done — your downloads are now in the new folder';
+
+  @override
+  String get rootMoveIncomplete => 'Some files couldn\'t be moved';
+
+  @override
   String get settingsTitle => 'Settings';
 
   @override

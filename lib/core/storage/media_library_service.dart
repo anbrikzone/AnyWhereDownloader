@@ -105,7 +105,9 @@ const _mediaRoots = {'Pictures', 'DCIM', 'Movies'};
 
 /// Every top-level Android directory an audio download might live under —
 /// see [AudioSaveRoot]. Same hand-sync note as [_mediaRoots].
-const _audioRoots = {'Music', 'Podcasts'};
+const _audioRoots = {
+  'Music', 'Podcasts', 'Audiobooks', 'Alarms', 'Notifications', 'Ringtones', 'Recordings',
+};
 
 /// Parses one bucket's actual MediaStore `RELATIVE_PATH` (as returned by
 /// [MediaSaveService.queryLibraryBucketPaths] — e.g.
@@ -403,14 +405,60 @@ class MediaLibraryService {
     }
   }
 
+  /// Moves every current bucket under [fromRoot] to the same relativePath
+  /// suffix under [toRoot] — e.g. changing Settings' photo/video save
+  /// location from `Pictures` to `Movies` moves every
+  /// `Pictures/AnyWhereDownloader/...` bucket to
+  /// `Movies/AnyWhereDownloader/...`. Added 2026-09-13 after on-device
+  /// feedback that changing the save-location setting only affected *new*
+  /// downloads — confirmed as intended (nothing else here changes), but the
+  /// user asked for the *option* to also relocate what's already there.
+  ///
+  /// Unlike [attemptMigration] this isn't limited to legacy-flat buckets —
+  /// any bucket under [fromRoot] moves, nested or not — but otherwise reuses
+  /// the exact same two-phase consent shape and [_runMoves] helper, since a
+  /// deliberate root change hits the identical `RecoverableSecurityException`
+  /// requirement a `RELATIVE_PATH` move always does (see `moveBucket`'s bug
+  /// #5 doc). Called from a Settings row's "move existing downloads too?"
+  /// confirmation, not automatically — changing the setting alone never
+  /// moves anything on its own.
+  Future<PendingMigrationConsent?> attemptMoveRoot({
+    required bool isAudio,
+    required String fromRoot,
+    required String toRoot,
+  }) async {
+    try {
+      final bucketPaths = await _saveService.queryLibraryBucketPaths();
+      final pendingMoves = <({String oldPath, String newPath, bool isAudio})>[];
+      for (final entry in bucketPaths.entries) {
+        final oldRelativePath = entry.value;
+        final parsed = parseLibraryRelativePath(oldRelativePath);
+        if (parsed == null || parsed.isAudio != isAudio || parsed.root != fromRoot) continue;
+        pendingMoves.add((
+          oldPath: oldRelativePath,
+          newPath: '$toRoot/${_stripRoot(oldRelativePath)}',
+          isAudio: isAudio,
+        ));
+      }
+      if (pendingMoves.isEmpty) return null;
+
+      final needsPermission = await _runMoves(pendingMoves);
+      if (needsPermission.isEmpty) return null;
+      return PendingMigrationConsent._(pendingMoves, needsPermission);
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Shows the batched system write-access consent dialog for [pending] —
-  /// one prompt covering every row [attemptMigration] found needing it,
-  /// never one dialog per bucket — and, if granted, retries every affected
-  /// bucket a single time. Returns whether every bucket in [pending] ended
-  /// up fully migrated; `false` (never throws) if the user declined or
-  /// anything else went wrong, in which case the caller should tell the
-  /// user their files will be organized the next time Library opens rather
-  /// than implying the migration is done for good.
+  /// one prompt covering every row [attemptMigration]/[attemptMoveRoot]
+  /// found needing it, never one dialog per bucket — and, if granted,
+  /// retries every affected bucket a single time. Returns whether every
+  /// bucket in [pending] ended up fully migrated; `false` (never throws) if
+  /// the user declined or anything else went wrong, in which case the
+  /// caller should tell the user their files will be organized the next
+  /// time Library opens (for [attemptMigration]) or simply weren't moved
+  /// (for [attemptMoveRoot]) rather than implying it's done for good.
   Future<bool> completeMigrationAfterConsent(PendingMigrationConsent pending) async {
     try {
       final granted = await _saveService.requestWriteAccess(pending._uris);

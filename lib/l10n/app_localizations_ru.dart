@@ -439,6 +439,29 @@ class AppLocalizationsRu extends AppLocalizations {
   String get migrationConsentNotNow => 'Не сейчас';
 
   @override
+  String get rootMoveConfirmTitle => 'Перенести и старые загрузки?';
+
+  @override
+  String rootMoveConfirmBody(String root) {
+    return 'Перенести также уже скачанные файлы в $root? Новые загрузки в любом случае будут сохраняться туда.';
+  }
+
+  @override
+  String get rootMoveConfirmYes => 'Перенести и их';
+
+  @override
+  String get rootMoveConfirmNo => 'Не сейчас';
+
+  @override
+  String get rootMoveInProgress => 'Переносим ваши загрузки…';
+
+  @override
+  String get rootMoveDone => 'Готово — загрузки теперь в новой папке';
+
+  @override
+  String get rootMoveIncomplete => 'Не все файлы удалось перенести';
+
+  @override
   String get settingsTitle => 'Настройки';
 
   @override

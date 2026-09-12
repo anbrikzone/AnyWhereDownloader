@@ -8,6 +8,8 @@ import '../../core/extraction/media_extractor.dart';
 import '../../core/settings/app_settings_service.dart';
 import '../../core/settings/settings_providers.dart';
 import '../../core/settings/yt_dlp_status_provider.dart';
+import '../../core/storage/media_library_service.dart';
+import '../../core/ui/app_toast.dart';
 import '../../core/update/update_providers.dart';
 import '../../core/update/update_service.dart' show kRepoDisplayUrl;
 import '../../l10n/app_localizations.dart';
@@ -108,8 +110,7 @@ class SettingsScreen extends ConsumerWidget {
                 for (final root in MediaSaveRoot.values)
                   root: root.androidDirectoryName,
               },
-              onChanged: (value) =>
-                  ref.read(mediaSaveRootProvider.notifier).setRoot(value),
+              onChanged: (value) => _onMediaSaveRootChanged(context, ref, l10n, value),
             ),
           ),
           ListTile(
@@ -121,8 +122,7 @@ class SettingsScreen extends ConsumerWidget {
                 for (final root in AudioSaveRoot.values)
                   root: root.androidDirectoryName,
               },
-              onChanged: (value) =>
-                  ref.read(audioSaveRootProvider.notifier).setRoot(value),
+              onChanged: (value) => _onAudioSaveRootChanged(context, ref, l10n, value),
             ),
           ),
           const Divider(),
@@ -175,6 +175,114 @@ class SettingsScreen extends ConsumerWidget {
     if (mode == null) return;
     ref.read(themeModeProvider.notifier).setThemeMode(mode);
   }
+}
+
+/// New downloads use [value] immediately either way; only asks about
+/// relocating *existing* ones if it actually changed.
+Future<void> _onMediaSaveRootChanged(
+  BuildContext context,
+  WidgetRef ref,
+  AppLocalizations l10n,
+  MediaSaveRoot value,
+) async {
+  final previous = ref.read(mediaSaveRootProvider);
+  ref.read(mediaSaveRootProvider.notifier).setRoot(value);
+  if (value == previous || !context.mounted) return;
+  await _offerToMoveExisting(
+    context: context,
+    l10n: l10n,
+    newRootLabel: value.androidDirectoryName,
+    attempt: () => MediaLibraryService().attemptMoveRoot(
+      isAudio: false,
+      fromRoot: previous.androidDirectoryName,
+      toRoot: value.androidDirectoryName,
+    ),
+  );
+}
+
+/// Audio counterpart of [_onMediaSaveRootChanged].
+Future<void> _onAudioSaveRootChanged(
+  BuildContext context,
+  WidgetRef ref,
+  AppLocalizations l10n,
+  AudioSaveRoot value,
+) async {
+  final previous = ref.read(audioSaveRootProvider);
+  ref.read(audioSaveRootProvider.notifier).setRoot(value);
+  if (value == previous || !context.mounted) return;
+  await _offerToMoveExisting(
+    context: context,
+    l10n: l10n,
+    newRootLabel: value.androidDirectoryName,
+    attempt: () => MediaLibraryService().attemptMoveRoot(
+      isAudio: true,
+      fromRoot: previous.androidDirectoryName,
+      toRoot: value.androidDirectoryName,
+    ),
+  );
+}
+
+/// Shared "move existing downloads too?" flow for both save-location
+/// dropdowns — added 2026-09-13 after on-device feedback that changing the
+/// setting alone left old files behind (confirmed as intended, but the user
+/// wanted the *option* to relocate them too). Reuses the exact
+/// [MediaLibraryService.attemptMoveRoot]/`completeMigrationAfterConsent`
+/// two-phase consent shape already built for backlog #7's legacy-folder
+/// migration — a deliberate root change hits the identical
+/// `RecoverableSecurityException` requirement a `RELATIVE_PATH` move always
+/// does (see `MediaSaveBridge.moveBucket`'s bug #5 doc), so the same batched
+/// single-dialog-then-retry flow applies here unchanged.
+Future<void> _offerToMoveExisting({
+  required BuildContext context,
+  required AppLocalizations l10n,
+  required String newRootLabel,
+  required Future<PendingMigrationConsent?> Function() attempt,
+}) async {
+  final proceed = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(l10n.rootMoveConfirmTitle),
+      content: Text(l10n.rootMoveConfirmBody(newRootLabel)),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: Text(l10n.rootMoveConfirmNo),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: Text(l10n.rootMoveConfirmYes),
+        ),
+      ],
+    ),
+  );
+  if (proceed != true || !context.mounted) return;
+
+  showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => AlertDialog(
+      content: Row(
+        children: [
+          const SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          const SizedBox(width: 16),
+          Expanded(child: Text(l10n.rootMoveInProgress)),
+        ],
+      ),
+    ),
+  );
+
+  final service = MediaLibraryService();
+  final pending = await attempt();
+  final fullyMoved =
+      pending == null ? true : await service.completeMigrationAfterConsent(pending);
+
+  if (!context.mounted) return;
+  Navigator.of(context, rootNavigator: true).pop(); // dismiss the busy dialog
+  showAppToast(context, fullyMoved ? l10n.rootMoveDone : l10n.rootMoveIncomplete);
 }
 
 /// Compact dropdown for a settings row — takes far less vertical space than

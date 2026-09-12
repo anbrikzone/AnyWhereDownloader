@@ -149,6 +149,13 @@
   "migrationConsentDialogBody": "Теперь AnyWhereDownloader хранит загрузки в отдельных папках по сервисам. Чтобы перенести файлы, скачанные до этого изменения, дальше потребуется разрешение Android — появится системное окно с запросом. Новые загрузки уже используют новые папки в любом случае.",
   "migrationConsentContinue": "Продолжить",
   "migrationConsentNotNow": "Не сейчас",
+  "rootMoveConfirmTitle": "Перенести и старые загрузки?",
+  "rootMoveConfirmBody": "Перенести также уже скачанные файлы в {root}? Новые загрузки в любом случае будут сохраняться туда.",
+  "rootMoveConfirmYes": "Перенести и их",
+  "rootMoveConfirmNo": "Не сейчас",
+  "rootMoveInProgress": "Переносим ваши загрузки…",
+  "rootMoveDone": "Готово — загрузки теперь в новой папке",
+  "rootMoveIncomplete": "Не все файлы удалось перенести",
 
   "settingsTitle": "Настройки",
   "appearanceSection": "Оформление",

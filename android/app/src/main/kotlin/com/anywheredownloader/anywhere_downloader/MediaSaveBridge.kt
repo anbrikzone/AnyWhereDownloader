@@ -42,10 +42,16 @@ class MediaSaveBridge(
 
         // Every top-level directory a download might live under, across
         // every `MediaSaveRoot`/`AudioSaveRoot` choice the Dart-side
-        // Settings screen offers (backlog #18, 2026-09-13) — not just
-        // whichever one is configured *today*, since past downloads may
-        // have used a since-changed choice and still need to be found.
-        private val ALL_SAVE_ROOTS = listOf("Pictures", "DCIM", "Movies", "Music", "Podcasts")
+        // Settings screen offers (backlog #18, 2026-09-13, widened the same
+        // day to Android's complete official per-collection directory
+        // list) — not just whichever one is configured *today*, since past
+        // downloads may have used a since-changed choice and still need to
+        // be found. Kept in sync with `AppSettingsService.MediaSaveRoot`/
+        // `AudioSaveRoot` by hand.
+        private val ALL_SAVE_ROOTS = listOf(
+            "Pictures", "DCIM", "Movies",
+            "Music", "Podcasts", "Audiobooks", "Alarms", "Notifications", "Ringtones", "Recordings",
+        )
     }
 
     // Set while a `requestWriteAccess` call is waiting on the system

@@ -294,4 +294,103 @@ void main() {
       expect(fake.cleanupCalls, isEmpty);
     });
   });
+
+  group('MediaLibraryService.attemptMoveRoot', () {
+    test('is a no-op when nothing lives under fromRoot', () async {
+      final fake = _FakeMediaSaveService(
+        buckets: {'1': 'Music/AnyWhereDownloader/YouTube/'},
+      );
+      final pending = await MediaLibraryService(saveService: fake).attemptMoveRoot(
+        isAudio: false,
+        fromRoot: 'Pictures',
+        toRoot: 'Movies',
+      );
+
+      expect(pending, isNull);
+      expect(fake.moveBucketCallCounts, isEmpty);
+    });
+
+    test('only moves buckets matching both fromRoot and isAudio', () async {
+      final fake = _FakeMediaSaveService(
+        buckets: {
+          '1': 'Pictures/AnyWhereDownloader/YouTube/', // matches
+          '2': 'Movies/AnyWhereDownloader/YouTube/', // wrong root
+          '3': 'Music/AnyWhereDownloader/YouTube/', // wrong media type
+        },
+      );
+      final pending = await MediaLibraryService(saveService: fake).attemptMoveRoot(
+        isAudio: false,
+        fromRoot: 'Pictures',
+        toRoot: 'Movies',
+      );
+
+      expect(pending, isNull); // moved cleanly, nothing needed consent
+      expect(fake.moveBucketCallCounts, {'Pictures/AnyWhereDownloader/YouTube/': 1});
+    });
+
+    test('moves a nested (non-legacy) bucket to the same suffix under toRoot', () async {
+      final fake = _FakeMediaSaveService(
+        buckets: {'1': 'Pictures/AnyWhereDownloader/YouTube/Chill Mix/'},
+      );
+      await MediaLibraryService(saveService: fake).attemptMoveRoot(
+        isAudio: false,
+        fromRoot: 'Pictures',
+        toRoot: 'Movies',
+      );
+
+      // The new path preserves everything after the old root verbatim.
+      expect(
+        fake.moveBucketCallCounts.keys.single,
+        'Pictures/AnyWhereDownloader/YouTube/Chill Mix/',
+      );
+    });
+
+    test('batches consent across every matching bucket, then retries once', () async {
+      final fake = _FakeMediaSaveService(
+        buckets: {
+          '1': 'Pictures/AnyWhereDownloader/YouTube/',
+          '2': 'Pictures/AnyWhereDownloader/WhatsApp/',
+        },
+        permissionNeededOldPaths: {
+          'Pictures/AnyWhereDownloader/YouTube/',
+          'Pictures/AnyWhereDownloader/WhatsApp/',
+        },
+      );
+      final service = MediaLibraryService(saveService: fake);
+      final pending = await service.attemptMoveRoot(
+        isAudio: false,
+        fromRoot: 'Pictures',
+        toRoot: 'Movies',
+      );
+
+      expect(pending, isNotNull);
+      final fullyMoved = await service.completeMigrationAfterConsent(pending!);
+
+      expect(fullyMoved, isTrue);
+      expect(fake.requestWriteAccessCalls, hasLength(1));
+      expect(fake.requestWriteAccessCalls.single, hasLength(2));
+      expect(fake.moveBucketCallCounts, {
+        'Pictures/AnyWhereDownloader/YouTube/': 2,
+        'Pictures/AnyWhereDownloader/WhatsApp/': 2,
+      });
+    });
+
+    test('reports incomplete when consent is declined', () async {
+      final fake = _FakeMediaSaveService(
+        buckets: {'1': 'Music/AnyWhereDownloader/YouTube/'},
+        permissionNeededOldPaths: {'Music/AnyWhereDownloader/YouTube/'},
+        grantWriteAccess: false,
+      );
+      final service = MediaLibraryService(saveService: fake);
+      final pending = await service.attemptMoveRoot(
+        isAudio: true,
+        fromRoot: 'Music',
+        toRoot: 'Podcasts',
+      );
+
+      expect(pending, isNotNull);
+      final fullyMoved = await service.completeMigrationAfterConsent(pending!);
+      expect(fullyMoved, isFalse);
+    });
+  });
 }

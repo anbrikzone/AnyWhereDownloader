@@ -24,12 +24,11 @@ enum StatusArchiveRetention {
 /// can cross the `media_save` MethodChannel unchanged and be handed
 /// straight to `Environment.getExternalStoragePublicDirectory` on the
 /// native side with no lookup table). [pictures] is the long-standing
-/// default and the only option confirmed on-device across this app's
-/// history (see `media_save_service.dart`'s `_save` doc) — [dcim] and
-/// [movies] are offered because Android's documented per-collection
-/// default-directory rules allow them for both images and video, but
-/// backlog #18 flagged them as needing an on-device check before being
-/// trusted, which hasn't happened yet.
+/// default. This is the complete official set for the combined Images +
+/// Video MediaStore collections — nothing left to add. **Both [pictures]
+/// and [movies] are confirmed working on-device** (2026-09-05 and
+/// 2026-09-13 respectively — see `media_save_service.dart`'s `_save` doc);
+/// [dcim] is offered per the same documented rules but not yet tried here.
 enum MediaSaveRoot {
   pictures('Pictures'),
   dcim('DCIM'),
@@ -44,12 +43,24 @@ enum MediaSaveRoot {
 
 /// Where audio (mp3/m4a) downloads land — see [MediaSaveRoot]'s doc for why
 /// this is a plain Android directory name. [music] is the long-standing
-/// default; [podcasts] is offered per Android's documented audio-collection
-/// directories but, like [MediaSaveRoot.dcim]/[MediaSaveRoot.movies],
-/// hasn't been confirmed on-device yet.
+/// default and the only option confirmed on-device so far. The rest —
+/// [podcasts], [audiobooks], [alarms], [notifications], [ringtones],
+/// [recordings] — round this out to Android's complete official directory
+/// list for the Audio MediaStore collection (added 2026-09-13 after the
+/// user asked for a wider choice than a fixed two-option dropdown, in place
+/// of a full arbitrary-folder picker — see the root `CLAUDE.md`'s backlog
+/// #18 entry for why a real SAF folder picker was investigated and
+/// rejected). None of the new ones have been tried on-device yet.
+/// [recordings] needs `Environment.DIRECTORY_RECORDINGS`, added in API 31 —
+/// safe here since this app's `minSdk` is already 31.
 enum AudioSaveRoot {
   music('Music'),
-  podcasts('Podcasts');
+  podcasts('Podcasts'),
+  audiobooks('Audiobooks'),
+  alarms('Alarms'),
+  notifications('Notifications'),
+  ringtones('Ringtones'),
+  recordings('Recordings');
 
   const AudioSaveRoot(this.androidDirectoryName);
 

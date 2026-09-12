@@ -440,6 +440,29 @@ class AppLocalizationsKk extends AppLocalizations {
   String get migrationConsentNotNow => 'Қазір емес';
 
   @override
+  String get rootMoveConfirmTitle => 'Ескі жүктемелерді де жылжыту керек пе?';
+
+  @override
+  String rootMoveConfirmBody(String root) {
+    return 'Бұрын жүктелген файлдарды да $root қалтасына жылжыту керек пе? Жаңа жүктемелер бәрібір сол жерге сақталады.';
+  }
+
+  @override
+  String get rootMoveConfirmYes => 'Оларды да жылжыту';
+
+  @override
+  String get rootMoveConfirmNo => 'Қазір емес';
+
+  @override
+  String get rootMoveInProgress => 'Жүктемелеріңіз жылжытылуда…';
+
+  @override
+  String get rootMoveDone => 'Дайын — жүктемелер енді жаңа қалтада';
+
+  @override
+  String get rootMoveIncomplete => 'Кейбір файлдарды жылжыту сәтсіз аяқталды';
+
+  @override
   String get settingsTitle => 'Параметрлер';
 
   @override

@@ -832,6 +832,48 @@ abstract class AppLocalizations {
   /// **'Not now'**
   String get migrationConsentNotNow;
 
+  /// No description provided for @rootMoveConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Move existing downloads too?'**
+  String get rootMoveConfirmTitle;
+
+  /// No description provided for @rootMoveConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Also move your existing downloads to {root}? New downloads will use it either way.'**
+  String rootMoveConfirmBody(String root);
+
+  /// No description provided for @rootMoveConfirmYes.
+  ///
+  /// In en, this message translates to:
+  /// **'Move them too'**
+  String get rootMoveConfirmYes;
+
+  /// No description provided for @rootMoveConfirmNo.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get rootMoveConfirmNo;
+
+  /// No description provided for @rootMoveInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Moving your downloads…'**
+  String get rootMoveInProgress;
+
+  /// No description provided for @rootMoveDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done — your downloads are now in the new folder'**
+  String get rootMoveDone;
+
+  /// No description provided for @rootMoveIncomplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Some files couldn\'t be moved'**
+  String get rootMoveIncomplete;
+
   /// No description provided for @settingsTitle.
   ///
   /// In en, this message translates to:
