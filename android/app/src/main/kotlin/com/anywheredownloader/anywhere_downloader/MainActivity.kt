@@ -1,5 +1,6 @@
 package com.anywheredownloader.anywhere_downloader
 
+import android.app.Activity
 import android.content.Intent
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -12,12 +13,21 @@ class MainActivity : FlutterActivity() {
     private val mediaSaveChannelName = "anywhere_downloader/media_save"
     private val shareChannelName = "anywhere_downloader/share_intent"
 
+    // Request code for the `MediaStore.createWriteRequest` consent dialog
+    // `MediaSaveBridge.requestWriteAccess` triggers (see its bug #5 doc) —
+    // `FlutterActivity` extends plain `android.app.Activity`, not androidx's
+    // `ComponentActivity`, so the newer `registerForActivityResult` API
+    // isn't available here; the classic `startIntentSenderForResult` +
+    // `onActivityResult` pair works with any `Activity`.
+    private val writeRequestCode = 8341
+
     // Text the app was cold-started with via ACTION_SEND, held until Dart
     // pulls it once through `getInitialSharedText`. A share that arrives
     // while the app is already running goes straight to Dart from
     // onNewIntent instead (see below).
     private var initialSharedText: String? = null
     private var shareChannel: MethodChannel? = null
+    private lateinit var mediaSaveBridge: MediaSaveBridge
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -40,7 +50,9 @@ class MainActivity : FlutterActivity() {
             updateInstallBridge.handle(call, result)
         }
 
-        val mediaSaveBridge = MediaSaveBridge(applicationContext)
+        mediaSaveBridge = MediaSaveBridge(applicationContext) { intentSender ->
+            startIntentSenderForResult(intentSender, writeRequestCode, null, 0, 0, 0)
+        }
         val mediaSaveChannel =
             MethodChannel(flutterEngine.dartExecutor.binaryMessenger, mediaSaveChannelName)
         mediaSaveChannel.setMethodCallHandler { call, result ->
@@ -67,6 +79,13 @@ class MainActivity : FlutterActivity() {
         // Init + self-update the bundled yt-dlp off the critical path, so a
         // fresh binary is usually in place before the user pastes a link.
         YtDlpCore.warmUp(applicationContext)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == writeRequestCode) {
+            mediaSaveBridge.onWriteRequestResult(resultCode == Activity.RESULT_OK)
+        }
     }
 
     override fun onNewIntent(intent: Intent) {

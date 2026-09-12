@@ -17,6 +17,10 @@ class MediaSaveException implements Exception {
   String toString() => message;
 }
 
+/// Result of [MediaSaveService.moveBucket] — see its doc for
+/// [needsPermissionUris].
+typedef MoveBucketOutcome = ({int moved, int total, List<String> needsPermissionUris});
+
 /// Saves a downloaded file to the gallery via `photo_manager`'s editor API
 /// (returns the resulting `AssetEntity`, whose `getMediaUrl()` gives the
 /// real `content://` URI for a "download complete" notification to open —
@@ -125,19 +129,48 @@ class MediaSaveService {
   }
 
   /// Moves every file whose gallery bucket has relativePath
-  /// [oldRelativePath] to [newRelativePath] in one shot (see
-  /// `MediaSaveBridge.moveBucket` — matches on the real `RELATIVE_PATH`
-  /// column, not the bucket id). Returns how many files moved; 0 on any
-  /// failure. Never throws.
-  Future<int> moveBucket(String oldRelativePath, String newRelativePath) async {
+  /// [oldRelativePath] to [newRelativePath] (see `MediaSaveBridge.moveBucket`
+  /// — matches on the real `RELATIVE_PATH` column, not the bucket id, one
+  /// row at a time through that row's own type-specific collection).
+  /// [MoveBucketOutcome.needsPermissionUris] is non-empty when Android
+  /// refused some rows with a `RecoverableSecurityException` — even the
+  /// app's own rows require explicit user consent for a `RELATIVE_PATH`
+  /// move (see the native doc) — the caller should batch these across every
+  /// bucket and pass them to [requestWriteAccess] once, then retry. Never
+  /// throws; an all-zero outcome on any failure.
+  Future<MoveBucketOutcome> moveBucket(String oldRelativePath, String newRelativePath) async {
+    const empty = (moved: 0, total: 0, needsPermissionUris: <String>[]);
     try {
-      final n = await _audioChannel.invokeMethod<int>('moveBucket', {
+      final result = await _audioChannel.invokeMapMethod<String, Object?>('moveBucket', {
         'oldRelativePath': oldRelativePath,
         'newRelativePath': newRelativePath,
       });
-      return n ?? 0;
+      if (result == null) return empty;
+      return (
+        moved: result['moved'] as int? ?? 0,
+        total: result['total'] as int? ?? 0,
+        needsPermissionUris:
+            (result['needsPermissionUris'] as List?)?.cast<String>() ?? const <String>[],
+      );
     } catch (_) {
-      return 0;
+      return empty;
+    }
+  }
+
+  /// Prompts the user once — a single system dialog covering every URI in
+  /// [uris] — for write access to MediaStore rows this app already owns but
+  /// whose `RELATIVE_PATH` move [moveBucket] reported as needing explicit
+  /// consent. Returns whether the user granted it; `true` (a no-op) for an
+  /// empty list; `false` on any failure. Never throws.
+  Future<bool> requestWriteAccess(List<String> uris) async {
+    if (uris.isEmpty) return true;
+    try {
+      final granted = await _audioChannel.invokeMethod<bool>('requestWriteAccess', {
+        'uris': uris,
+      });
+      return granted ?? false;
+    } catch (_) {
+      return false;
     }
   }
 

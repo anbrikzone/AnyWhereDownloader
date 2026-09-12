@@ -4,8 +4,10 @@ import android.app.RecoverableSecurityException
 import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
+import android.content.IntentSender
 import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
+import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.os.Handler
@@ -28,10 +30,25 @@ import java.util.concurrent.Executors
  * API can't see the hierarchy of. Same defensive try/catch → channel-error
  * style as [MediaNotificationBridge].
  */
-class MediaSaveBridge(private val appContext: Context) {
+class MediaSaveBridge(
+    private val appContext: Context,
+    private val launchWriteRequest: (IntentSender) -> Unit,
+) {
 
     companion object {
         private const val TAG = "MediaSaveBridge"
+    }
+
+    // Set while a `requestWriteAccess` call is waiting on the system
+    // consent dialog `launchWriteRequest` triggers; resolved from
+    // `onWriteRequestResult` once `MainActivity.onActivityResult` fires
+    // (see bug #5 in `moveBucket`'s doc).
+    private var pendingWriteRequestResult: MethodChannel.Result? = null
+
+    /** Called by `MainActivity.onActivityResult` for the write-request flow. */
+    fun onWriteRequestResult(granted: Boolean) {
+        pendingWriteRequestResult?.success(granted)
+        pendingWriteRequestResult = null
     }
 
     // MethodChannel handlers run on the platform (main) thread. These ops
@@ -107,6 +124,24 @@ class MediaSaveBridge(private val appContext: Context) {
                     return
                 }
                 runAsync(result, "move_failed") { moveBucket(oldRelativePath, newRelativePath) }
+            }
+
+            "requestWriteAccess" -> {
+                val uriStrings = call.argument<List<String>>("uris")
+                if (uriStrings.isNullOrEmpty()) {
+                    result.error("bad_args", "Missing uris", null)
+                    return
+                }
+                try {
+                    val uris = uriStrings.map { Uri.parse(it) }
+                    val pendingIntent =
+                        MediaStore.createWriteRequest(appContext.contentResolver, uris)
+                    pendingWriteRequestResult = result
+                    launchWriteRequest(pendingIntent.intentSender)
+                } catch (e: Exception) {
+                    Log.e(TAG, "requestWriteAccess failed", e)
+                    result.error("write_request_failed", e.message, null)
+                }
             }
 
             "videoThumbnail" -> {
@@ -325,8 +360,25 @@ class MediaSaveBridge(private val appContext: Context) {
      * Bug #2 and bug #3 were each half the fix: this combines both — per
      * row (bug #3), through that row's own typed collection (bug #2's
      * collection, applied correctly this time: per-row, not bulk).
+     *
+     * **On-device bug #5 (2026-09-12)**: bug #4's fix moved zero rows
+     * *again*, but this time with a materially different exception —
+     * `RecoverableSecurityException`, not a plain `SecurityException` —
+     * proving bug #4's fix was actually correct: MediaProvider now
+     * recognizes these rows as ones this app is allowed to touch, but a
+     * `RELATIVE_PATH` change (a real on-disk move, not just a metadata
+     * edit) is scoped-storage-sensitive enough that it always requires
+     * explicit interactive user consent, even for an app's own files —
+     * `RecoverableSecurityException.getUserAction()` carries the consent
+     * `PendingIntent` for exactly this. Rather than launch one system
+     * dialog per failing row (which would mean dozens for a large
+     * library), each such row's content URI is collected here and handed
+     * back to the caller as [needsPermissionUris] — [requestWriteAccess]
+     * (via [MediaStore.createWriteRequest]) then prompts **once** for the
+     * whole batch, and the caller retries the move after consent is
+     * granted.
      */
-    private fun moveBucket(oldRelativePath: String, newRelativePath: String): Int {
+    private fun moveBucket(oldRelativePath: String, newRelativePath: String): Map<String, Any> {
         val resolver = appContext.contentResolver
         val filesCollection = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
         data class Row(val id: Long, val mediaType: Int)
@@ -348,6 +400,7 @@ class MediaSaveBridge(private val appContext: Context) {
             put(MediaStore.MediaColumns.RELATIVE_PATH, newRelativePath)
         }
         var moved = 0
+        val needsPermission = mutableListOf<String>()
         for (row in rows) {
             val typedCollection = when (row.mediaType) {
                 MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE ->
@@ -358,22 +411,25 @@ class MediaSaveBridge(private val appContext: Context) {
                     MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
                 else -> filesCollection
             }
+            val uri = ContentUris.withAppendedId(typedCollection, row.id)
             try {
-                moved += resolver.update(
-                    ContentUris.withAppendedId(typedCollection, row.id),
-                    values,
-                    null,
-                    null,
-                )
+                moved += resolver.update(uri, values, null, null)
+            } catch (e: RecoverableSecurityException) {
+                needsPermission.add(uri.toString())
             } catch (e: Exception) {
                 Log.e(TAG, "moveBucket '$oldRelativePath' failed to move row ${row.id}", e)
             }
         }
         Log.i(
             TAG,
-            "moveBucket '$oldRelativePath' -> '$newRelativePath': $moved/${rows.size} row(s)",
+            "moveBucket '$oldRelativePath' -> '$newRelativePath': $moved/${rows.size} row(s), " +
+                "${needsPermission.size} need write-access consent",
         )
-        return moved
+        return mapOf(
+            "moved" to moved,
+            "total" to rows.size,
+            "needsPermissionUris" to needsPermission,
+        )
     }
 
     private fun saveAudio(

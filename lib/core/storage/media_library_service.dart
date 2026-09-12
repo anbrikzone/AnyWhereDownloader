@@ -264,16 +264,32 @@ class MediaLibraryService {
   /// no-op once nothing legacy remains, and a failed attempt simply retries
   /// next time Library loads rather than getting stuck forever.
   ///
-  /// Moves each legacy bucket's files in one bulk `ContentResolver.update()`
-  /// per bucket, matched by the bucket's actual `RELATIVE_PATH` value (a
-  /// real column) rather than its `BUCKET_ID`. Then best-effort cleans up
-  /// the now-empty old flat directory. Best-effort throughout — a failure
-  /// here must never block Library from loading; an unmigrated bucket is
-  /// still found and shown correctly via [parseLibraryRelativePath]'s
-  /// legacy-flat branch, just not yet moved.
+  /// Moves each legacy bucket's files one row at a time through that row's
+  /// own type-specific MediaStore collection, matched by the bucket's
+  /// actual `RELATIVE_PATH` value (a real column) rather than its
+  /// `BUCKET_ID` — see `MediaSaveBridge.moveBucket`'s bug #1–#4 history.
+  /// Then best-effort cleans up the now-empty old flat directory.
+  ///
+  /// **Bug #5 (2026-09-12)**: even for rows this app owns, Android refuses
+  /// a `RELATIVE_PATH` move without explicit interactive consent
+  /// (`RecoverableSecurityException`) — [MediaSaveService.moveBucket]
+  /// surfaces the affected content URIs as `needsPermissionUris` instead of
+  /// moving them. Rather than prompt once per bucket (which would mean one
+  /// system dialog after another for a library with several legacy
+  /// buckets), every bucket's move is attempted first, all the URIs needing
+  /// consent are batched across the whole migration, and
+  /// [MediaSaveService.requestWriteAccess] is asked **once** for the lot —
+  /// then every bucket is retried a single time. If the user declines,
+  /// buckets stay legacy-flat and simply get asked again next time Library
+  /// loads (this method's self-healing re-scan, not a retry loop here).
+  ///
+  /// Best-effort throughout — a failure here must never block Library from
+  /// loading; an unmigrated bucket is still found and shown correctly via
+  /// [parseLibraryRelativePath]'s legacy-flat branch, just not yet moved.
   Future<void> _migrateLegacyFolders() async {
     try {
       final bucketPaths = await _saveService.queryLibraryBucketPaths();
+      final pendingMoves = <({String oldPath, String newPath, bool isAudio})>[];
       for (final entry in bucketPaths.entries) {
         final oldRelativePath = entry.value;
         final parsed = parseLibraryRelativePath(oldRelativePath);
@@ -282,17 +298,41 @@ class MediaLibraryService {
             ? relativePathForSource(parsed.source)
             : relativePathForPlaylist(parsed.source, parsed.playlistLabel!);
         final root = parsed.isAudio ? 'Music' : 'Pictures';
-        final moved = await _saveService.moveBucket(oldRelativePath, '$root/$newSuffix');
-        if (moved > 0) {
-          await _saveService.cleanupEmptyAlbumDir(
-            _stripRoot(oldRelativePath),
-            isAudio: parsed.isAudio,
-          );
-        }
+        pendingMoves.add((
+          oldPath: oldRelativePath,
+          newPath: '$root/$newSuffix',
+          isAudio: parsed.isAudio,
+        ));
+      }
+      if (pendingMoves.isEmpty) return;
+
+      final needsPermission = await _runMoves(pendingMoves);
+      if (needsPermission.isNotEmpty) {
+        final granted = await _saveService.requestWriteAccess(needsPermission);
+        if (granted) await _runMoves(pendingMoves);
       }
     } catch (_) {
       // Best-effort — never block Library from loading over this.
     }
+  }
+
+  /// Runs [moves] once, cleaning up any bucket that fully emptied out, and
+  /// returns the combined `needsPermissionUris` any of them reported.
+  Future<List<String>> _runMoves(
+    List<({String oldPath, String newPath, bool isAudio})> moves,
+  ) async {
+    final needsPermission = <String>[];
+    for (final move in moves) {
+      final outcome = await _saveService.moveBucket(move.oldPath, move.newPath);
+      needsPermission.addAll(outcome.needsPermissionUris);
+      if (outcome.total > 0 && outcome.moved == outcome.total) {
+        await _saveService.cleanupEmptyAlbumDir(
+          _stripRoot(move.oldPath),
+          isAudio: move.isAudio,
+        );
+      }
+    }
+    return needsPermission;
   }
 
   /// Strips the leading `Pictures/`/`Music/` root and any trailing slash
