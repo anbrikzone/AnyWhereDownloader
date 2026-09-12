@@ -234,13 +234,26 @@ class _VideoPlayerViewState extends State<VideoPlayerView>
 
   @override
   Widget build(BuildContext context) {
-    if (widget.isAudio) return _buildAudio();
-    return _buildVideo();
+    return _buildTransport(
+      widget.isAudio
+          ? const Icon(Icons.music_note, size: 120, color: Colors.white24)
+          // The host builds this player's controller with
+          // `VideoViewType.platformView` — a native ExoPlayer surface that
+          // applies the codec crop rectangle itself, so no `VideoSurface`
+          // overscan-clip is needed here (that's only for the texture-mode
+          // peek previews).
+          : AspectRatio(
+              aspectRatio: _c.value.aspectRatio > 0 ? _c.value.aspectRatio : 16 / 9,
+              child: VideoPlayer(_c),
+            ),
+    );
   }
 
-  // ---- video ---------------------------------------------------------------
-
-  Widget _buildVideo() {
+  // Same interaction model for video and audio — tap toggles the controls
+  // overlay, double-tap seeks ±10s, centre button + bottom bar are identical.
+  // Only the centred `surface` (a video frame vs. a music-note placeholder)
+  // differs.
+  Widget _buildTransport(Widget surface) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: _toggleControls,
@@ -249,17 +262,7 @@ class _VideoPlayerViewState extends State<VideoPlayerView>
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // The host builds this player's controller with
-          // `VideoViewType.platformView` — a native ExoPlayer surface that
-          // applies the codec crop rectangle itself, so no `VideoSurface`
-          // overscan-clip is needed here (that's only for the texture-mode
-          // peek previews).
-          Center(
-            child: AspectRatio(
-              aspectRatio: _c.value.aspectRatio > 0 ? _c.value.aspectRatio : 16 / 9,
-              child: VideoPlayer(_c),
-            ),
-          ),
+          Center(child: surface),
 
           // Double-tap seek ripple, on the tapped half.
           Positioned.fill(
@@ -361,66 +364,6 @@ class _VideoPlayerViewState extends State<VideoPlayerView>
             },
           ),
         ),
-      ),
-    );
-  }
-
-  // ---- audio --------------------------------------------------------------
-
-  Widget _buildAudio() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.music_note, size: 120, color: Colors.white24),
-          const SizedBox(height: 44),
-          ValueListenableBuilder<VideoPlayerValue>(
-            valueListenable: _c,
-            builder: (context, value, _) => Text(
-              '${_fmt(_scrubPreview ?? value.position)} / ${_fmt(value.duration)}',
-              style: const TextStyle(color: Colors.white70, fontSize: 13),
-            ),
-          ),
-          const SizedBox(height: 8),
-          _ScrubBar(
-            controller: _c,
-            onPositionPreview: (p) => setState(() => _scrubPreview = p),
-            onInteraction: () {},
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _RoundIconButton(
-                icon: Icons.replay_10,
-                size: 30,
-                onTap: () => _seekRelative(-_seekStep),
-              ),
-              const SizedBox(width: 20),
-              ValueListenableBuilder<VideoPlayerValue>(
-                valueListenable: _c,
-                builder: (context, value, _) => _RoundIconButton(
-                  icon: value.isPlaying
-                      ? Icons.pause
-                      : (value.isCompleted
-                            ? Icons.replay
-                            : Icons.play_arrow),
-                  size: 44,
-                  onTap: _togglePlay,
-                ),
-              ),
-              const SizedBox(width: 20),
-              _RoundIconButton(
-                icon: Icons.forward_10,
-                size: 30,
-                onTap: () => _seekRelative(_seekStep),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _SpeedButton(speed: _speed, onTap: _cycleSpeed),
-        ],
       ),
     );
   }
