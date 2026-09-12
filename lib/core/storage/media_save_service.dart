@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:photo_manager/photo_manager.dart';
 
+import '../settings/app_settings_service.dart';
+
 /// Thrown when the file handed to [MediaSaveService] isn't actually the
 /// media it's supposed to be — most often an HTML error/login page a CDN
 /// returned instead of the video, which MediaStore otherwise rejects with
@@ -26,17 +28,25 @@ typedef MoveBucketOutcome = ({int moved, int total, List<String> needsPermission
 /// real `content://` URI for a "download complete" notification to open —
 /// `gal` couldn't provide that).
 ///
-/// Both media types save under `Pictures/<album>`, matching the on-device
-/// behavior confirmed via `adb shell` (an album name is enough to force
-/// `DIRECTORY_PICTURES` regardless of type); splitting videos into
-/// `Movies/` would fragment existing libraries for no gain. [album] is a
-/// full relativePath suffix (e.g. `AnyWhereDownloader/YouTube/Chill Mix`,
-/// see `MediaLibraryService.relativePathForSource`/`relativePathForPlaylist`)
-/// as of 2026-09-12, not a single flat name — `RELATIVE_PATH` already
-/// supports multi-segment paths natively, so this class needed no change at
-/// all, only what its callers pass in.
+/// Both media types save under the same [MediaSaveRoot] (default `Pictures`,
+/// user-configurable in Settings as of 2026-09-13 — see backlog #18), matching
+/// the on-device behavior confirmed via `adb shell` back when this was
+/// hardcoded (an album name is enough to force `DIRECTORY_PICTURES`
+/// regardless of type, so photo and video have always shared one root; a
+/// user-chosen [MediaSaveRoot.dcim]/[MediaSaveRoot.movies] hasn't had the
+/// same on-device confirmation yet). [album] is a full relativePath suffix
+/// (e.g. `AnyWhereDownloader/YouTube/Chill Mix`, see
+/// `MediaLibraryService.relativePathForSource`/`relativePathForPlaylist`) as
+/// of 2026-09-12, not a single flat name — `RELATIVE_PATH` already supports
+/// multi-segment paths natively, so this class needed no change for that,
+/// only what its callers pass in.
 class MediaSaveService {
+  MediaSaveService({AppSettingsService? settingsService})
+    : _settingsService = settingsService ?? AppSettingsService();
+
   static const _audioChannel = MethodChannel('anywhere_downloader/media_save');
+
+  final AppSettingsService _settingsService;
 
   Future<String> saveVideo(String filePath, {required String album}) {
     return _save(filePath, album: album, expected: 'video', isImage: false);
@@ -46,7 +56,8 @@ class MediaSaveService {
     return _save(filePath, album: album, expected: 'image', isImage: true);
   }
 
-  /// Saves an audio file into `Music/<album>/` via the native
+  /// Saves an audio file into `<AudioSaveRoot>/<album>/` (default `Music/`,
+  /// user-configurable — see [MediaSaveRoot]'s doc) via the native
   /// `MediaSaveBridge` (`photo_manager` has no audio save API). Returns the
   /// resulting `content://` URI (for the "tap to open" notification).
   Future<String> saveAudio(
@@ -57,12 +68,14 @@ class MediaSaveService {
     await _assertNotHtml(filePath, expected: 'audio');
     // The temp file already carries the right `.mp3`/`.m4a` extension.
     final title = _safeTitle(filePath, isImage: false);
+    final root = (await _settingsService.getAudioSaveRoot()).androidDirectoryName;
     try {
       final uri = await _audioChannel.invokeMethod<String>('saveAudio', {
         'path': filePath,
         'album': album,
         'title': title,
         'mimeType': isMp3 ? 'audio/mpeg' : 'audio/mp4',
+        'root': root,
       });
       if (uri == null) {
         throw MediaSaveException('The audio file could not be saved.');
@@ -97,12 +110,16 @@ class MediaSaveService {
   /// guaranteed to work on every device and why that's fine to ignore.
   /// [album] may be multi-segment (e.g. `AnyWhereDownloader/YouTube/Chill
   /// Mix`) — the native side walks upward, cleaning up now-empty parents
-  /// too. Never throws.
-  Future<void> cleanupEmptyAlbumDir(String album, {required bool isAudio}) async {
+  /// too. [root] is the literal top-level Android directory the album
+  /// actually lives under (`Pictures`/`DCIM`/`Movies`/`Music`/`Podcasts` —
+  /// see [MediaSaveRoot]/[AudioSaveRoot]) — the *item's own* root, not
+  /// necessarily today's setting, since a past download may have been
+  /// saved under a since-changed choice. Never throws.
+  Future<void> cleanupEmptyAlbumDir(String album, {required String root}) async {
     try {
       await _audioChannel.invokeMethod('cleanupEmptyAlbumDir', {
         'album': album,
-        'isAudio': isAudio,
+        'root': root,
       });
     } catch (_) {
       // Best-effort tidiness only — the actual file/row deletion already
@@ -212,24 +229,35 @@ class MediaSaveService {
     // guess `text/html`, and MediaStore then rejects the insert. Sanitise
     // the title so the extension always survives.
     final title = _safeTitle(filePath, isImage: isImage);
+    final root = (await _settingsService.getMediaSaveRoot()).androidDirectoryName;
     final AssetEntity asset;
     try {
       asset = isImage
           ? await PhotoManager.editor.saveImageWithPath(
               filePath,
               title: title,
-              relativePath: 'Pictures/$album',
+              relativePath: '$root/$album',
             )
           : await PhotoManager.editor.saveVideo(
               File(filePath),
               title: title,
-              relativePath: 'Pictures/$album',
+              relativePath: '$root/$album',
             );
     } catch (error) {
+      final text = error.toString();
+      // MediaStore refuses a directory the chosen `MediaSaveRoot` doesn't
+      // support for this media type (e.g. `Movies` for an image) — distinct
+      // from the "not real media" case below, and specifically actionable:
+      // the fix is picking a different Settings option, not re-downloading.
+      if (text.contains('Primary directory') && text.contains('not allowed')) {
+        throw MediaSaveException(
+          "This device won't save $expected files to the folder chosen in "
+          'Settings → Save location. Try a different option there.',
+        );
+      }
       // MediaStore rejects a non-media file (e.g. `MIME type text/html
       // cannot be inserted`). That's definitive proof the download wasn't
       // the $expected — turn the raw platform crash into a clean message.
-      final text = error.toString();
       if (text.contains('MIME type') || text.contains('IllegalArgument')) {
         throw MediaSaveException(
           'The download was not a valid $expected (the source likely served '

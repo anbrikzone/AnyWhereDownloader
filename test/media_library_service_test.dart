@@ -45,7 +45,7 @@ class _FakeMediaSaveService extends MediaSaveService {
   }
 
   @override
-  Future<void> cleanupEmptyAlbumDir(String album, {required bool isAudio}) async {
+  Future<void> cleanupEmptyAlbumDir(String album, {required String root}) async {
     cleanupCalls.add(album);
   }
 }
@@ -153,6 +153,20 @@ void main() {
       expect(parsed?.playlistLabel, isNull);
       expect(parsed?.isAudio, isFalse);
       expect(parsed?.isLegacyFlat, isFalse);
+      expect(parsed?.root, 'Pictures');
+    });
+
+    test('recognizes every custom MediaSaveRoot/AudioSaveRoot option (backlog #18)', () {
+      for (final root in ['Pictures', 'DCIM', 'Movies']) {
+        final parsed = parseLibraryRelativePath('$root/AnyWhereDownloader/YouTube/');
+        expect(parsed?.root, root, reason: root);
+        expect(parsed?.isAudio, isFalse, reason: root);
+      }
+      for (final root in ['Music', 'Podcasts']) {
+        final parsed = parseLibraryRelativePath('$root/AnyWhereDownloader/YouTube/');
+        expect(parsed?.root, root, reason: root);
+        expect(parsed?.isAudio, isTrue, reason: root);
+      }
     });
 
     test('parses a new nested playlist folder, including under Music/', () {

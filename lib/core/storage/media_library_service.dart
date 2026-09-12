@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:photo_manager/photo_manager.dart';
 
+// ignore: unused_import
+import '../settings/app_settings_service.dart'; // for MediaSaveRoot/AudioSaveRoot doc links only
 import 'media_save_service.dart';
 
 const libraryAlbumPrefix = 'AnyWhereDownloader';
@@ -93,24 +95,49 @@ String relativePathForPlaylist(String source, String playlistTitle) {
   return '${relativePathForSource(source)}/$label';
 }
 
+/// Every top-level Android directory a photo/video download might live
+/// under — see [MediaSaveRoot] (Settings, backlog #18, 2026-09-13). Kept in
+/// sync with [MediaSaveRoot]'s values by hand (this file doesn't import
+/// `app_settings_service.dart`, to keep the pure path-parsing logic free of
+/// a settings-persistence dependency) — [MediaLibraryService]'s own doc
+/// notes this in case the two ever drift.
+const _mediaRoots = {'Pictures', 'DCIM', 'Movies'};
+
+/// Every top-level Android directory an audio download might live under —
+/// see [AudioSaveRoot]. Same hand-sync note as [_mediaRoots].
+const _audioRoots = {'Music', 'Podcasts'};
+
 /// Parses one bucket's actual MediaStore `RELATIVE_PATH` (as returned by
 /// [MediaSaveService.queryLibraryBucketPaths] — e.g.
 /// `Pictures/AnyWhereDownloader/YouTube/Chill Mix/` for a new nested
 /// playlist folder, or the legacy flat `Pictures/AnyWhereDownloader -
 /// YouTube - Chill Mix/`) into (source, playlistLabel, isAudio,
-/// isLegacyFlat). Returns null for a path that isn't recognizably one of
-/// ours (shouldn't happen in practice — callers only run this over paths
-/// [MediaSaveService.queryLibraryBucketPaths] already filtered).
-({String source, String? playlistLabel, bool isAudio, bool isLegacyFlat})?
+/// isLegacyFlat, root). [root] is the literal top segment (e.g. `Pictures`)
+/// — needed so a caller can clean up the item's *actual* on-disk directory
+/// later even if the user has since changed their Settings save-location
+/// choice (see `MediaSaveService.cleanupEmptyAlbumDir`). Returns null for a
+/// path that isn't recognizably one of ours (shouldn't happen in practice —
+/// callers only run this over paths [MediaSaveService.queryLibraryBucketPaths]
+/// already filtered).
+({String source, String? playlistLabel, bool isAudio, bool isLegacyFlat, String root})?
     parseLibraryRelativePath(String relativePath) {
-  final isAudio = relativePath.startsWith('Music/');
-  if (!isAudio && !relativePath.startsWith('Pictures/')) return null;
-  final afterRoot = relativePath.substring(relativePath.indexOf('/') + 1);
+  final slash = relativePath.indexOf('/');
+  if (slash == -1) return null;
+  final root = relativePath.substring(0, slash);
+  final isAudio = _audioRoots.contains(root);
+  if (!isAudio && !_mediaRoots.contains(root)) return null;
+  final afterRoot = relativePath.substring(slash + 1);
   final trimmed =
       afterRoot.endsWith('/') ? afterRoot.substring(0, afterRoot.length - 1) : afterRoot;
 
   if (trimmed == libraryRootDir) {
-    return (source: _unknownSource, playlistLabel: null, isAudio: isAudio, isLegacyFlat: false);
+    return (
+      source: _unknownSource,
+      playlistLabel: null,
+      isAudio: isAudio,
+      isLegacyFlat: false,
+      root: root,
+    );
   }
   final nestedPrefix = '$libraryRootDir/';
   if (trimmed.startsWith(nestedPrefix)) {
@@ -120,6 +147,7 @@ String relativePathForPlaylist(String source, String playlistTitle) {
       playlistLabel: segments.length > 1 ? segments.sublist(1).join('/') : null,
       isAudio: isAudio,
       isLegacyFlat: false,
+      root: root,
     );
   }
   // Not nested — either a not-yet-migrated legacy flat bucket, or (very
@@ -131,6 +159,7 @@ String relativePathForPlaylist(String source, String playlistTitle) {
     playlistLabel: legacy.playlistLabel,
     isAudio: isAudio,
     isLegacyFlat: true,
+    root: root,
   );
 }
 
@@ -155,6 +184,7 @@ class LibraryItem {
     required this.asset,
     required this.source,
     required this.albumName,
+    required this.root,
     this.playlistLabel,
   });
 
@@ -166,27 +196,36 @@ class LibraryItem {
   /// listing them individually at the top level.
   final String? playlistLabel;
 
-  /// This item's containing album, as a relativePath suffix under
-  /// `Pictures/`/`Music/` (e.g. `AnyWhereDownloader/YouTube/Chill Mix`, or
-  /// the legacy flat `AnyWhereDownloader - YouTube - Chill Mix` for a
-  /// not-yet-migrated bucket) — kept verbatim from
-  /// [MediaSaveService.queryLibraryBucketPaths] rather than reconstructed
-  /// from [source]/[playlistLabel], so a caller that needs the real on-disk
-  /// location (e.g. to clean up a now-empty directory after deleting every
-  /// item in it, see `MediaSaveService.cleanupEmptyAlbumDir`) can't drift
-  /// from what's actually there.
+  /// This item's containing album, as a relativePath suffix under its
+  /// [root] (e.g. `AnyWhereDownloader/YouTube/Chill Mix`, or the legacy flat
+  /// `AnyWhereDownloader - YouTube - Chill Mix` for a not-yet-migrated
+  /// bucket) — kept verbatim from [MediaSaveService.queryLibraryBucketPaths]
+  /// rather than reconstructed from [source]/[playlistLabel], so a caller
+  /// that needs the real on-disk location (e.g. to clean up a now-empty
+  /// directory after deleting every item in it, see
+  /// `MediaSaveService.cleanupEmptyAlbumDir`) can't drift from what's
+  /// actually there.
   final String albumName;
+
+  /// The literal top-level Android directory [albumName] lives under —
+  /// `Pictures`/`DCIM`/`Movies` for photo/video, `Music`/`Podcasts` for
+  /// audio (see [MediaSaveRoot]/[AudioSaveRoot], Settings, backlog #18).
+  /// This is the item's *actual* root, independent of today's Settings
+  /// choice — a past download may have used one since changed.
+  final String root;
 }
 
 /// Thin wrapper over `photo_manager`, isolating the package the same way
-/// `SafService` isolates `saf_util`. All downloads (video and image alike)
-/// currently land under `Pictures/<relativePath>` — confirmed via `adb
-/// shell`, see `MediaSaveService` — but `RequestType.common` plus filtering
-/// by the actual `RELATIVE_PATH` (via [MediaSaveService.queryLibraryBucketPaths],
-/// not `photo_manager`'s own name-only bucket listing) means this doesn't
-/// depend on that: it returns one `AssetPathEntity` per root that has a
-/// matching bucket regardless of which root that is, and merges them into
-/// one list so the rest of the app sees a single library either way.
+/// `SafService` isolates `saf_util`. Downloads land under whichever root
+/// Settings has chosen (default `Pictures`/`Music`, see [MediaSaveRoot]/
+/// [AudioSaveRoot]) — `RequestType.common` plus filtering by the actual
+/// `RELATIVE_PATH` (via [MediaSaveService.queryLibraryBucketPaths], not
+/// `photo_manager`'s own name-only bucket listing) means this doesn't
+/// depend on any one fixed root: it returns one `AssetPathEntity` per root
+/// that has a matching bucket regardless of which root that is, and merges
+/// them into one list so the rest of the app sees a single library either
+/// way — including a mix of items saved under different roots if the
+/// setting was ever changed.
 class MediaLibraryService {
   MediaLibraryService({MediaSaveService? saveService})
     : _saveService = saveService ?? MediaSaveService();
@@ -251,6 +290,7 @@ class MediaLibraryService {
             asset: a,
             source: parsed.source,
             albumName: albumName,
+            root: parsed.root,
             playlistLabel: parsed.playlistLabel,
           ),
         ),
@@ -392,18 +432,22 @@ class MediaLibraryService {
       final outcome = await _saveService.moveBucket(move.oldPath, move.newPath);
       needsPermission.addAll(outcome.needsPermissionUris);
       if (outcome.total > 0 && outcome.moved == outcome.total) {
+        // The legacy flat naming predates the Settings save-location
+        // feature entirely — every legacy bucket always lived under
+        // exactly `Pictures`/`Music`, never a user-chosen alternative.
         await _saveService.cleanupEmptyAlbumDir(
           _stripRoot(move.oldPath),
-          isAudio: move.isAudio,
+          root: move.isAudio ? 'Music' : 'Pictures',
         );
       }
     }
     return needsPermission;
   }
 
-  /// Strips the leading `Pictures/`/`Music/` root and any trailing slash
-  /// MediaStore always stores, leaving the part this app actually built
-  /// (e.g. `AnyWhereDownloader/YouTube/Chill Mix`).
+  /// Strips the leading top-level root (`Pictures`/`DCIM`/`Movies`/`Music`/
+  /// `Podcasts`) and any trailing slash MediaStore always stores, leaving
+  /// the part this app actually built (e.g.
+  /// `AnyWhereDownloader/YouTube/Chill Mix`).
   String _stripRoot(String relativePath) {
     final afterRoot = relativePath.substring(relativePath.indexOf('/') + 1);
     return afterRoot.endsWith('/') ? afterRoot.substring(0, afterRoot.length - 1) : afterRoot;

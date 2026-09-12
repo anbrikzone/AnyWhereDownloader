@@ -383,13 +383,12 @@ class LibraryController extends StateNotifier<LibraryState> {
     List<LibraryItem> targeted,
     Set<String> deletedIds,
   ) async {
-    final albums = <(String, bool)>{
+    final albums = <(String, String)>{
       for (final item in targeted)
-        if (deletedIds.contains(item.asset.id))
-          (item.albumName, item.asset.type == AssetType.audio),
+        if (deletedIds.contains(item.asset.id)) (item.albumName, item.root),
     };
-    for (final (album, isAudio) in albums) {
-      await _saveService.cleanupEmptyAlbumDir(album, isAudio: isAudio);
+    for (final (album, root) in albums) {
+      await _saveService.cleanupEmptyAlbumDir(album, root: root);
     }
   }
 }

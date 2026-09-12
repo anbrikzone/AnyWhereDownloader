@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:photo_manager/photo_manager.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../core/storage/media_library_service.dart';
@@ -109,13 +108,12 @@ class _PlaylistFolderPageState extends State<PlaylistFolderPage> {
     // try to remove it too (see `MediaSaveService.cleanupEmptyAlbumDir`) —
     // deleting a whole downloaded playlist shouldn't leave a bare empty
     // folder behind.
-    final albums = <(String, bool)>{
+    final albums = <(String, String)>{
       for (final item in targeted)
-        if (deletedSet.contains(item.asset.id))
-          (item.albumName, item.asset.type == AssetType.audio),
+        if (deletedSet.contains(item.asset.id)) (item.albumName, item.root),
     };
-    for (final (album, isAudio) in albums) {
-      unawaited(_saveService.cleanupEmptyAlbumDir(album, isAudio: isAudio));
+    for (final (album, root) in albums) {
+      unawaited(_saveService.cleanupEmptyAlbumDir(album, root: root));
     }
     if (!mounted) return;
     setState(() {

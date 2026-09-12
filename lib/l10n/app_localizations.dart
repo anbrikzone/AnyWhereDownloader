@@ -946,6 +946,36 @@ abstract class AppLocalizations {
   /// **'Keep for 1 month'**
   String get statusArchiveMonth;
 
+  /// No description provided for @saveLocationSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Save location'**
+  String get saveLocationSection;
+
+  /// No description provided for @saveLocationMediaTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos & videos'**
+  String get saveLocationMediaTitle;
+
+  /// No description provided for @saveLocationMediaSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pictures is the well-tested default — other options may not work on every device'**
+  String get saveLocationMediaSubtitle;
+
+  /// No description provided for @saveLocationAudioTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio (MP3)'**
+  String get saveLocationAudioTitle;
+
+  /// No description provided for @saveLocationAudioSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Music is the well-tested default — other options may not work on every device'**
+  String get saveLocationAudioSubtitle;
+
   /// No description provided for @languageSection.
   ///
   /// In en, this message translates to:

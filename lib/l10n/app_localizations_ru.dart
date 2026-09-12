@@ -501,6 +501,23 @@ class AppLocalizationsRu extends AppLocalizations {
   String get statusArchiveMonth => 'Хранить месяц';
 
   @override
+  String get saveLocationSection => 'Папка сохранения';
+
+  @override
+  String get saveLocationMediaTitle => 'Фото и видео';
+
+  @override
+  String get saveLocationMediaSubtitle =>
+      'Pictures — проверенный вариант по умолчанию, остальные могут работать не на всех устройствах';
+
+  @override
+  String get saveLocationAudioTitle => 'Аудио (MP3)';
+
+  @override
+  String get saveLocationAudioSubtitle =>
+      'Music — проверенный вариант по умолчанию, остальные могут работать не на всех устройствах';
+
+  @override
   String get languageSection => 'Язык';
 
   @override

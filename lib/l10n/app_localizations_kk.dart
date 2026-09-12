@@ -501,6 +501,23 @@ class AppLocalizationsKk extends AppLocalizations {
   String get statusArchiveMonth => 'Бір ай сақтау';
 
   @override
+  String get saveLocationSection => 'Сақтау орны';
+
+  @override
+  String get saveLocationMediaTitle => 'Фото және бейне';
+
+  @override
+  String get saveLocationMediaSubtitle =>
+      'Pictures — тексерілген әдепкі нұсқа, басқалары әр құрылғыда жұмыс істемеуі мүмкін';
+
+  @override
+  String get saveLocationAudioTitle => 'Аудио (MP3)';
+
+  @override
+  String get saveLocationAudioSubtitle =>
+      'Music — тексерілген әдепкі нұсқа, басқалары әр құрылғыда жұмыс істемеуі мүмкін';
+
+  @override
   String get languageSection => 'Тіл';
 
   @override

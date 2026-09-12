@@ -501,6 +501,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statusArchiveMonth => 'Keep for 1 month';
 
   @override
+  String get saveLocationSection => 'Save location';
+
+  @override
+  String get saveLocationMediaTitle => 'Photos & videos';
+
+  @override
+  String get saveLocationMediaSubtitle =>
+      'Pictures is the well-tested default — other options may not work on every device';
+
+  @override
+  String get saveLocationAudioTitle => 'Audio (MP3)';
+
+  @override
+  String get saveLocationAudioSubtitle =>
+      'Music is the well-tested default — other options may not work on every device';
+
+  @override
   String get languageSection => 'Language';
 
   @override

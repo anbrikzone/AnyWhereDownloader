@@ -173,3 +173,57 @@ final statusArchiveRetentionProvider =
     StateNotifierProvider<StatusArchiveController, StatusArchiveRetention>(
       (ref) => StatusArchiveController(),
     );
+
+/// Persisted photo/video save-location choice (backlog #18, 2026-09-13).
+/// Starts [MediaSaveRoot.pictures] (the previous hardcoded default) and
+/// loads the persisted value asynchronously, same pattern as the rest.
+class MediaSaveRootController extends StateNotifier<MediaSaveRoot> {
+  MediaSaveRootController({AppSettingsService? settingsService})
+    : _settingsService = settingsService ?? AppSettingsService(),
+      super(MediaSaveRoot.pictures) {
+    _init();
+  }
+
+  final AppSettingsService _settingsService;
+
+  Future<void> _init() async {
+    state = await _settingsService.getMediaSaveRoot();
+  }
+
+  Future<void> setRoot(MediaSaveRoot value) async {
+    state = value;
+    await _settingsService.setMediaSaveRoot(value);
+  }
+}
+
+final mediaSaveRootProvider =
+    StateNotifierProvider<MediaSaveRootController, MediaSaveRoot>(
+      (ref) => MediaSaveRootController(),
+    );
+
+/// Persisted audio (mp3) save-location choice (backlog #18, 2026-09-13).
+/// Starts [AudioSaveRoot.music] (the previous hardcoded default) and loads
+/// the persisted value asynchronously, same pattern as the rest.
+class AudioSaveRootController extends StateNotifier<AudioSaveRoot> {
+  AudioSaveRootController({AppSettingsService? settingsService})
+    : _settingsService = settingsService ?? AppSettingsService(),
+      super(AudioSaveRoot.music) {
+    _init();
+  }
+
+  final AppSettingsService _settingsService;
+
+  Future<void> _init() async {
+    state = await _settingsService.getAudioSaveRoot();
+  }
+
+  Future<void> setRoot(AudioSaveRoot value) async {
+    state = value;
+    await _settingsService.setAudioSaveRoot(value);
+  }
+}
+
+final audioSaveRootProvider =
+    StateNotifierProvider<AudioSaveRootController, AudioSaveRoot>(
+      (ref) => AudioSaveRootController(),
+    );

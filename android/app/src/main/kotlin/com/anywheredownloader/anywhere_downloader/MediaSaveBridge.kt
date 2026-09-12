@@ -21,8 +21,10 @@ import java.io.FileOutputStream
 import java.util.concurrent.Executors
 
 /**
- * Saves an audio file into the MediaStore audio collection
- * (`Music/<album>/`) — `photo_manager` has no audio save API — silently
+ * Saves an audio file into the MediaStore audio collection (`<root>/<album>/`,
+ * `root` defaulting to `Music/` — user-configurable since 2026-09-13, see
+ * `AppSettingsService.AudioSaveRoot`) — `photo_manager` has no audio save
+ * API — silently
  * prunes old files from an app-owned gallery album, decodes a thumbnail
  * frame from a local (private) video file, and (backlog #7) reads/rewrites
  * raw MediaStore `RELATIVE_PATH`s so Library's nested playlist-folder model
@@ -37,6 +39,13 @@ class MediaSaveBridge(
 
     companion object {
         private const val TAG = "MediaSaveBridge"
+
+        // Every top-level directory a download might live under, across
+        // every `MediaSaveRoot`/`AudioSaveRoot` choice the Dart-side
+        // Settings screen offers (backlog #18, 2026-09-13) — not just
+        // whichever one is configured *today*, since past downloads may
+        // have used a since-changed choice and still need to be found.
+        private val ALL_SAVE_ROOTS = listOf("Pictures", "DCIM", "Movies", "Music", "Podcasts")
     }
 
     // Set while a `requestWriteAccess` call is waiting on the system
@@ -83,12 +92,13 @@ class MediaSaveBridge(
                 val album = call.argument<String>("album")
                 val title = call.argument<String>("title")
                 val mimeType = call.argument<String>("mimeType") ?: "audio/mpeg"
+                val root = call.argument<String>("root") ?: Environment.DIRECTORY_MUSIC
                 if (path == null || album == null || title == null) {
                     result.error("bad_args", "Missing path/album/title", null)
                     return
                 }
                 runAsync(result, "save_failed") {
-                    saveAudio(path, album, title, mimeType)
+                    saveAudio(path, album, title, mimeType, root)
                 }
             }
 
@@ -104,12 +114,12 @@ class MediaSaveBridge(
 
             "cleanupEmptyAlbumDir" -> {
                 val album = call.argument<String>("album")
-                val isAudio = call.argument<Boolean>("isAudio") ?: false
+                val root = call.argument<String>("root") ?: Environment.DIRECTORY_PICTURES
                 if (album == null) {
                     result.error("bad_args", "Missing album", null)
                     return
                 }
-                runAsync(result, "cleanup_failed") { cleanupEmptyAlbumDir(album, isAudio) }
+                runAsync(result, "cleanup_failed") { cleanupEmptyAlbumDir(album, root) }
             }
 
             "queryLibraryBucketPaths" -> {
@@ -263,12 +273,18 @@ class MediaSaveBridge(
      * the last playlist under a service also cleans up the now-empty
      * service folder, and the shared `AnyWhereDownloader` root itself),
      * stopping at the first non-empty directory or at [base].
+     *
+     * [root] is the literal top-level directory this album actually lives
+     * under (`Pictures`/`DCIM`/`Movies`/`Music`/`Podcasts` — matches
+     * `Environment.DIRECTORY_*`'s own string value, see
+     * `AppSettingsService.MediaSaveRoot`/`AudioSaveRoot` on the Dart side,
+     * added 2026-09-13 for backlog #18's custom save-folder setting) — the
+     * caller passes the item's *actual* root, not necessarily today's
+     * setting, since a past download may have used a since-changed choice.
      */
-    private fun cleanupEmptyAlbumDir(albumRelativePath: String, isAudio: Boolean): Boolean {
+    private fun cleanupEmptyAlbumDir(albumRelativePath: String, root: String): Boolean {
         @Suppress("DEPRECATION")
-        val base = Environment.getExternalStoragePublicDirectory(
-            if (isAudio) Environment.DIRECTORY_MUSIC else Environment.DIRECTORY_PICTURES,
-        )
+        val base = Environment.getExternalStoragePublicDirectory(root)
         var dir: File? = File(base, albumRelativePath)
         var removedAny = false
         try {
@@ -287,22 +303,25 @@ class MediaSaveBridge(
     /**
      * Maps every gallery bucket under this app's shared `AnyWhereDownloader`
      * root (old flat `Pictures/AnyWhereDownloader - X` or new nested
-     * `Pictures/AnyWhereDownloader/X[/Y]`, same under `Music/`) to its raw
-     * MediaStore `RELATIVE_PATH`, keyed by `BUCKET_ID` — the same id
-     * `photo_manager`'s `AssetPathEntity.id` uses (confirmed by reading its
-     * Android source, `AndroidQDBUtils.kt`, directly: it builds
-     * `AssetPathEntity(id = BUCKET_ID, ...)`). `photo_manager`'s own bucket
-     * listing only exposes `BUCKET_DISPLAY_NAME` — the immediate parent
-     * folder's plain name, with no hierarchy information at all — so
-     * identifying *which* bucket is genuinely ours, and where in the tree
-     * it sits, needs this raw column read directly.
+     * `Pictures/AnyWhereDownloader/X[/Y]`, same under any of
+     * [ALL_SAVE_ROOTS]) to its raw MediaStore `RELATIVE_PATH`, keyed by
+     * `BUCKET_ID` — the same id `photo_manager`'s `AssetPathEntity.id` uses
+     * (confirmed by reading its Android source, `AndroidQDBUtils.kt`,
+     * directly: it builds `AssetPathEntity(id = BUCKET_ID, ...)`).
+     * `photo_manager`'s own bucket listing only exposes
+     * `BUCKET_DISPLAY_NAME` — the immediate parent folder's plain name,
+     * with no hierarchy information at all — so identifying *which* bucket
+     * is genuinely ours, and where in the tree it sits, needs this raw
+     * column read directly.
      */
     private fun queryLibraryBucketPaths(): Map<String, String> {
         val resolver = appContext.contentResolver
         val collection = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
+        val rootClauses = ALL_SAVE_ROOTS.joinToString(" OR ") {
+            "${MediaStore.MediaColumns.RELATIVE_PATH} LIKE '$it/AnyWhereDownloader%'"
+        }
         val selection =
-            "(${MediaStore.MediaColumns.RELATIVE_PATH} LIKE 'Pictures/AnyWhereDownloader%' OR " +
-                "${MediaStore.MediaColumns.RELATIVE_PATH} LIKE 'Music/AnyWhereDownloader%') AND " +
+            "($rootClauses) AND " +
                 "${MediaStore.Files.FileColumns.MEDIA_TYPE} IN (" +
                 "${MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE}," +
                 "${MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO}," +
@@ -437,6 +456,7 @@ class MediaSaveBridge(
         album: String,
         title: String,
         mimeType: String,
+        root: String,
     ): String {
         val source = File(path)
         if (!source.exists() || source.length() == 0L) {
@@ -446,7 +466,7 @@ class MediaSaveBridge(
         val resolver = appContext.contentResolver
         val collection =
             MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-        val relativePath = Environment.DIRECTORY_MUSIC + "/" + album
+        val relativePath = "$root/$album"
 
         val values = ContentValues().apply {
             put(MediaStore.Audio.Media.DISPLAY_NAME, title)

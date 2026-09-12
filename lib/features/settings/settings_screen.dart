@@ -27,6 +27,8 @@ class SettingsScreen extends ConsumerWidget {
     final repeatVideo = ref.watch(repeatVideoEnabledProvider);
     final locale = ref.watch(localeProvider);
     final statusArchive = ref.watch(statusArchiveRetentionProvider);
+    final mediaSaveRoot = ref.watch(mediaSaveRootProvider);
+    final audioSaveRoot = ref.watch(audioSaveRootProvider);
     final versionLabel =
         ref.watch(appVersionLabelProvider).valueOrNull ?? kAppVersion;
 
@@ -93,6 +95,34 @@ class SettingsScreen extends ConsumerWidget {
               onChanged: (value) => ref
                   .read(statusArchiveRetentionProvider.notifier)
                   .setRetention(value),
+            ),
+          ),
+          const Divider(),
+          _SectionHeader(l10n.saveLocationSection),
+          ListTile(
+            title: Text(l10n.saveLocationMediaTitle),
+            subtitle: Text(l10n.saveLocationMediaSubtitle),
+            trailing: _Dropdown<MediaSaveRoot>(
+              value: mediaSaveRoot,
+              items: {
+                for (final root in MediaSaveRoot.values)
+                  root: root.androidDirectoryName,
+              },
+              onChanged: (value) =>
+                  ref.read(mediaSaveRootProvider.notifier).setRoot(value),
+            ),
+          ),
+          ListTile(
+            title: Text(l10n.saveLocationAudioTitle),
+            subtitle: Text(l10n.saveLocationAudioSubtitle),
+            trailing: _Dropdown<AudioSaveRoot>(
+              value: audioSaveRoot,
+              items: {
+                for (final root in AudioSaveRoot.values)
+                  root: root.androidDirectoryName,
+              },
+              onChanged: (value) =>
+                  ref.read(audioSaveRootProvider.notifier).setRoot(value),
             ),
           ),
           const Divider(),

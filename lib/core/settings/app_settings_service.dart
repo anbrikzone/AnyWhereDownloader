@@ -18,6 +18,44 @@ enum StatusArchiveRetention {
       };
 }
 
+/// Where photo/video downloads land — a real Android top-level directory
+/// name (matches `Environment.DIRECTORY_*`'s literal string value, e.g.
+/// `Environment.DIRECTORY_PICTURES == "Pictures"`, so the Dart-side name
+/// can cross the `media_save` MethodChannel unchanged and be handed
+/// straight to `Environment.getExternalStoragePublicDirectory` on the
+/// native side with no lookup table). [pictures] is the long-standing
+/// default and the only option confirmed on-device across this app's
+/// history (see `media_save_service.dart`'s `_save` doc) — [dcim] and
+/// [movies] are offered because Android's documented per-collection
+/// default-directory rules allow them for both images and video, but
+/// backlog #18 flagged them as needing an on-device check before being
+/// trusted, which hasn't happened yet.
+enum MediaSaveRoot {
+  pictures('Pictures'),
+  dcim('DCIM'),
+  movies('Movies');
+
+  const MediaSaveRoot(this.androidDirectoryName);
+
+  /// The literal `RELATIVE_PATH` top segment / `Environment.DIRECTORY_*`
+  /// value this maps to.
+  final String androidDirectoryName;
+}
+
+/// Where audio (mp3/m4a) downloads land — see [MediaSaveRoot]'s doc for why
+/// this is a plain Android directory name. [music] is the long-standing
+/// default; [podcasts] is offered per Android's documented audio-collection
+/// directories but, like [MediaSaveRoot.dcim]/[MediaSaveRoot.movies],
+/// hasn't been confirmed on-device yet.
+enum AudioSaveRoot {
+  music('Music'),
+  podcasts('Podcasts');
+
+  const AudioSaveRoot(this.androidDirectoryName);
+
+  final String androidDirectoryName;
+}
+
 /// Thin wrapper around `shared_preferences` for user-facing settings —
 /// mirrors `SafService`'s style (isolates the plugin behind plain get/set
 /// methods so the rest of the app never touches `SharedPreferences`
@@ -31,6 +69,8 @@ class AppSettingsService {
   static const _lastUpdateCheckKey = 'settings_last_update_check_ms';
   static const _statusArchiveRetentionKey = 'settings_status_archive_retention';
   static const _legacyArchivePurgedKey = 'settings_legacy_wa_archive_purged';
+  static const _mediaSaveRootKey = 'settings_media_save_root';
+  static const _audioSaveRootKey = 'settings_audio_save_root';
 
   Future<ThemeMode> getThemeMode() async {
     final prefs = await SharedPreferences.getInstance();
@@ -143,5 +183,36 @@ class AppSettingsService {
   Future<void> setLegacyArchivePurged(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_legacyArchivePurgedKey, value);
+  }
+
+  /// Defaults to [MediaSaveRoot.pictures] — the previously-hardcoded
+  /// behavior, now an explicit (opt-in) user choice.
+  Future<MediaSaveRoot> getMediaSaveRoot() async {
+    final prefs = await SharedPreferences.getInstance();
+    final stored = prefs.getString(_mediaSaveRootKey);
+    return MediaSaveRoot.values.firstWhere(
+      (v) => v.name == stored,
+      orElse: () => MediaSaveRoot.pictures,
+    );
+  }
+
+  Future<void> setMediaSaveRoot(MediaSaveRoot value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_mediaSaveRootKey, value.name);
+  }
+
+  /// Defaults to [AudioSaveRoot.music] — the previously-hardcoded behavior.
+  Future<AudioSaveRoot> getAudioSaveRoot() async {
+    final prefs = await SharedPreferences.getInstance();
+    final stored = prefs.getString(_audioSaveRootKey);
+    return AudioSaveRoot.values.firstWhere(
+      (v) => v.name == stored,
+      orElse: () => AudioSaveRoot.music,
+    );
+  }
+
+  Future<void> setAudioSaveRoot(AudioSaveRoot value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_audioSaveRootKey, value.name);
   }
 }
