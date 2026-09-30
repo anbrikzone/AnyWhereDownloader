@@ -9,6 +9,16 @@ import '../../core/extraction/media_extractor.dart';
 /// or return CDN URLs that 403 without a session cookie). Calls tikwm.com's
 /// public API instead — a third-party service we don't control, accepted
 /// knowingly as the price of TikTok working. See CLAUDE.md "TikTok".
+/// File extension for a TikTok CDN image URL — its path usually ends in
+/// `.jpeg`/`.webp` before the query string; `jpg` when it can't tell.
+String imageContainerFor(String url) {
+  final path = (Uri.tryParse(url)?.path ?? '').toLowerCase();
+  for (final ext in const ['jpeg', 'jpg', 'webp', 'png', 'heic']) {
+    if (path.endsWith('.$ext')) return ext;
+  }
+  return 'jpg';
+}
+
 class TikTokExtractor implements MediaExtractor {
   TikTokExtractor({http.Client? client}) : _client = client ?? http.Client();
 
@@ -64,6 +74,31 @@ class TikTokExtractor implements MediaExtractor {
     final data = body['data'] as Map<String, dynamic>?;
     if (data == null) {
       throw ExtractionException('This TikTok video could not be resolved.');
+    }
+
+    // A photo post (slideshow) comes back with `images` filled and
+    // `duration == 0`; its `play` is the background track, not a video, so
+    // it must never be offered as one. Only the first image is offered —
+    // carousels aren't modelled yet (backlog #13), same as X/Instagram.
+    final images = [
+      for (final i in (data['images'] as List<dynamic>? ?? const []))
+        if (i is String && i.isNotEmpty) i,
+    ];
+    if (images.isNotEmpty) {
+      final title = data['title'] as String?;
+      return MediaInfo(
+        title: (title == null || title.isEmpty) ? 'TikTok photo' : title,
+        thumbnailUrl: data['cover'] as String? ?? images.first,
+        variants: [
+          MediaVariant(
+            type: MediaVariantType.image,
+            resolutionLabel: null,
+            container: imageContainerFor(images.first),
+            approxSizeBytes: null,
+            sourceUrl: images.first,
+          ),
+        ],
+      );
     }
 
     final play = data['play'] as String?;

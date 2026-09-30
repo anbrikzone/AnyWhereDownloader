@@ -32,9 +32,10 @@ class TikTokState {
   final StatusMessage? statusMessage;
 
   /// Set while a download is running; used for pause/resume/cancel. Unlike
-  /// YouTube, TikTok's formats are always muxed (see `TikTokExtractor`), so
-  /// every download goes through this same `background_downloader` path —
-  /// pause/resume always works, no separate merge-path state needed.
+  /// YouTube, TikTok's formats are always muxed (or a single photo, see
+  /// `TikTokExtractor`), so every download goes through this same
+  /// `background_downloader` path — pause/resume always works, no separate
+  /// merge-path state needed.
   final DownloadTask? currentTask;
 
   bool get busy => fetching || downloading;
@@ -148,7 +149,9 @@ class TikTokController extends StateNotifier<TikTokState> {
       filename: filename,
       headers: variant.requestHeaders,
       saveTo: GallerySaveSpec(
-        kind: SavedMediaKind.video,
+        kind: variant.type == MediaVariantType.image
+            ? SavedMediaKind.image
+            : SavedMediaKind.video,
         album: _galAlbum,
         notifyTitle: filename,
       ),

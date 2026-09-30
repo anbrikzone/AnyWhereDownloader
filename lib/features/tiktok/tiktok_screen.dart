@@ -104,6 +104,13 @@ class _TikTokScreenState extends ConsumerState<TikTokScreen>
 
     final suggestedName = TikTokController.suggestedFileName(info.title);
 
+    // A photo post yields one image variant — not a choice, download it
+    // straight away instead of showing a one-row format sheet.
+    if (isSingleImageDownload(info)) {
+      await controller.downloadVariant(info.variants.single, suggestedName);
+      return;
+    }
+
     // Loop rather than a single pass: cancelling the rename dialog should
     // return to the format sheet, not abandon the whole flow.
     while (true) {
