@@ -224,5 +224,31 @@
     "placeholders": { "version": { "type": "String" } }
   },
   "ytDlpCurrentShort": "yt-dlp өзекті",
-  "ytDlpFailedShort": "yt-dlp жаңарту сәтсіз"
+  "ytDlpFailedShort": "yt-dlp жаңарту сәтсіз",
+
+  "notificationDownloading": "Жүктелуде",
+  "notificationPaused": "Кідіртілді",
+  "notificationDownloadComplete": "Жүктеу аяқталды",
+  "notificationDownloadFailed": "Жүктеу сәтсіз аяқталды",
+  "notificationTapToOpen": "Ашу үшін түртіңіз",
+  "notificationStatusSaved": "Статус сақталды",
+  "notificationSavedToGallery": "Галереяға сақталды: {count}",
+  "@notificationSavedToGallery": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "notificationSavedWithFailures": "Сақталды: {saved}, қате: {failed}",
+  "@notificationSavedWithFailures": {
+    "placeholders": { "saved": { "type": "int" }, "failed": { "type": "int" } }
+  },
+  "notificationPlaylistSummary": "«{title}» ойнату тізімі: {total} ішінен {saved} сақталды",
+  "@notificationPlaylistSummary": {
+    "placeholders": { "title": { "type": "String" }, "saved": { "type": "String" }, "total": { "type": "String" } }
+  },
+  "notificationPhaseVideo": "Бейне жүктелуде",
+  "notificationPhaseAudio": "Аудио жүктелуде",
+  "notificationPhaseMerging": "Бейне мен аудио біріктірілуде",
+  "notificationPhaseConverting": "Аудио түрлендірілуде",
+  "notificationPhasePlaylist": "Ойнату тізімі жүктелуде",
+  "notificationChannelDownloads": "Жүктеулер",
+  "notificationChannelComplete": "Аяқталған жүктеулер"
 }

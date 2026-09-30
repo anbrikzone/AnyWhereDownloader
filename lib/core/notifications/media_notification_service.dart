@@ -1,5 +1,7 @@
 import 'package:flutter/services.dart';
 
+import '../l10n/current_l10n.dart';
+
 /// Posts the "download complete" system notification via a small native
 /// bridge (`MediaNotificationBridge.kt`) rather than a Flutter notification
 /// plugin — the tap action needs to launch an arbitrary external viewer app
@@ -19,11 +21,13 @@ class MediaNotificationService {
     required String contentUri,
     required String mimeType,
   }) {
+    final l10n = CurrentL10n.value;
     return _channel.invokeMethod('showDownloadComplete', {
       'title': title,
-      'text': 'Tap to open',
+      'text': l10n.notificationTapToOpen,
       'uri': contentUri,
       'mimeType': mimeType,
+      'channelName': l10n.notificationChannelComplete,
     });
   }
 
@@ -34,6 +38,7 @@ class MediaNotificationService {
     return _channel.invokeMethod('showDownloadComplete', {
       'title': title,
       'text': text,
+      'channelName': CurrentL10n.value.notificationChannelComplete,
     });
   }
 }

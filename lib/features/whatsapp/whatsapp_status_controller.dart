@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:saf_stream/saf_stream.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../core/l10n/current_l10n.dart';
 import '../../core/l10n/status_message.dart';
 import '../../core/logging/app_log.dart';
 import '../../core/notifications/media_notification_service.dart';
@@ -295,7 +296,7 @@ class WhatsAppStatusController extends StateNotifier<WhatsAppStatusState> {
           lastSavedContentUri != null &&
           lastSavedMimeType != null) {
         await _mediaNotificationService.notifyFileSaved(
-          title: lastSavedName ?? 'Status saved',
+          title: lastSavedName ?? CurrentL10n.value.notificationStatusSaved,
           contentUri: lastSavedContentUri,
           mimeType: lastSavedMimeType,
         );
@@ -303,8 +304,8 @@ class WhatsAppStatusController extends StateNotifier<WhatsAppStatusState> {
         await _mediaNotificationService.notifySummary(
           title: 'WhatsApp',
           text: failed == 0
-              ? 'Saved $succeeded to gallery'
-              : 'Saved $succeeded, failed $failed',
+              ? CurrentL10n.value.notificationSavedToGallery(succeeded)
+              : CurrentL10n.value.notificationSavedWithFailures(succeeded, failed),
         );
       }
     } catch (e, st) {

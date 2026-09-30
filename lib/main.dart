@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/download/download_engine.dart';
 import 'core/download/download_finalizer.dart';
+import 'core/l10n/current_l10n.dart';
 import 'core/settings/settings_providers.dart';
 import 'core/theme/app_theme.dart';
 import 'features/home/main_shell.dart';
@@ -39,6 +41,14 @@ class AnyWhereDownloaderApp extends ConsumerWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
+      // Resolved inside `Localizations`, so this is the language the UI is
+      // actually showing (in-app choice or system fallback). Notification
+      // text built outside the widget tree reads it via `CurrentL10n`.
+      builder: (context, child) {
+        final l10n = AppLocalizations.of(context)!;
+        if (CurrentL10n.update(l10n)) DownloadEngine.configureNotifications(l10n);
+        return child!;
+      },
       home: const MainShell(),
     );
   }

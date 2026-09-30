@@ -299,5 +299,31 @@
     "placeholders": { "version": { "type": "String" } }
   },
   "ytDlpCurrentShort": "yt-dlp up to date",
-  "ytDlpFailedShort": "yt-dlp update failed"
+  "ytDlpFailedShort": "yt-dlp update failed",
+
+  "notificationDownloading": "Downloading",
+  "notificationPaused": "Paused",
+  "notificationDownloadComplete": "Download complete",
+  "notificationDownloadFailed": "Download failed",
+  "notificationTapToOpen": "Tap to open",
+  "notificationStatusSaved": "Status saved",
+  "notificationSavedToGallery": "Saved {count} to gallery",
+  "@notificationSavedToGallery": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "notificationSavedWithFailures": "Saved {saved}, failed {failed}",
+  "@notificationSavedWithFailures": {
+    "placeholders": { "saved": { "type": "int" }, "failed": { "type": "int" } }
+  },
+  "notificationPlaylistSummary": "Playlist \"{title}\": saved {saved} of {total}",
+  "@notificationPlaylistSummary": {
+    "placeholders": { "title": { "type": "String" }, "saved": { "type": "String" }, "total": { "type": "String" } }
+  },
+  "notificationPhaseVideo": "Downloading video",
+  "notificationPhaseAudio": "Downloading audio",
+  "notificationPhaseMerging": "Merging video and audio",
+  "notificationPhaseConverting": "Converting audio",
+  "notificationPhasePlaylist": "Downloading playlist",
+  "notificationChannelDownloads": "Downloads",
+  "notificationChannelComplete": "Downloads complete"
 }

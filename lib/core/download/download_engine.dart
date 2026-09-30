@@ -1,5 +1,6 @@
 import 'package:background_downloader/background_downloader.dart';
 
+import '../../l10n/app_localizations.dart';
 import 'download_finalizer.dart';
 
 /// Thin wrapper over `background_downloader`, isolating the package the
@@ -10,12 +11,15 @@ import 'download_finalizer.dart';
 /// (Android) / URLSession (iOS) backed tasks with `allowPause`, not by
 /// anything we could reasonably reimplement ourselves.
 class DownloadEngine {
-  DownloadEngine() {
+  /// The plugin's own progress/complete/error notifications, in the app's
+  /// current language. Global plugin config, not per-instance — applied
+  /// from `main.dart` whenever the UI language changes.
+  static void configureNotifications(AppLocalizations l10n) {
     FileDownloader().configureNotification(
-      running: const TaskNotification('Downloading', '{filename}'),
-      paused: const TaskNotification('Paused', '{filename}'),
-      complete: const TaskNotification('Download complete', '{filename}'),
-      error: const TaskNotification('Download failed', '{filename}'),
+      running: TaskNotification(l10n.notificationDownloading, '{filename}'),
+      paused: TaskNotification(l10n.notificationPaused, '{filename}'),
+      complete: TaskNotification(l10n.notificationDownloadComplete, '{filename}'),
+      error: TaskNotification(l10n.notificationDownloadFailed, '{filename}'),
       progressBar: true,
     );
   }

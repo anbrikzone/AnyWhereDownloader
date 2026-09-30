@@ -1233,6 +1233,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'yt-dlp update failed'**
   String get ytDlpFailedShort;
+
+  /// No description provided for @notificationDownloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading'**
+  String get notificationDownloading;
+
+  /// No description provided for @notificationPaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get notificationPaused;
+
+  /// No description provided for @notificationDownloadComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Download complete'**
+  String get notificationDownloadComplete;
+
+  /// No description provided for @notificationDownloadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Download failed'**
+  String get notificationDownloadFailed;
+
+  /// No description provided for @notificationTapToOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to open'**
+  String get notificationTapToOpen;
+
+  /// No description provided for @notificationStatusSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Status saved'**
+  String get notificationStatusSaved;
+
+  /// No description provided for @notificationSavedToGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved {count} to gallery'**
+  String notificationSavedToGallery(int count);
+
+  /// No description provided for @notificationSavedWithFailures.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved {saved}, failed {failed}'**
+  String notificationSavedWithFailures(int saved, int failed);
+
+  /// No description provided for @notificationPlaylistSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlist \"{title}\": saved {saved} of {total}'**
+  String notificationPlaylistSummary(String title, String saved, String total);
+
+  /// No description provided for @notificationPhaseVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading video'**
+  String get notificationPhaseVideo;
+
+  /// No description provided for @notificationPhaseAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading audio'**
+  String get notificationPhaseAudio;
+
+  /// No description provided for @notificationPhaseMerging.
+  ///
+  /// In en, this message translates to:
+  /// **'Merging video and audio'**
+  String get notificationPhaseMerging;
+
+  /// No description provided for @notificationPhaseConverting.
+  ///
+  /// In en, this message translates to:
+  /// **'Converting audio'**
+  String get notificationPhaseConverting;
+
+  /// No description provided for @notificationPhasePlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading playlist'**
+  String get notificationPhasePlaylist;
+
+  /// No description provided for @notificationChannelDownloads.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloads'**
+  String get notificationChannelDownloads;
+
+  /// No description provided for @notificationChannelComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloads complete'**
+  String get notificationChannelComplete;
 }
 
 class _AppLocalizationsDelegate

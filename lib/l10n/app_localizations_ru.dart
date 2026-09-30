@@ -659,4 +659,58 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get ytDlpFailedShort => 'не удалось обновить yt-dlp';
+
+  @override
+  String get notificationDownloading => 'Загрузка';
+
+  @override
+  String get notificationPaused => 'Пауза';
+
+  @override
+  String get notificationDownloadComplete => 'Загрузка завершена';
+
+  @override
+  String get notificationDownloadFailed => 'Ошибка загрузки';
+
+  @override
+  String get notificationTapToOpen => 'Нажмите, чтобы открыть';
+
+  @override
+  String get notificationStatusSaved => 'Статус сохранён';
+
+  @override
+  String notificationSavedToGallery(int count) {
+    return 'Сохранено в галерею: $count';
+  }
+
+  @override
+  String notificationSavedWithFailures(int saved, int failed) {
+    return 'Сохранено: $saved, ошибок: $failed';
+  }
+
+  @override
+  String notificationPlaylistSummary(String title, String saved, String total) {
+    return 'Плейлист «$title»: сохранено $saved из $total';
+  }
+
+  @override
+  String get notificationPhaseVideo => 'Скачивание видео';
+
+  @override
+  String get notificationPhaseAudio => 'Скачивание аудио';
+
+  @override
+  String get notificationPhaseMerging => 'Объединение видео и аудио';
+
+  @override
+  String get notificationPhaseConverting => 'Конвертация аудио';
+
+  @override
+  String get notificationPhasePlaylist => 'Скачивание плейлиста';
+
+  @override
+  String get notificationChannelDownloads => 'Загрузки';
+
+  @override
+  String get notificationChannelComplete => 'Завершённые загрузки';
 }

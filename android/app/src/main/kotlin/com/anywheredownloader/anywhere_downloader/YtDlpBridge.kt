@@ -2,6 +2,7 @@ package com.anywheredownloader.anywhere_downloader
 
 import android.content.Context
 import android.content.Intent
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -42,8 +43,11 @@ class YtDlpBridge(private val appContext: Context) {
             YtDlpDownloadService.EXTRA_RELATIVE_PATH,
             call.argument<String>("relativePath"),
         )
-        call.argument<String>("notifyText")?.let {
-            intent.putExtra(YtDlpDownloadService.EXTRA_NOTIFY_TEXT, it)
+        // Localized notification strings (see `YtDlpEngine._notificationLabels`).
+        call.argument<Map<String, String>>("labels")?.let { labels ->
+            val bundle = Bundle()
+            for ((key, value) in labels) bundle.putString(key, value)
+            intent.putExtra(YtDlpDownloadService.EXTRA_LABELS, bundle)
         }
         call.argument<String>("summaryTitle")?.let {
             intent.putExtra(YtDlpDownloadService.EXTRA_SUMMARY_TITLE, it)

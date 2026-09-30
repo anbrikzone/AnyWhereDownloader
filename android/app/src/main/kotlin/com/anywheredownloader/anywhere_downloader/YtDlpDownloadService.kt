@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
 import android.os.Build
+import android.os.Bundle
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -56,7 +57,10 @@ class YtDlpDownloadService : Service() {
         // `Movies/AnyWhereDownloader/YouTube` (root already resolved by Dart
         // from Settings at start time).
         const val EXTRA_RELATIVE_PATH = "relativePath"
-        const val EXTRA_NOTIFY_TEXT = "notifyText" // single-file completion text
+        // Bundle of localized notification strings from Dart
+        // (`YtDlpEngine._notificationLabels`): phase names, "cancel",
+        // "tapToOpen", channel names. English fallbacks below.
+        const val EXTRA_LABELS = "labels"
         const val EXTRA_SUMMARY_TITLE = "summaryTitle" // playlist summary
         const val EXTRA_SUMMARY_TEXT = "summaryText" // template: {saved}, {total}
         const val ACTION_CANCEL = "com.anywheredownloader.anywhere_downloader.ACTION_CANCEL"
@@ -74,10 +78,14 @@ class YtDlpDownloadService : Service() {
 
     private class SaveSpec(
         val relativePath: String,
-        val notifyText: String,
         val summaryTitle: String,
         val summaryText: String,
     )
+
+    // Strings of the download currently running (one at a time).
+    private var labels = Bundle()
+
+    private fun label(key: String, fallback: String) = labels.getString(key) ?: fallback
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -98,9 +106,9 @@ class YtDlpDownloadService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
+        labels = intent.getBundleExtra(EXTRA_LABELS) ?: Bundle()
         val save = SaveSpec(
             relativePath = relativePath,
-            notifyText = intent.getStringExtra(EXTRA_NOTIFY_TEXT) ?: "Tap to open",
             summaryTitle = intent.getStringExtra(EXTRA_SUMMARY_TITLE) ?: "YouTube",
             summaryText = intent.getStringExtra(EXTRA_SUMMARY_TEXT) ?: "Saved {saved} of {total}",
         )
@@ -600,6 +608,7 @@ class YtDlpDownloadService : Service() {
                         .replace("{total}", total.toString()),
                     null,
                     null,
+                    label("channelComplete", "Downloads complete"),
                 )
                 NativeToDartChannel.invoke("onDownloadStatus", status)
             } finally {
@@ -642,9 +651,10 @@ class YtDlpDownloadService : Service() {
         DownloadNotifications.showDownloadComplete(
             applicationContext,
             fileName,
-            save.notifyText,
+            label("tapToOpen", "Tap to open"),
             contentUri,
             if (kind == MediaStoreWriter.Kind.AUDIO) "audio/*" else "video/*",
+            label("channelComplete", "Downloads complete"),
         )
         return contentUri
     }
@@ -747,7 +757,11 @@ class YtDlpDownloadService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(
-                NotificationChannel(CHANNEL_ID, "Downloads", NotificationManager.IMPORTANCE_LOW)
+                NotificationChannel(
+                    CHANNEL_ID,
+                    label("channelProgress", "Downloads"),
+                    NotificationManager.IMPORTANCE_LOW,
+                )
             )
         }
     }
@@ -778,17 +792,17 @@ class YtDlpDownloadService : Service() {
             .setSmallIcon(android.R.drawable.stat_sys_download)
             .setProgress(100, progress, indeterminate)
             .setOngoing(true)
-            .addAction(0, "Cancel", cancelPendingIntent)
+            .addAction(0, label("cancel", "Cancel"), cancelPendingIntent)
             .build()
     }
 
     private fun phaseLabel(phase: String): String = when (phase) {
-        "video" -> "Downloading video"
-        "audio" -> "Downloading audio"
-        "merging" -> "Merging video and audio"
-        "converting" -> "Converting audio"
-        "playlist" -> "Downloading playlist"
-        else -> "Downloading"
+        "video" -> label("video", "Downloading video")
+        "audio" -> label("audio", "Downloading audio")
+        "merging" -> label("merging", "Merging video and audio")
+        "converting" -> label("converting", "Converting audio")
+        "playlist" -> label("playlist", "Downloading playlist")
+        else -> label("downloading", "Downloading")
     }
 
     private fun updateNotification(

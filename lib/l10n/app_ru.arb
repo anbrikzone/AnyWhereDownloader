@@ -224,5 +224,31 @@
     "placeholders": { "version": { "type": "String" } }
   },
   "ytDlpCurrentShort": "yt-dlp актуален",
-  "ytDlpFailedShort": "не удалось обновить yt-dlp"
+  "ytDlpFailedShort": "не удалось обновить yt-dlp",
+
+  "notificationDownloading": "Загрузка",
+  "notificationPaused": "Пауза",
+  "notificationDownloadComplete": "Загрузка завершена",
+  "notificationDownloadFailed": "Ошибка загрузки",
+  "notificationTapToOpen": "Нажмите, чтобы открыть",
+  "notificationStatusSaved": "Статус сохранён",
+  "notificationSavedToGallery": "Сохранено в галерею: {count}",
+  "@notificationSavedToGallery": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "notificationSavedWithFailures": "Сохранено: {saved}, ошибок: {failed}",
+  "@notificationSavedWithFailures": {
+    "placeholders": { "saved": { "type": "int" }, "failed": { "type": "int" } }
+  },
+  "notificationPlaylistSummary": "Плейлист «{title}»: сохранено {saved} из {total}",
+  "@notificationPlaylistSummary": {
+    "placeholders": { "title": { "type": "String" }, "saved": { "type": "String" }, "total": { "type": "String" } }
+  },
+  "notificationPhaseVideo": "Скачивание видео",
+  "notificationPhaseAudio": "Скачивание аудио",
+  "notificationPhaseMerging": "Объединение видео и аудио",
+  "notificationPhaseConverting": "Конвертация аудио",
+  "notificationPhasePlaylist": "Скачивание плейлиста",
+  "notificationChannelDownloads": "Загрузки",
+  "notificationChannelComplete": "Завершённые загрузки"
 }

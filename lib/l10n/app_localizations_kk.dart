@@ -659,4 +659,58 @@ class AppLocalizationsKk extends AppLocalizations {
 
   @override
   String get ytDlpFailedShort => 'yt-dlp жаңарту сәтсіз';
+
+  @override
+  String get notificationDownloading => 'Жүктелуде';
+
+  @override
+  String get notificationPaused => 'Кідіртілді';
+
+  @override
+  String get notificationDownloadComplete => 'Жүктеу аяқталды';
+
+  @override
+  String get notificationDownloadFailed => 'Жүктеу сәтсіз аяқталды';
+
+  @override
+  String get notificationTapToOpen => 'Ашу үшін түртіңіз';
+
+  @override
+  String get notificationStatusSaved => 'Статус сақталды';
+
+  @override
+  String notificationSavedToGallery(int count) {
+    return 'Галереяға сақталды: $count';
+  }
+
+  @override
+  String notificationSavedWithFailures(int saved, int failed) {
+    return 'Сақталды: $saved, қате: $failed';
+  }
+
+  @override
+  String notificationPlaylistSummary(String title, String saved, String total) {
+    return '«$title» ойнату тізімі: $total ішінен $saved сақталды';
+  }
+
+  @override
+  String get notificationPhaseVideo => 'Бейне жүктелуде';
+
+  @override
+  String get notificationPhaseAudio => 'Аудио жүктелуде';
+
+  @override
+  String get notificationPhaseMerging => 'Бейне мен аудио біріктірілуде';
+
+  @override
+  String get notificationPhaseConverting => 'Аудио түрлендірілуде';
+
+  @override
+  String get notificationPhasePlaylist => 'Ойнату тізімі жүктелуде';
+
+  @override
+  String get notificationChannelDownloads => 'Жүктеулер';
+
+  @override
+  String get notificationChannelComplete => 'Аяқталған жүктеулер';
 }

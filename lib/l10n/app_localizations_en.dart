@@ -659,4 +659,58 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ytDlpFailedShort => 'yt-dlp update failed';
+
+  @override
+  String get notificationDownloading => 'Downloading';
+
+  @override
+  String get notificationPaused => 'Paused';
+
+  @override
+  String get notificationDownloadComplete => 'Download complete';
+
+  @override
+  String get notificationDownloadFailed => 'Download failed';
+
+  @override
+  String get notificationTapToOpen => 'Tap to open';
+
+  @override
+  String get notificationStatusSaved => 'Status saved';
+
+  @override
+  String notificationSavedToGallery(int count) {
+    return 'Saved $count to gallery';
+  }
+
+  @override
+  String notificationSavedWithFailures(int saved, int failed) {
+    return 'Saved $saved, failed $failed';
+  }
+
+  @override
+  String notificationPlaylistSummary(String title, String saved, String total) {
+    return 'Playlist \"$title\": saved $saved of $total';
+  }
+
+  @override
+  String get notificationPhaseVideo => 'Downloading video';
+
+  @override
+  String get notificationPhaseAudio => 'Downloading audio';
+
+  @override
+  String get notificationPhaseMerging => 'Merging video and audio';
+
+  @override
+  String get notificationPhaseConverting => 'Converting audio';
+
+  @override
+  String get notificationPhasePlaylist => 'Downloading playlist';
+
+  @override
+  String get notificationChannelDownloads => 'Downloads';
+
+  @override
+  String get notificationChannelComplete => 'Downloads complete';
 }

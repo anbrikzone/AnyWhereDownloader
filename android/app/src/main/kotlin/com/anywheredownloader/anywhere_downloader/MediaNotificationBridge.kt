@@ -34,7 +34,15 @@ class MediaNotificationBridge(private val appContext: Context) {
                 val text = call.argument<String>("text") ?: "Tap to open"
                 val uri = call.argument<String>("uri")
                 val mimeType = call.argument<String>("mimeType")
-                DownloadNotifications.showDownloadComplete(appContext, title, text, uri, mimeType)
+                val channelName = call.argument<String>("channelName")
+                DownloadNotifications.showDownloadComplete(
+                    appContext,
+                    title,
+                    text,
+                    uri,
+                    mimeType,
+                    channelName,
+                )
                 result.success(null)
             }
 
@@ -59,6 +67,9 @@ object DownloadNotifications {
         text: String,
         uri: String?,
         mimeType: String?,
+        // Localized system-settings name of the channel; applied on every
+        // post so a language change renames it too.
+        channelName: String? = null,
     ) {
         // POST_NOTIFICATIONS only exists from API 33 — checking it on 31/32
         // would always report "denied".
@@ -70,7 +81,7 @@ object DownloadNotifications {
             if (!granted) return
         }
 
-        ensureChannel(context)
+        ensureChannel(context, channelName ?: "Downloads complete")
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setContentTitle(title)
@@ -102,10 +113,10 @@ object DownloadNotifications {
         }
     }
 
-    private fun ensureChannel(context: Context) {
+    private fun ensureChannel(context: Context, name: String) {
         val manager = context.getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(
-            NotificationChannel(CHANNEL_ID, "Downloads complete", NotificationManager.IMPORTANCE_DEFAULT)
+            NotificationChannel(CHANNEL_ID, name, NotificationManager.IMPORTANCE_DEFAULT)
         )
     }
 }

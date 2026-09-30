@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/services.dart';
 
+import '../l10n/current_l10n.dart';
+
 /// A single format entry as reported by yt-dlp, close to its own shape —
 /// no YouTube/Instagram/X-specific interpretation happens here. That's the
 /// job of each service's extractor (e.g. `services/youtube/youtube_extractor.dart`).
@@ -392,6 +394,7 @@ class YtDlpEngine {
       'relativePath': relativePath,
       'summaryTitle': summaryTitle,
       'summaryText': summaryText,
+      'labels': _notificationLabels(),
     });
     return completer.future;
   }
@@ -401,8 +404,7 @@ class YtDlpEngine {
   /// `YtDlpDownloadService.kt`) and returns once it truly finishes
   /// (complete/canceled/error). The service saves the result into
   /// MediaStore under [relativePath] and posts the tap-to-open notification
-  /// ([notifyText]) itself, so a download outliving this Dart side is still
-  /// saved. [onProgress] receives combined progress updates while it runs.
+  /// itself, so a download outliving this Dart side is still saved. [onProgress] receives combined progress updates while it runs.
   /// Unlike the `background_downloader` path, this cannot be paused — only
   /// canceled (via [cancelDownload]).
   Future<MergeDownloadResult> downloadMerge({
@@ -411,7 +413,6 @@ class YtDlpEngine {
     required String outputPath,
     required String processId,
     required String relativePath,
-    required String notifyText,
     int? durationSeconds,
     void Function(MergeProgress progress)? onProgress,
   }) async {
@@ -427,7 +428,7 @@ class YtDlpEngine {
       'processId': processId,
       'durationSeconds': durationSeconds ?? 0,
       'relativePath': relativePath,
-      'notifyText': notifyText,
+      'labels': _notificationLabels(),
     });
     return completer.future;
   }
@@ -445,7 +446,6 @@ class YtDlpEngine {
     required String outputPath,
     required String processId,
     required String relativePath,
-    required String notifyText,
     int? durationSeconds,
     void Function(MergeProgress progress)? onProgress,
   }) async {
@@ -462,7 +462,7 @@ class YtDlpEngine {
       'processId': processId,
       'durationSeconds': durationSeconds ?? 0,
       'relativePath': relativePath,
-      'notifyText': notifyText,
+      'labels': _notificationLabels(),
     });
     return completer.future;
   }
@@ -488,6 +488,27 @@ class YtDlpEngine {
       'updateYtDlp',
     );
     return YtDlpStatusInfo.fromMap(result ?? const {});
+  }
+
+  /// Every string `YtDlpDownloadService` shows (progress phases, the Cancel
+  /// action, channel names, the completion text), in the app's current
+  /// language — native code has no access to the ARB strings, and Android
+  /// `values-*` resources would ignore the in-app language choice. Captured
+  /// when the download starts.
+  Map<String, String> _notificationLabels() {
+    final l10n = CurrentL10n.value;
+    return {
+      'video': l10n.notificationPhaseVideo,
+      'audio': l10n.notificationPhaseAudio,
+      'merging': l10n.notificationPhaseMerging,
+      'converting': l10n.notificationPhaseConverting,
+      'playlist': l10n.notificationPhasePlaylist,
+      'downloading': l10n.notificationDownloading,
+      'cancel': l10n.cancelButton,
+      'tapToOpen': l10n.notificationTapToOpen,
+      'channelProgress': l10n.notificationChannelDownloads,
+      'channelComplete': l10n.notificationChannelComplete,
+    };
   }
 
   Future<void> _handleNativeCall(MethodCall call) async {

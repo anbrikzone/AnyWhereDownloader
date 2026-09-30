@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../core/download/download_engine.dart';
 import '../../core/download/download_finalizer.dart';
 import '../../core/extraction/media_extractor.dart';
+import '../../core/l10n/current_l10n.dart';
 import '../../core/l10n/status_message.dart';
 import '../../core/notifications/notification_permission_service.dart';
 import '../../core/storage/media_library_service.dart';
@@ -343,7 +344,12 @@ class YouTubeController extends StateNotifier<YouTubeState> {
         expectedCount: targetCount,
         relativePath: relativePath,
         summaryTitle: 'YouTube',
-        summaryText: 'Playlist "$playlistTitle": saved {saved} of {total}',
+        // `{saved}`/`{total}` stay literal — the native service fills them in.
+        summaryText: CurrentL10n.value.notificationPlaylistSummary(
+          playlistTitle,
+          '{saved}',
+          '{total}',
+        ),
         onProgress: (update) => state = state.copyWith(
           progress: update.progress,
           playlistItemPhase: update.subPhase,
@@ -544,7 +550,6 @@ class YouTubeController extends StateNotifier<YouTubeState> {
         outputPath: outputPath,
         processId: processId,
         relativePath: relativePath,
-        notifyText: 'Tap to open',
         durationSeconds: variant.durationSeconds,
         onProgress: (update) => state = state.copyWith(
           progress: update.progress,
@@ -623,7 +628,6 @@ class YouTubeController extends StateNotifier<YouTubeState> {
         outputPath: outputPath,
         processId: processId,
         relativePath: relativePath,
-        notifyText: 'Tap to open',
         durationSeconds: variant.durationSeconds,
         onProgress: (update) => state = state.copyWith(
           progress: update.progress,
