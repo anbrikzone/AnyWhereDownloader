@@ -8,7 +8,6 @@ import android.content.IntentSender
 import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
 import android.net.Uri
-import android.os.Build
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
@@ -463,45 +462,12 @@ class MediaSaveBridge(
         title: String,
         mimeType: String,
         root: String,
-    ): String {
-        val source = File(path)
-        if (!source.exists() || source.length() == 0L) {
-            throw IllegalStateException("The downloaded audio file is missing or empty")
-        }
-
-        val resolver = appContext.contentResolver
-        val collection =
-            MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-        val relativePath = "$root/$album"
-
-        val values = ContentValues().apply {
-            put(MediaStore.Audio.Media.DISPLAY_NAME, title)
-            put(MediaStore.Audio.Media.MIME_TYPE, mimeType)
-            put(MediaStore.Audio.Media.RELATIVE_PATH, relativePath)
-            put(MediaStore.Audio.Media.IS_MUSIC, 1)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                put(MediaStore.Audio.Media.IS_PENDING, 1)
-            }
-        }
-
-        val uri = resolver.insert(collection, values)
-            ?: throw IllegalStateException("MediaStore rejected the audio insert")
-
-        try {
-            resolver.openOutputStream(uri)?.use { out ->
-                source.inputStream().use { it.copyTo(out) }
-            } ?: throw IllegalStateException("Could not open the MediaStore output stream")
-        } catch (e: Exception) {
-            resolver.delete(uri, null, null)
-            throw e
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            values.clear()
-            values.put(MediaStore.Audio.Media.IS_PENDING, 0)
-            resolver.update(uri, values, null, null)
-        }
-
-        return uri.toString()
-    }
+    ): String = MediaStoreWriter.save(
+        appContext,
+        path,
+        MediaStoreWriter.Kind.AUDIO,
+        "$root/$album",
+        title,
+        mimeType,
+    )
 }

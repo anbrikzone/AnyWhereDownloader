@@ -6,9 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../core/download/download_engine.dart';
+import '../../core/download/download_finalizer.dart';
 import '../../core/extraction/media_extractor.dart';
 import '../../core/l10n/status_message.dart';
-import '../../core/notifications/media_notification_service.dart';
 import '../../core/notifications/notification_permission_service.dart';
 import '../../core/storage/media_library_service.dart';
 import '../../core/storage/media_save_service.dart';
@@ -151,14 +151,13 @@ class YouTubeController extends StateNotifier<YouTubeState> {
     DownloadEngine? downloadEngine,
     YtDlpEngine? ytDlpEngine,
     MediaSaveService? mediaSaveService,
-    MediaNotificationService? mediaNotificationService,
+    DownloadFinalizer? downloadFinalizer,
     NotificationPermissionService? notificationPermissionService,
   }) : _extractor = extractor ?? YouTubeExtractor(),
        _downloadEngine = downloadEngine ?? DownloadEngine(),
        _ytDlpEngine = ytDlpEngine ?? YtDlpEngine(),
        _mediaSaveService = mediaSaveService ?? MediaSaveService(),
-       _mediaNotificationService =
-           mediaNotificationService ?? MediaNotificationService(),
+       _downloadFinalizer = downloadFinalizer ?? DownloadFinalizer.instance,
        _notificationPermissionService =
            notificationPermissionService ?? NotificationPermissionService(),
        super(const YouTubeState());
@@ -167,7 +166,7 @@ class YouTubeController extends StateNotifier<YouTubeState> {
   final DownloadEngine _downloadEngine;
   final YtDlpEngine _ytDlpEngine;
   final MediaSaveService _mediaSaveService;
-  final MediaNotificationService _mediaNotificationService;
+  final DownloadFinalizer _downloadFinalizer;
   final NotificationPermissionService _notificationPermissionService;
 
   /// Fetches format info for [url]. Returns null (and sets an error status
@@ -251,9 +250,10 @@ class YouTubeController extends StateNotifier<YouTubeState> {
   }
 
   /// Downloads [selectedPositions] (1-based) of a playlist at one shared
-  /// [quality], via a single foreground-service yt-dlp run. Each finished
-  /// item is saved to a dedicated nested playlist folder as it lands (see
-  /// [relativePathForPlaylist]); a summary notification is posted at the end.
+  /// [quality], via a single foreground-service yt-dlp run. The native
+  /// service saves each finished item to a dedicated nested playlist folder
+  /// as it lands (see [relativePathForPlaylist]) and posts the summary
+  /// notification at the end — this controller only mirrors the counts.
   Future<void> downloadPlaylist({
     required String playlistUrl,
     required List<int> selectedPositions,
@@ -287,6 +287,10 @@ class YouTubeController extends StateNotifier<YouTubeState> {
     final playlistLabel =
         channelName.trim().isEmpty ? playlistTitle : '$channelName - $playlistTitle';
     final playlistAlbum = relativePathForPlaylist('YouTube', playlistLabel);
+    final relativePath = await _mediaSaveService.resolveRelativePath(
+      playlistAlbum,
+      isAudio: quality.isAudio,
+    );
 
     state = state.copyWith(
       downloading: true,
@@ -302,39 +306,26 @@ class YouTubeController extends StateNotifier<YouTubeState> {
       playlistFailed: 0,
     );
 
-    final pendingSaves = <Future<void>>[];
     var saved = 0;
     var failed = 0;
 
-    Future<void> saveItem(PlaylistItemDone item) async {
-      try {
-        if (quality.isAudio) {
-          await _mediaSaveService.saveAudio(
-            item.path,
-            album: playlistAlbum,
-            isMp3: true,
-          );
-        } else {
-          await _mediaSaveService.saveVideo(item.path, album: playlistAlbum);
-        }
+    void onItem(PlaylistItemDone item) {
+      if (item.saved) {
         saved++;
-      } catch (_) {
+      } else {
         failed++;
-      } finally {
-        final f = File(item.path);
-        if (await f.exists()) await f.delete();
-        // Advance the visible counter here too — the `@@AWD_ITEM@@` line
-        // that triggers this is the one signal known to reach Dart, so the
-        // "N / M" label must not depend on the progress callback alone.
-        state = state.copyWith(
-          playlistSaved: saved,
-          playlistFailed: failed,
-          playlistCurrentIndex: (saved + failed + 1).clamp(
-            1,
-            state.playlistTotal ?? (saved + failed + 1),
-          ),
-        );
       }
+      // Advance the visible counter here too — the `@@AWD_ITEM@@` line
+      // behind this event is the one signal known to reach Dart, so the
+      // "N / M" label must not depend on the progress callback alone.
+      state = state.copyWith(
+        playlistSaved: saved,
+        playlistFailed: failed,
+        playlistCurrentIndex: (saved + failed + 1).clamp(
+          1,
+          state.playlistTotal ?? (saved + failed + 1),
+        ),
+      );
     }
 
     try {
@@ -350,6 +341,9 @@ class YouTubeController extends StateNotifier<YouTubeState> {
           totalInPlaylist,
         ),
         expectedCount: targetCount,
+        relativePath: relativePath,
+        summaryTitle: 'YouTube',
+        summaryText: 'Playlist "$playlistTitle": saved {saved} of {total}',
         onProgress: (update) => state = state.copyWith(
           progress: update.progress,
           playlistItemPhase: update.subPhase,
@@ -357,20 +351,8 @@ class YouTubeController extends StateNotifier<YouTubeState> {
           playlistItemProgress:
               update.itemProgress ?? state.playlistItemProgress,
         ),
-        onItem: (item) => pendingSaves.add(saveItem(item)),
+        onItem: onItem,
       );
-
-      await Future.wait(pendingSaves);
-      try {
-        await outputDir.delete(recursive: true);
-      } catch (_) {}
-
-      try {
-        await _mediaNotificationService.notifySummary(
-          title: 'YouTube',
-          text: 'Playlist "$playlistTitle": saved $saved of $targetCount',
-        );
-      } catch (_) {}
 
       if (result.status == 'canceled') {
         state = state.copyWith(
@@ -411,10 +393,6 @@ class YouTubeController extends StateNotifier<YouTubeState> {
         );
       }
     } catch (error) {
-      await Future.wait(pendingSaves);
-      try {
-        await outputDir.delete(recursive: true);
-      } catch (_) {}
       state = state.copyWith(
         downloading: false,
         clearMergeProcessId: true,
@@ -468,6 +446,11 @@ class YouTubeController extends StateNotifier<YouTubeState> {
       url: variant.sourceUrl,
       filename: filename,
       headers: variant.requestHeaders,
+      saveTo: GallerySaveSpec(
+        kind: SavedMediaKind.video,
+        album: _galAlbum,
+        notifyTitle: filename,
+      ),
     );
 
     state = state.copyWith(
@@ -494,8 +477,7 @@ class YouTubeController extends StateNotifier<YouTubeState> {
       );
 
       if (result.status == TaskStatus.complete) {
-        final path = await _downloadEngine.filePath(task);
-        await _saveAndNotify(path, filename);
+        await _downloadFinalizer.finalize(task);
         state = state.copyWith(
           downloading: false,
           paused: false,
@@ -539,8 +521,11 @@ class YouTubeController extends StateNotifier<YouTubeState> {
   /// cancel.
   Future<void> _downloadViaMerge(MediaVariant variant, String filename) async {
     final processId = DateTime.now().microsecondsSinceEpoch.toString();
-    final tempDir = await getTemporaryDirectory();
-    final outputPath = '${tempDir.path}/$filename';
+    final outputPath = await _workFilePath(processId, filename);
+    final relativePath = await _mediaSaveService.resolveRelativePath(
+      _galAlbum,
+      isAudio: false,
+    );
 
     state = state.copyWith(
       downloading: true,
@@ -558,6 +543,8 @@ class YouTubeController extends StateNotifier<YouTubeState> {
         formatSelector: variant.mergeFormatSelector!,
         outputPath: outputPath,
         processId: processId,
+        relativePath: relativePath,
+        notifyText: 'Tap to open',
         durationSeconds: variant.durationSeconds,
         onProgress: (update) => state = state.copyWith(
           progress: update.progress,
@@ -567,8 +554,7 @@ class YouTubeController extends StateNotifier<YouTubeState> {
 
       switch (result.status) {
         case 'complete':
-          final path = result.path ?? outputPath;
-          await _saveAndNotify(path, filename);
+          // Already saved + notified by the native service.
           state = state.copyWith(
             downloading: false,
             clearMergeProcessId: true,
@@ -612,8 +598,11 @@ class YouTubeController extends StateNotifier<YouTubeState> {
   Future<void> _downloadViaAudio(MediaVariant variant, String filename) async {
     final spec = variant.audioSpec!;
     final processId = DateTime.now().microsecondsSinceEpoch.toString();
-    final tempDir = await getTemporaryDirectory();
-    final outputPath = '${tempDir.path}/$filename';
+    final outputPath = await _workFilePath(processId, filename);
+    final relativePath = await _mediaSaveService.resolveRelativePath(
+      _galAlbum,
+      isAudio: true,
+    );
 
     state = state.copyWith(
       downloading: true,
@@ -633,6 +622,8 @@ class YouTubeController extends StateNotifier<YouTubeState> {
         audioQualityKbps: spec.qualityKbps ?? 0,
         outputPath: outputPath,
         processId: processId,
+        relativePath: relativePath,
+        notifyText: 'Tap to open',
         durationSeconds: variant.durationSeconds,
         onProgress: (update) => state = state.copyWith(
           progress: update.progress,
@@ -642,8 +633,7 @@ class YouTubeController extends StateNotifier<YouTubeState> {
 
       switch (result.status) {
         case 'complete':
-          final path = result.path ?? outputPath;
-          await _saveAudioAndNotify(path, filename, isMp3: spec.format == 'mp3');
+          // Already saved + notified by the native service.
           state = state.copyWith(
             downloading: false,
             clearMergeProcessId: true,
@@ -681,52 +671,14 @@ class YouTubeController extends StateNotifier<YouTubeState> {
     }
   }
 
-  /// Saves the downloaded temp file to the gallery and posts a "download
-  /// complete, tap to open" notification pointing at the saved item. A
-  /// notification failure must never turn a successful save into a
-  /// reported download failure, so it's isolated in its own try/catch.
-  Future<void> _saveAndNotify(String path, String filename) async {
-    final contentUri = await _mediaSaveService.saveVideo(
-      path,
-      album: _galAlbum,
-    );
-    final file = File(path);
-    if (await file.exists()) {
-      await file.delete();
-    }
-    try {
-      await _mediaNotificationService.notifyFileSaved(
-        title: filename,
-        contentUri: contentUri,
-        mimeType: 'video/*',
-      );
-    } catch (_) {}
-  }
-
-  /// Audio counterpart of [_saveAndNotify] — saves into `Music/<album>/` via
-  /// the native bridge (which returns the `content://` URI directly) instead
-  /// of `photo_manager`.
-  Future<void> _saveAudioAndNotify(
-    String path,
-    String filename, {
-    required bool isMp3,
-  }) async {
-    final contentUri = await _mediaSaveService.saveAudio(
-      path,
-      album: _galAlbum,
-      isMp3: isMp3,
-    );
-    final file = File(path);
-    if (await file.exists()) {
-      await file.delete();
-    }
-    try {
-      await _mediaNotificationService.notifyFileSaved(
-        title: filename,
-        contentUri: contentUri,
-        mimeType: 'audio/*',
-      );
-    } catch (_) {}
+  /// `<cacheDir>/ytdlp_<processId>/<filename>` — a per-download work dir the
+  /// native service deletes wholesale when it finishes (including yt-dlp's
+  /// `.part`/`.fNNN` leftovers after a cancel or error).
+  Future<String> _workFilePath(String processId, String filename) async {
+    final tempDir = await getTemporaryDirectory();
+    final dir = Directory('${tempDir.path}/ytdlp_$processId');
+    await dir.create(recursive: true);
+    return '${dir.path}/$filename';
   }
 
   Future<void> togglePause() async {

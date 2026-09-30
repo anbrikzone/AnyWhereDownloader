@@ -1,13 +1,20 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/download/download_finalizer.dart';
 import 'core/settings/settings_providers.dart';
 import 'core/theme/app_theme.dart';
 import 'features/home/main_shell.dart';
 import 'l10n/app_localizations.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Before any download can be enqueued: starts task tracking and saves
+  // anything that finished while no UI was alive to save it.
+  unawaited(DownloadFinalizer.instance.start());
   runApp(const ProviderScope(child: AnyWhereDownloaderApp()));
 }
 

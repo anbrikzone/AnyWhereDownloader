@@ -27,6 +27,7 @@ class MainActivity : FlutterActivity() {
     // onNewIntent instead (see below).
     private var initialSharedText: String? = null
     private var shareChannel: MethodChannel? = null
+    private var ytDlpChannel: MethodChannel? = null
     private lateinit var mediaSaveBridge: MediaSaveBridge
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -35,6 +36,7 @@ class MainActivity : FlutterActivity() {
         val channel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channelName)
         channel.setMethodCallHandler { call, result -> bridge.handle(call, result) }
         NativeToDartChannel.channel = channel
+        ytDlpChannel = channel
 
         val notificationBridge = MediaNotificationBridge(applicationContext)
         val notificationsChannel =
@@ -79,6 +81,20 @@ class MainActivity : FlutterActivity() {
         // Init + self-update the bundled yt-dlp off the critical path, so a
         // fresh binary is usually in place before the user pastes a link.
         YtDlpCore.warmUp(applicationContext)
+    }
+
+    override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {
+        // Don't leave YtDlpDownloadService talking to a detached messenger
+        // once this engine is gone (activity destroyed while a download
+        // keeps running) — it saves its own files, so dropping progress
+        // events until a new engine attaches is harmless.
+        // Only if it's still ours — a newer activity may already have
+        // registered its own channel.
+        if (NativeToDartChannel.channel === ytDlpChannel) {
+            NativeToDartChannel.channel = null
+        }
+        ytDlpChannel = null
+        super.cleanUpFlutterEngine(flutterEngine)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {

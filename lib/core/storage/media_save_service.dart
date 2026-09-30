@@ -92,6 +92,17 @@ class MediaSaveService {
   /// than [olderThan] (WhatsApp status archive retention). Only touches rows
   /// this app inserted — no system delete prompt. Returns how many were
   /// removed; failures are swallowed (housekeeping must never error out).
+  /// The full MediaStore `RELATIVE_PATH` (`<Settings root>/<album>`) a file
+  /// saved *natively* should go to — for `YtDlpDownloadService`, which saves
+  /// its own finished files (see its class doc). Same root choice as
+  /// [saveVideo]/[saveAudio] make for Dart-side saves.
+  Future<String> resolveRelativePath(String album, {required bool isAudio}) async {
+    final root = isAudio
+        ? (await _settingsService.getAudioSaveRoot()).androidDirectoryName
+        : (await _settingsService.getMediaSaveRoot()).androidDirectoryName;
+    return '$root/$album';
+  }
+
   Future<int> pruneAlbum(String album, Duration olderThan) async {
     try {
       final n = await _audioChannel.invokeMethod<int>('pruneAlbum', {
@@ -323,7 +334,8 @@ class MediaSaveService {
   /// A gallery title that keeps its extension when `photo_manager` runs it
   /// through `URLConnection.guessContentTypeFromName`: no `#` (fragment
   /// separator), no other URL-significant / filesystem-hostile chars, no
-  /// double spaces, and a guaranteed trailing `.<ext>`.
+  /// double spaces, and a guaranteed trailing `.<ext>`. Kotlin twin:
+  /// `MediaStoreWriter.safeDisplayName` — keep the two in sync.
   String _safeTitle(String filePath, {required bool isImage}) {
     final raw = _basename(filePath);
     final dot = raw.lastIndexOf('.');

@@ -129,19 +129,31 @@ class RawVideoInfo {
 /// path ([YtDlpEngine.downloadMerge]) and the audio-extract path
 /// ([YtDlpEngine.downloadAudio]) share this shape.
 class MergeDownloadResult {
-  MergeDownloadResult({required this.status, this.path, this.error});
+  MergeDownloadResult({
+    required this.status,
+    this.path,
+    this.contentUri,
+    this.error,
+  });
 
   factory MergeDownloadResult.fromMap(Map<Object?, Object?> map) {
     return MergeDownloadResult(
       status: map['status'] as String? ?? 'error',
       path: map['path'] as String?,
+      contentUri: map['contentUri'] as String?,
       error: map['error'] as String?,
     );
   }
 
   /// One of `complete`, `canceled`, `error`.
   final String status;
+
+  /// The temp file yt-dlp wrote — already saved and deleted by the time
+  /// `complete` arrives (the native service saves it itself).
   final String? path;
+
+  /// The saved MediaStore item, set on `complete` for single-file downloads.
+  final String? contentUri;
   final String? error;
 }
 
@@ -235,18 +247,24 @@ class PlaylistInfoResult {
   final List<PlaylistEntryInfo> entries;
 }
 
-/// Fired once per playlist item that finished downloading — [path] is the
-/// final on-disk file, ready to be saved to MediaStore and then deleted.
+/// Fired once per playlist item after the native service has tried to save
+/// it to MediaStore (and deleted its temp file either way).
 class PlaylistItemDone {
   PlaylistItemDone({
     required this.index,
     required this.count,
     required this.path,
+    required this.saved,
+    this.contentUri,
+    this.error,
   });
 
   final int index;
   final int count;
   final String path;
+  final bool saved;
+  final String? contentUri;
+  final String? error;
 }
 
 /// The bundled yt-dlp binary's version and the result of the last
@@ -335,11 +353,14 @@ class YtDlpEngine {
 
   /// Downloads a playlist (or the [playlistItems] subset — a yt-dlp
   /// `--playlist-items` spec like `"1,3,5-7"`, or null for all) in one
-  /// foreground-service `execute()`. [onItem] fires as each entry's file
-  /// lands so the caller can save it and free the temp copy; [onProgress]
-  /// carries the overall item N-of-M progress. No pause — only
-  /// [cancelDownload]. Pass exactly one of [formatSelector] (video) or
-  /// [audioFormat] (`mp3`/`m4a`, audio-only).
+  /// foreground-service `execute()`. The service saves each entry into
+  /// MediaStore under [relativePath] itself and posts one summary
+  /// notification ([summaryTitle]; [summaryText] with `{saved}`/`{total}`
+  /// placeholders) — so nothing is lost if this Dart side dies meanwhile.
+  /// [onItem] reports each entry's save outcome; [onProgress] carries the
+  /// overall item N-of-M progress. No pause — only [cancelDownload]. Pass
+  /// exactly one of [formatSelector] (video) or [audioFormat] (`mp3`/`m4a`,
+  /// audio-only).
   Future<MergeDownloadResult> downloadPlaylist({
     required String url,
     required String outputDir,
@@ -349,6 +370,9 @@ class YtDlpEngine {
     int audioQualityKbps = 0,
     String? playlistItems,
     int expectedCount = 0,
+    required String relativePath,
+    required String summaryTitle,
+    required String summaryText,
     void Function(MergeProgress progress)? onProgress,
     void Function(PlaylistItemDone item)? onItem,
   }) async {
@@ -365,6 +389,9 @@ class YtDlpEngine {
       'audioQuality': audioQualityKbps,
       'playlistItems': playlistItems,
       'expectedCount': expectedCount,
+      'relativePath': relativePath,
+      'summaryTitle': summaryTitle,
+      'summaryText': summaryText,
     });
     return completer.future;
   }
@@ -372,14 +399,19 @@ class YtDlpEngine {
   /// Starts a merge download (video-only + audio-only, combined by yt-dlp's
   /// own `execute()` inside an Android foreground service — see
   /// `YtDlpDownloadService.kt`) and returns once it truly finishes
-  /// (complete/canceled/error). [onProgress] receives combined progress
-  /// updates while it runs. Unlike the `background_downloader` path, this
-  /// cannot be paused — only canceled (via [cancelDownload]).
+  /// (complete/canceled/error). The service saves the result into
+  /// MediaStore under [relativePath] and posts the tap-to-open notification
+  /// ([notifyText]) itself, so a download outliving this Dart side is still
+  /// saved. [onProgress] receives combined progress updates while it runs.
+  /// Unlike the `background_downloader` path, this cannot be paused — only
+  /// canceled (via [cancelDownload]).
   Future<MergeDownloadResult> downloadMerge({
     required String url,
     required String formatSelector,
     required String outputPath,
     required String processId,
+    required String relativePath,
+    required String notifyText,
     int? durationSeconds,
     void Function(MergeProgress progress)? onProgress,
   }) async {
@@ -394,14 +426,17 @@ class YtDlpEngine {
       'outputPath': outputPath,
       'processId': processId,
       'durationSeconds': durationSeconds ?? 0,
+      'relativePath': relativePath,
+      'notifyText': notifyText,
     });
     return completer.future;
   }
 
   /// Starts an audio-only download (yt-dlp `-x --audio-format …` inside the
   /// same Android foreground service as [downloadMerge]) and returns once it
-  /// finishes. [audioFormat] is `mp3` or `m4a`; [audioQualityKbps] is the
-  /// target bitrate for an mp3 preset, or 0 to keep the source bitrate.
+  /// finishes — saved natively, same as [downloadMerge]. [audioFormat] is
+  /// `mp3` or `m4a`; [audioQualityKbps] is the target bitrate for an mp3
+  /// preset, or 0 to keep the source bitrate.
   /// No pause/resume — only [cancelDownload].
   Future<MergeDownloadResult> downloadAudio({
     required String url,
@@ -409,6 +444,8 @@ class YtDlpEngine {
     required int audioQualityKbps,
     required String outputPath,
     required String processId,
+    required String relativePath,
+    required String notifyText,
     int? durationSeconds,
     void Function(MergeProgress progress)? onProgress,
   }) async {
@@ -424,6 +461,8 @@ class YtDlpEngine {
       'outputPath': outputPath,
       'processId': processId,
       'durationSeconds': durationSeconds ?? 0,
+      'relativePath': relativePath,
+      'notifyText': notifyText,
     });
     return completer.future;
   }
@@ -479,6 +518,9 @@ class YtDlpEngine {
               index: (args['index'] as num?)?.toInt() ?? 0,
               count: (args['count'] as num?)?.toInt() ?? 0,
               path: path,
+              saved: args['saved'] as bool? ?? false,
+              contentUri: args['contentUri'] as String?,
+              error: args['error'] as String?,
             ),
           );
         }

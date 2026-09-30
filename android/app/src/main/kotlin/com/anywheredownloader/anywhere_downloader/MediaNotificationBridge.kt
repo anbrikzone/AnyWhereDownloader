@@ -23,12 +23,6 @@ import java.util.concurrent.atomic.AtomicInteger
  * no round-trip back into Dart is needed on tap.
  */
 class MediaNotificationBridge(private val appContext: Context) {
-    companion object {
-        private const val CHANNEL_ID = "download_complete"
-        private val nextNotificationId = AtomicInteger(2000)
-        private val nextRequestCode = AtomicInteger(3000)
-    }
-
     fun handle(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
             "showDownloadComplete" -> {
@@ -40,26 +34,45 @@ class MediaNotificationBridge(private val appContext: Context) {
                 val text = call.argument<String>("text") ?: "Tap to open"
                 val uri = call.argument<String>("uri")
                 val mimeType = call.argument<String>("mimeType")
-                showDownloadComplete(title, text, uri, mimeType)
+                DownloadNotifications.showDownloadComplete(appContext, title, text, uri, mimeType)
                 result.success(null)
             }
 
             else -> result.notImplemented()
         }
     }
+}
 
-    private fun showDownloadComplete(title: String, text: String, uri: String?, mimeType: String?) {
+/**
+ * The notification itself, callable without a MethodChannel —
+ * [YtDlpDownloadService] posts it directly once it has saved a file, so it
+ * still appears when the Flutter UI is gone.
+ */
+object DownloadNotifications {
+    private const val CHANNEL_ID = "download_complete"
+    private val nextNotificationId = AtomicInteger(2000)
+    private val nextRequestCode = AtomicInteger(3000)
+
+    fun showDownloadComplete(
+        context: Context,
+        title: String,
+        text: String,
+        uri: String?,
+        mimeType: String?,
+    ) {
+        // POST_NOTIFICATIONS only exists from API 33 — checking it on 31/32
+        // would always report "denied".
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val granted = ActivityCompat.checkSelfPermission(
-                appContext,
+                context,
                 android.Manifest.permission.POST_NOTIFICATIONS,
             ) == android.content.pm.PackageManager.PERMISSION_GRANTED
             if (!granted) return
         }
 
-        ensureChannel()
+        ensureChannel(context)
 
-        val builder = NotificationCompat.Builder(appContext, CHANNEL_ID)
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(text)
             .setSmallIcon(android.R.drawable.stat_sys_download_done)
@@ -71,7 +84,7 @@ class MediaNotificationBridge(private val appContext: Context) {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
             val pendingIntent = PendingIntent.getActivity(
-                appContext,
+                context,
                 nextRequestCode.getAndIncrement(),
                 viewIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
@@ -80,7 +93,7 @@ class MediaNotificationBridge(private val appContext: Context) {
         }
 
         try {
-            NotificationManagerCompat.from(appContext)
+            NotificationManagerCompat.from(context)
                 .notify(nextNotificationId.getAndIncrement(), builder.build())
         } catch (e: SecurityException) {
             // POST_NOTIFICATIONS was revoked between the check above and
@@ -89,12 +102,10 @@ class MediaNotificationBridge(private val appContext: Context) {
         }
     }
 
-    private fun ensureChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val manager = appContext.getSystemService(NotificationManager::class.java)
-            manager.createNotificationChannel(
-                NotificationChannel(CHANNEL_ID, "Downloads complete", NotificationManager.IMPORTANCE_DEFAULT)
-            )
-        }
+    private fun ensureChannel(context: Context) {
+        val manager = context.getSystemService(NotificationManager::class.java)
+        manager.createNotificationChannel(
+            NotificationChannel(CHANNEL_ID, "Downloads complete", NotificationManager.IMPORTANCE_DEFAULT)
+        )
     }
 }

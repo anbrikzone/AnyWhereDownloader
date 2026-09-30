@@ -36,6 +36,23 @@ class YtDlpBridge(private val appContext: Context) {
         private const val TAG = "YtDlpBridge"
     }
 
+    /** Where/how [YtDlpDownloadService] saves the finished file itself. */
+    private fun putSaveExtras(call: MethodCall, intent: Intent) {
+        intent.putExtra(
+            YtDlpDownloadService.EXTRA_RELATIVE_PATH,
+            call.argument<String>("relativePath"),
+        )
+        call.argument<String>("notifyText")?.let {
+            intent.putExtra(YtDlpDownloadService.EXTRA_NOTIFY_TEXT, it)
+        }
+        call.argument<String>("summaryTitle")?.let {
+            intent.putExtra(YtDlpDownloadService.EXTRA_SUMMARY_TITLE, it)
+        }
+        call.argument<String>("summaryText")?.let {
+            intent.putExtra(YtDlpDownloadService.EXTRA_SUMMARY_TEXT, it)
+        }
+    }
+
     fun handle(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
             "getInfo" -> {
@@ -65,7 +82,8 @@ class YtDlpBridge(private val appContext: Context) {
                 val expectedCount = call.argument<Int>("expectedCount") ?: 0
                 val outputDir = call.argument<String>("outputDir")
                 val processId = call.argument<String>("processId")
-                if (url == null || outputDir == null || processId == null ||
+                val relativePath = call.argument<String>("relativePath")
+                if (relativePath == null || url == null || outputDir == null || processId == null ||
                     (formatSelector == null && audioFormat == null)
                 ) {
                     result.error("bad_args", "Missing arguments", null)
@@ -82,6 +100,7 @@ class YtDlpBridge(private val appContext: Context) {
                     putExtra(YtDlpDownloadService.EXTRA_OUTPUT_DIR, outputDir)
                     putExtra(YtDlpDownloadService.EXTRA_PROCESS_ID, processId)
                 }
+                putSaveExtras(call, intent)
                 ContextCompat.startForegroundService(appContext, intent)
                 result.success(null)
             }
@@ -92,7 +111,8 @@ class YtDlpBridge(private val appContext: Context) {
                 val outputPath = call.argument<String>("outputPath")
                 val processId = call.argument<String>("processId")
                 val durationSeconds = call.argument<Int>("durationSeconds") ?: 0
-                if (url == null || formatSelector == null || outputPath == null || processId == null) {
+                val relativePath = call.argument<String>("relativePath")
+                if (relativePath == null || url == null || formatSelector == null || outputPath == null || processId == null) {
                     result.error("bad_args", "Missing arguments", null)
                     return
                 }
@@ -103,6 +123,7 @@ class YtDlpBridge(private val appContext: Context) {
                     putExtra(YtDlpDownloadService.EXTRA_PROCESS_ID, processId)
                     putExtra(YtDlpDownloadService.EXTRA_DURATION_SECONDS, durationSeconds)
                 }
+                putSaveExtras(call, intent)
                 ContextCompat.startForegroundService(appContext, intent)
                 result.success(null)
             }
@@ -114,7 +135,8 @@ class YtDlpBridge(private val appContext: Context) {
                 val outputPath = call.argument<String>("outputPath")
                 val processId = call.argument<String>("processId")
                 val durationSeconds = call.argument<Int>("durationSeconds") ?: 0
-                if (url == null || audioFormat == null || outputPath == null || processId == null) {
+                val relativePath = call.argument<String>("relativePath")
+                if (relativePath == null || url == null || audioFormat == null || outputPath == null || processId == null) {
                     result.error("bad_args", "Missing arguments", null)
                     return
                 }
@@ -127,6 +149,7 @@ class YtDlpBridge(private val appContext: Context) {
                     putExtra(YtDlpDownloadService.EXTRA_PROCESS_ID, processId)
                     putExtra(YtDlpDownloadService.EXTRA_DURATION_SECONDS, durationSeconds)
                 }
+                putSaveExtras(call, intent)
                 ContextCompat.startForegroundService(appContext, intent)
                 result.success(null)
             }

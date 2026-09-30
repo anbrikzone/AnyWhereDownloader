@@ -8,10 +8,15 @@ import android.app.Service
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.yausername.youtubedl_android.YoutubeDL
 import com.yausername.youtubedl_android.YoutubeDLRequest
+import java.io.File
+import java.util.Collections
 import java.util.concurrent.Executors
+import java.util.concurrent.Future
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Runs a merge download (adaptive video-only + audio-only, muxed via
@@ -26,6 +31,13 @@ import java.util.concurrent.Executors
  * (`onDownloadProgress` / `onDownloadStatus`) rather than a single
  * MethodChannel result, since the call that starts this service returns
  * immediately — the whole point is surviving beyond that call's lifetime.
+ *
+ * Saving the finished file into MediaStore and posting the "download
+ * complete" notification also happen here, not in Dart: the Flutter UI can
+ * die mid-download (app swiped from Recents, activity recreated) while this
+ * service keeps running, and a save step living in Dart would then never
+ * run — the file would sit in cacheDir, lost. Dart only mirrors the outcome
+ * into its UI state when it's still around to hear it.
  */
 class YtDlpDownloadService : Service() {
     companion object {
@@ -40,13 +52,32 @@ class YtDlpDownloadService : Service() {
         const val EXTRA_EXPECTED_COUNT = "expectedCount" // playlist mode: how many items will be downloaded
         const val EXTRA_PROCESS_ID = "processId"
         const val EXTRA_DURATION_SECONDS = "durationSeconds"
+        // MediaStore `RELATIVE_PATH` to save into, e.g.
+        // `Movies/AnyWhereDownloader/YouTube` (root already resolved by Dart
+        // from Settings at start time).
+        const val EXTRA_RELATIVE_PATH = "relativePath"
+        const val EXTRA_NOTIFY_TEXT = "notifyText" // single-file completion text
+        const val EXTRA_SUMMARY_TITLE = "summaryTitle" // playlist summary
+        const val EXTRA_SUMMARY_TEXT = "summaryText" // template: {saved}, {total}
         const val ACTION_CANCEL = "com.anywheredownloader.anywhere_downloader.ACTION_CANCEL"
 
         private const val CHANNEL_ID = "yt_dlp_downloads"
         private const val NOTIFICATION_ID = 1001
+        private const val TAG = "YtDlpDownloadService"
     }
 
     private val executor = Executors.newSingleThreadExecutor()
+
+    // Playlist items are saved off the yt-dlp output callback thread so a
+    // large file copy never stalls reading the subprocess's stdout.
+    private val saveExecutor = Executors.newSingleThreadExecutor()
+
+    private class SaveSpec(
+        val relativePath: String,
+        val notifyText: String,
+        val summaryTitle: String,
+        val summaryText: String,
+    )
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -62,10 +93,17 @@ class YtDlpDownloadService : Service() {
         val url = intent?.getStringExtra(EXTRA_URL)
         val processId = intent?.getStringExtra(EXTRA_PROCESS_ID)
         val durationSeconds = intent?.getIntExtra(EXTRA_DURATION_SECONDS, 0) ?: 0
-        if (url == null || processId == null) {
+        val relativePath = intent?.getStringExtra(EXTRA_RELATIVE_PATH)
+        if (url == null || processId == null || relativePath == null) {
             stopSelf()
             return START_NOT_STICKY
         }
+        val save = SaveSpec(
+            relativePath = relativePath,
+            notifyText = intent.getStringExtra(EXTRA_NOTIFY_TEXT) ?: "Tap to open",
+            summaryTitle = intent.getStringExtra(EXTRA_SUMMARY_TITLE) ?: "YouTube",
+            summaryText = intent.getStringExtra(EXTRA_SUMMARY_TEXT) ?: "Saved {saved} of {total}",
+        )
 
         ensureChannel()
 
@@ -90,6 +128,7 @@ class YtDlpDownloadService : Service() {
                 expectedCount,
                 outputDir,
                 processId,
+                save,
             )
             return START_NOT_STICKY
         }
@@ -108,7 +147,7 @@ class YtDlpDownloadService : Service() {
                 return START_NOT_STICKY
             }
             startForeground(NOTIFICATION_ID, buildNotification(processId, progress = 0, phase = "audio"))
-            runAudioDownload(url, audioFormat, audioQuality, outputPath, processId, durationSeconds)
+            runAudioDownload(url, audioFormat, audioQuality, outputPath, processId, durationSeconds, save)
             return START_NOT_STICKY
         }
 
@@ -118,7 +157,7 @@ class YtDlpDownloadService : Service() {
             return START_NOT_STICKY
         }
         startForeground(NOTIFICATION_ID, buildNotification(processId, progress = 0, phase = "video"))
-        runDownload(url, formatSelector, outputPath, processId, durationSeconds)
+        runDownload(url, formatSelector, outputPath, processId, durationSeconds, save)
         return START_NOT_STICKY
     }
 
@@ -128,6 +167,7 @@ class YtDlpDownloadService : Service() {
         outputPath: String,
         processId: String,
         durationSeconds: Int,
+        save: SaveSpec,
     ) {
         executor.execute {
             try {
@@ -197,9 +237,20 @@ class YtDlpDownloadService : Service() {
                         ),
                     )
                 }
+                val contentUri = saveFinishedFile(
+                    outputPath,
+                    MediaStoreWriter.Kind.VIDEO,
+                    "video/mp4",
+                    save,
+                )
                 NativeToDartChannel.invoke(
                     "onDownloadStatus",
-                    mapOf("processId" to processId, "status" to "complete", "path" to outputPath),
+                    mapOf(
+                        "processId" to processId,
+                        "status" to "complete",
+                        "path" to outputPath,
+                        "contentUri" to contentUri,
+                    ),
                 )
             } catch (e: YoutubeDL.CanceledException) {
                 NativeToDartChannel.invoke(
@@ -213,6 +264,7 @@ class YtDlpDownloadService : Service() {
                 )
             } finally {
                 stopForeground(STOP_FOREGROUND_REMOVE)
+                cleanupWorkDir(File(outputPath).parentFile)
                 stopSelf()
             }
         }
@@ -225,6 +277,7 @@ class YtDlpDownloadService : Service() {
         outputPath: String,
         processId: String,
         durationSeconds: Int,
+        save: SaveSpec,
     ) {
         executor.execute {
             try {
@@ -278,12 +331,20 @@ class YtDlpDownloadService : Service() {
                         ),
                     )
                 }
+                val audioPath = finalPath ?: "$base.$audioFormat"
+                val contentUri = saveFinishedFile(
+                    audioPath,
+                    MediaStoreWriter.Kind.AUDIO,
+                    if (audioFormat == "mp3") "audio/mpeg" else "audio/mp4",
+                    save,
+                )
                 NativeToDartChannel.invoke(
                     "onDownloadStatus",
                     mapOf(
                         "processId" to processId,
                         "status" to "complete",
-                        "path" to (finalPath ?: "$base.$audioFormat"),
+                        "path" to audioPath,
+                        "contentUri" to contentUri,
                     ),
                 )
             } catch (e: YoutubeDL.CanceledException) {
@@ -298,6 +359,7 @@ class YtDlpDownloadService : Service() {
                 )
             } finally {
                 stopForeground(STOP_FOREGROUND_REMOVE)
+                cleanupWorkDir(File(outputPath).parentFile)
                 stopSelf()
             }
         }
@@ -306,10 +368,11 @@ class YtDlpDownloadService : Service() {
     /**
      * Downloads a whole YouTube playlist (or a `--playlist-items` subset) in
      * one yt-dlp `execute()` — it iterates the entries itself. Each finished
-     * file's final path is emitted to Dart via `onPlaylistItem` (parsed from
-     * a `--print after_move:` line) so Dart can save it to MediaStore and
-     * delete the temp copy as it goes, rather than holding a multi-GB
-     * playlist on disk until the end. Overall progress is item N of M.
+     * file (announced by a `--print after_move:` line) is saved to
+     * MediaStore right here, off the callback thread, and its temp copy
+     * deleted as it goes, rather than holding a multi-GB playlist on disk
+     * until the end; Dart hears the per-item outcome via `onPlaylistItem`.
+     * Overall progress is item N of M.
      */
     private fun runPlaylistDownload(
         url: String,
@@ -320,9 +383,14 @@ class YtDlpDownloadService : Service() {
         expectedCount: Int,
         outputDir: String,
         processId: String,
+        save: SaveSpec,
     ) {
         executor.execute {
-            try {
+            // Filled from yt-dlp's output-callback thread, drained here.
+            val pendingSaves = Collections.synchronizedList(mutableListOf<Future<*>>())
+            val savedCount = AtomicInteger(0)
+            var completed = 0
+            val status: Map<String, Any?> = try {
                 YtDlpCore.ensureInitialized(applicationContext)
                 val request = YoutubeDLRequest(url)
                 YtDlpOptions.applyYouTube(request, url)
@@ -378,9 +446,10 @@ class YtDlpDownloadService : Service() {
                     "after_move:@@AWD_ITEM@@\t%(playlist_count)s\t%(filepath)s",
                 )
 
-                // How many entries have fully finished. Drives the "N of M"
-                // counter directly (an `@@AWD_ITEM@@` line = one done).
-                var completed = 0
+                // `completed` (declared above the try, so the summary can
+                // read it after a cancel/error too) counts entries that have
+                // fully finished. Drives the "N of M" counter directly (an
+                // `@@AWD_ITEM@@` line = one done).
                 // Prefer the caller's expected count (a `--playlist-items`
                 // subset can be far smaller than yt-dlp's `playlist_count`).
                 var total = if (expectedCount > 0) expectedCount else 0
@@ -435,14 +504,22 @@ class YtDlpDownloadService : Service() {
                         m.groupValues[1].toIntOrNull()?.let { c ->
                             if (expectedCount <= 0 && c > 0) total = c
                         }
-                        NativeToDartChannel.invoke(
-                            "onPlaylistItem",
-                            mapOf(
-                                "processId" to processId,
-                                "index" to completed,
-                                "count" to total,
-                                "path" to m.groupValues[2].trim(),
-                            ),
+                        val itemPath = m.groupValues[2].trim()
+                        val itemIndex = completed
+                        val itemCount = total
+                        pendingSaves.add(
+                            saveExecutor.submit(Runnable {
+                                savePlaylistItem(
+                                    itemPath,
+                                    itemIndex,
+                                    itemCount,
+                                    isAudioMode,
+                                    audioFormat,
+                                    processId,
+                                    save,
+                                    savedCount,
+                                )
+                            }),
                         )
                         emitProgress(0.0)
                         return@execute
@@ -502,24 +579,142 @@ class YtDlpDownloadService : Service() {
                         emitProgress(progress.toDouble())
                     }
                 }
-                NativeToDartChannel.invoke(
-                    "onDownloadStatus",
-                    mapOf("processId" to processId, "status" to "complete"),
-                )
+                mapOf("processId" to processId, "status" to "complete")
             } catch (e: YoutubeDL.CanceledException) {
-                NativeToDartChannel.invoke(
-                    "onDownloadStatus",
-                    mapOf("processId" to processId, "status" to "canceled"),
-                )
+                mapOf("processId" to processId, "status" to "canceled")
             } catch (e: Exception) {
-                NativeToDartChannel.invoke(
-                    "onDownloadStatus",
-                    mapOf("processId" to processId, "status" to "error", "error" to e.message),
+                mapOf("processId" to processId, "status" to "error", "error" to e.message)
+            }
+            try {
+                // Entries that finished before a cancel/error are still
+                // saved — wait for every queued save before reporting.
+                for (pending in synchronized(pendingSaves) { pendingSaves.toList() }) {
+                    runCatching { pending.get() }
+                }
+                val total = if (expectedCount > 0) expectedCount else completed
+                DownloadNotifications.showDownloadComplete(
+                    applicationContext,
+                    save.summaryTitle,
+                    save.summaryText
+                        .replace("{saved}", savedCount.get().toString())
+                        .replace("{total}", total.toString()),
+                    null,
+                    null,
                 )
+                NativeToDartChannel.invoke("onDownloadStatus", status)
             } finally {
                 stopForeground(STOP_FOREGROUND_REMOVE)
+                cleanupWorkDir(File(outputDir))
                 stopSelf()
             }
+        }
+    }
+
+    /**
+     * Saves one finished single-file download into MediaStore, posts its
+     * tap-to-open notification and returns the new `content://` URI. A save
+     * failure is reported as the download's error (the caller's generic
+     * `catch`) — the file itself is removed with the work dir either way.
+     */
+    private fun saveFinishedFile(
+        path: String,
+        kind: MediaStoreWriter.Kind,
+        mimeType: String,
+        save: SaveSpec,
+    ): String {
+        val fileName = File(path).name
+        val contentUri = try {
+            MediaStoreWriter.save(
+                applicationContext,
+                path,
+                kind,
+                save.relativePath,
+                MediaStoreWriter.safeDisplayName(fileName, fallbackExtFor(kind)),
+                mimeType,
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "saving $path to ${save.relativePath} failed", e)
+            throw IllegalStateException(
+                "The file was downloaded but could not be saved: ${e.message}",
+                e,
+            )
+        }
+        DownloadNotifications.showDownloadComplete(
+            applicationContext,
+            fileName,
+            save.notifyText,
+            contentUri,
+            if (kind == MediaStoreWriter.Kind.AUDIO) "audio/*" else "video/*",
+        )
+        return contentUri
+    }
+
+    /** Runs on [saveExecutor]; never throws. */
+    private fun savePlaylistItem(
+        path: String,
+        index: Int,
+        count: Int,
+        isAudioMode: Boolean,
+        audioFormat: String?,
+        processId: String,
+        save: SaveSpec,
+        savedCount: AtomicInteger,
+    ) {
+        val kind = if (isAudioMode) MediaStoreWriter.Kind.AUDIO else MediaStoreWriter.Kind.VIDEO
+        val mimeType = when {
+            !isAudioMode -> "video/mp4"
+            audioFormat == "mp3" -> "audio/mpeg"
+            else -> "audio/mp4"
+        }
+        var contentUri: String? = null
+        var error: String? = null
+        try {
+            contentUri = MediaStoreWriter.save(
+                applicationContext,
+                path,
+                kind,
+                save.relativePath,
+                MediaStoreWriter.safeDisplayName(File(path).name, fallbackExtFor(kind)),
+                mimeType,
+            )
+            savedCount.incrementAndGet()
+        } catch (e: Exception) {
+            Log.e(TAG, "saving playlist item $path failed", e)
+            error = e.message ?: e.toString()
+        } finally {
+            File(path).delete()
+        }
+        NativeToDartChannel.invoke(
+            "onPlaylistItem",
+            mapOf(
+                "processId" to processId,
+                "index" to index,
+                "count" to count,
+                "path" to path,
+                "saved" to (contentUri != null),
+                "contentUri" to contentUri,
+                "error" to error,
+            ),
+        )
+    }
+
+    private fun fallbackExtFor(kind: MediaStoreWriter.Kind) =
+        if (kind == MediaStoreWriter.Kind.AUDIO) "mp3" else "mp4"
+
+    /**
+     * Deletes a per-download work directory (`ytdlp_<id>` / `playlist_<id>`
+     * directly under cacheDir) — including yt-dlp's `.part`/`.fNNN` leftovers
+     * after a cancel or error. Anything else is left alone, deliberately.
+     */
+    private fun cleanupWorkDir(dir: File?) {
+        if (dir == null) return
+        try {
+            val target = dir.canonicalFile
+            if (target.parentFile != cacheDir.canonicalFile) return
+            if (!target.name.startsWith("ytdlp_") && !target.name.startsWith("playlist_")) return
+            target.deleteRecursively()
+        } catch (e: Exception) {
+            Log.w(TAG, "cleanupWorkDir($dir) failed", e)
         }
     }
 

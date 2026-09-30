@@ -1,16 +1,14 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:background_downloader/background_downloader.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/download/download_engine.dart';
+import '../../core/download/download_finalizer.dart';
 import '../../core/extraction/media_extractor.dart';
 import '../../core/l10n/status_message.dart';
-import '../../core/notifications/media_notification_service.dart';
 import '../../core/notifications/notification_permission_service.dart';
 import '../../core/storage/media_library_service.dart';
-import '../../core/storage/media_save_service.dart';
 import '../../services/instagram/instagram_extractor.dart';
 
 final _galAlbum = relativePathForSource('Instagram');
@@ -68,22 +66,18 @@ class InstagramController extends StateNotifier<InstagramState> {
   InstagramController({
     InstagramExtractor? extractor,
     DownloadEngine? downloadEngine,
-    MediaSaveService? mediaSaveService,
-    MediaNotificationService? mediaNotificationService,
+    DownloadFinalizer? downloadFinalizer,
     NotificationPermissionService? notificationPermissionService,
   }) : _extractor = extractor ?? InstagramExtractor(),
        _downloadEngine = downloadEngine ?? DownloadEngine(),
-       _mediaSaveService = mediaSaveService ?? MediaSaveService(),
-       _mediaNotificationService =
-           mediaNotificationService ?? MediaNotificationService(),
+       _downloadFinalizer = downloadFinalizer ?? DownloadFinalizer.instance,
        _notificationPermissionService =
            notificationPermissionService ?? NotificationPermissionService(),
        super(const InstagramState());
 
   final InstagramExtractor _extractor;
   final DownloadEngine _downloadEngine;
-  final MediaSaveService _mediaSaveService;
-  final MediaNotificationService _mediaNotificationService;
+  final DownloadFinalizer _downloadFinalizer;
   final NotificationPermissionService _notificationPermissionService;
 
   /// Fetches format info for [url]. Returns null (and sets an error status
@@ -153,6 +147,13 @@ class InstagramController extends StateNotifier<InstagramState> {
       url: variant.sourceUrl,
       filename: filename,
       headers: variant.requestHeaders,
+      saveTo: GallerySaveSpec(
+        kind: variant.type == MediaVariantType.image
+            ? SavedMediaKind.image
+            : SavedMediaKind.video,
+        album: _galAlbum,
+        notifyTitle: filename,
+      ),
     );
 
     state = state.copyWith(
@@ -177,12 +178,7 @@ class InstagramController extends StateNotifier<InstagramState> {
       );
 
       if (result.status == TaskStatus.complete) {
-        final path = await _downloadEngine.filePath(task);
-        await _saveAndNotify(
-          path,
-          filename,
-          isImage: variant.type == MediaVariantType.image,
-        );
+        await _downloadFinalizer.finalize(task);
         state = state.copyWith(
           downloading: false,
           paused: false,
@@ -218,32 +214,6 @@ class InstagramController extends StateNotifier<InstagramState> {
         ),
       );
     }
-  }
-
-  /// Saves the downloaded temp file to the gallery and posts a "download
-  /// complete, tap to open" notification pointing at the saved item. A
-  /// notification failure must never turn a successful save into a
-  /// reported download failure, so it's isolated in its own try/catch —
-  /// same pattern as `YouTubeController._saveAndNotify`.
-  Future<void> _saveAndNotify(
-    String path,
-    String filename, {
-    bool isImage = false,
-  }) async {
-    final contentUri = isImage
-        ? await _mediaSaveService.saveImage(path, album: _galAlbum)
-        : await _mediaSaveService.saveVideo(path, album: _galAlbum);
-    final file = File(path);
-    if (await file.exists()) {
-      await file.delete();
-    }
-    try {
-      await _mediaNotificationService.notifyFileSaved(
-        title: filename,
-        contentUri: contentUri,
-        mimeType: isImage ? 'image/*' : 'video/*',
-      );
-    } catch (_) {}
   }
 
   Future<void> togglePause() async {
