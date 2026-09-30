@@ -429,7 +429,10 @@ class _StatusPreviewItemState extends ConsumerState<_StatusPreviewItem> {
       );
     }
     if (_imagePath != null) {
-      return Center(
+      // Full-page, not `Center`: `InteractiveViewer` clips to its own box,
+      // so shrink-wrapped to a wide photo on a portrait screen it zoomed
+      // inside that thin strip instead of filling the screen.
+      return SizedBox.expand(
         child: _ZoomableImage(
           file: File(_imagePath!),
           onZoomChanged: widget.onZoomChanged,
@@ -600,7 +603,7 @@ class _ZoomableImageState extends State<_ZoomableImage>
           if (details.pointerCount >= 2) _setZoomReported(true);
         },
         onInteractionEnd: (_) => _setZoomReported(_isZoomedIn),
-        child: Image.file(widget.file),
+        child: Center(child: Image.file(widget.file)),
       ),
     );
   }

@@ -391,7 +391,10 @@ class _LibraryPreviewItemState extends ConsumerState<_LibraryPreviewItem> {
       );
     }
     if (_file != null) {
-      return Center(
+      // Full-page, not `Center`: `InteractiveViewer` clips to its own box,
+      // so shrink-wrapped to a wide photo on a portrait screen it zoomed
+      // inside that thin strip instead of filling the screen.
+      return SizedBox.expand(
         child: _ZoomableImage(
           file: _file!,
           onZoomChanged: widget.onZoomChanged,
@@ -573,7 +576,7 @@ class _ZoomableImageState extends State<_ZoomableImage>
         },
         // Back to fit after the gesture → let paging resume.
         onInteractionEnd: (_) => _setZoomReported(_isZoomedIn),
-        child: Image.file(widget.file),
+        child: Center(child: Image.file(widget.file)),
       ),
     );
   }
