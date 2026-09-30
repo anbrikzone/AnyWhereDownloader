@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../core/l10n/status_message.dart';
+import '../../core/logging/app_log.dart';
 import '../../core/storage/media_save_service.dart';
 import '../../core/storage/saf_service.dart';
 import '../../core/ui/app_toast.dart';
@@ -537,7 +538,8 @@ class _StatusTileState extends State<_StatusTile> {
         destPath: destPath,
       );
       return ok ? destPath : null;
-    } catch (_) {
+    } catch (e, st) {
+      logError('WhatsAppStatusScreen.generateThumbnail', e, st);
       return null;
     }
   }

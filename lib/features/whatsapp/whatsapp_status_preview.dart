@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:saf_stream/saf_stream.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../core/logging/app_log.dart';
 import '../../core/settings/settings_providers.dart';
 import '../../core/storage/saf_service.dart';
 import '../../services/whatsapp/whatsapp_status_reader.dart';
@@ -381,7 +382,8 @@ class _StatusPreviewItemState extends ConsumerState<_StatusPreviewItem> {
         });
         _scheduleStuckCheck();
       }
-    } catch (_) {
+    } catch (e, st) {
+      logError('WhatsAppStatusPreview.load', e, st);
       if (mounted) {
         setState(() {
           _failed = true;
@@ -734,7 +736,8 @@ class _StatusPeekPreviewState extends State<StatusPeekPreview> {
           _loading = false;
         });
       }
-    } catch (_) {
+    } catch (e, st) {
+      logError('WhatsAppStatusPeek.load', e, st);
       if (mounted) {
         setState(() {
           _failed = true;

@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:photo_manager/photo_manager.dart';
 
+import '../logging/app_log.dart';
 import '../settings/app_settings_service.dart';
 
 /// Thrown when the file handed to [MediaSaveService] isn't actually the
@@ -110,7 +111,8 @@ class MediaSaveService {
         'olderThanMillis': olderThan.inMilliseconds,
       });
       return n ?? 0;
-    } catch (_) {
+    } catch (e, st) {
+      logError('MediaSaveService.pruneAlbum', e, st);
       return 0;
     }
   }
@@ -132,9 +134,10 @@ class MediaSaveService {
         'album': album,
         'root': root,
       });
-    } catch (_) {
+    } catch (e, st) {
       // Best-effort tidiness only — the actual file/row deletion already
       // succeeded regardless of whether this does.
+      logError('MediaSaveService.cleanupEmptyAlbumDir', e, st);
     }
   }
 
@@ -151,7 +154,8 @@ class MediaSaveService {
       );
       if (result == null) return const {};
       return result.map((key, value) => MapEntry(key, value as String));
-    } catch (_) {
+    } catch (e, st) {
+      logError('MediaSaveService.queryLibraryBucketPaths', e, st);
       return const {};
     }
   }
@@ -180,7 +184,8 @@ class MediaSaveService {
         needsPermissionUris:
             (result['needsPermissionUris'] as List?)?.cast<String>() ?? const <String>[],
       );
-    } catch (_) {
+    } catch (e, st) {
+      logError('MediaSaveService.moveBucket', e, st);
       return empty;
     }
   }
@@ -197,7 +202,8 @@ class MediaSaveService {
         'uris': uris,
       });
       return granted ?? false;
-    } catch (_) {
+    } catch (e, st) {
+      logError('MediaSaveService.requestWriteAccess', e, st);
       return false;
     }
   }
@@ -220,7 +226,8 @@ class MediaSaveService {
         'height': height,
       });
       return ok ?? false;
-    } catch (_) {
+    } catch (e, st) {
+      logError('MediaSaveService.saveVideoThumbnail', e, st);
       return false;
     }
   }

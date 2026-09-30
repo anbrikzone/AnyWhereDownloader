@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../core/logging/app_log.dart';
 import '../../core/settings/settings_providers.dart';
 import '../preview/video_player_view.dart';
 
@@ -312,7 +313,8 @@ class _LibraryPreviewItemState extends ConsumerState<_LibraryPreviewItem> {
           : VideoPlayerController.file(file!);
       try {
         await controller.initialize();
-      } catch (_) {
+      } catch (e, st) {
+        logError('LibraryPreview.load', e, st);
         await controller.dispose();
         if (mounted) setState(() => _loading = false);
         return;

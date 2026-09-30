@@ -3,6 +3,7 @@ import 'package:html/parser.dart' as html_parser;
 import 'package:http/http.dart' as http;
 
 import '../../core/extraction/media_extractor.dart';
+import '../../core/logging/app_log.dart';
 
 const _browserUa =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
@@ -31,7 +32,8 @@ Future<MediaInfo?> linkedInInfoViaOpenGraph(
     response = await httpClient
         .get(Uri.parse(url.trim()), headers: const {'User-Agent': _browserUa})
         .timeout(const Duration(seconds: 20));
-  } catch (_) {
+  } catch (e, st) {
+    logError('LinkedInOgFallback.linkedInInfoViaOpenGraph', e, st);
     return null;
   }
   if (response.statusCode != 200) return null;

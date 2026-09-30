@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:photo_manager/photo_manager.dart';
 
 // ignore: unused_import
+import '../logging/app_log.dart';
 import '../settings/app_settings_service.dart'; // for MediaSaveRoot/AudioSaveRoot doc links only
 import 'media_save_service.dart';
 
@@ -399,8 +400,9 @@ class MediaLibraryService {
       final needsPermission = await _runMoves(pendingMoves);
       if (needsPermission.isEmpty) return null;
       return PendingMigrationConsent._(pendingMoves, needsPermission);
-    } catch (_) {
+    } catch (e, st) {
       // Best-effort — never block Library from loading over this.
+      logError('MediaLibraryService.attemptMigration', e, st);
       return null;
     }
   }
@@ -445,7 +447,8 @@ class MediaLibraryService {
       final needsPermission = await _runMoves(pendingMoves);
       if (needsPermission.isEmpty) return null;
       return PendingMigrationConsent._(pendingMoves, needsPermission);
-    } catch (_) {
+    } catch (e, st) {
+      logError('MediaLibraryService.attemptMoveRoot', e, st);
       return null;
     }
   }
@@ -465,7 +468,8 @@ class MediaLibraryService {
       if (!granted) return false;
       final stillNeeded = await _runMoves(pending._moves);
       return stillNeeded.isEmpty;
-    } catch (_) {
+    } catch (e, st) {
+      logError('MediaLibraryService.completeMigrationAfterConsent', e, st);
       return false;
     }
   }

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../changelog/changelog.dart';
+import '../logging/app_log.dart';
 import '../settings/app_settings_service.dart';
 import 'update_installer.dart';
 import 'update_service.dart';
@@ -103,8 +104,9 @@ class UpdateController extends StateNotifier<UpdateState> {
         // Nothing (or nothing any more) — settle on a plain "up to date".
         state = const UpdateUpToDate();
       }
-    } catch (_) {
+    } catch (e, st) {
       // A failed background check stays quiet: keep whatever we last knew.
+      logError('UpdateCheck.check', e, st);
     } finally {
       _checking = false;
     }

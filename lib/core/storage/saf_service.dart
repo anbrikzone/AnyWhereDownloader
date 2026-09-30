@@ -2,6 +2,8 @@ import 'package:saf_util/saf_util.dart';
 import 'package:saf_util/saf_util_platform_interface.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../logging/app_log.dart';
+
 /// Thin wrapper around the `saf_util` plugin (Android Storage Access
 /// Framework). Isolates every SAF call so the rest of the app never depends
 /// directly on the plugin, mirroring the [MediaExtractor] isolation
@@ -59,8 +61,9 @@ class SafService {
     if (uri != null) {
       try {
         await _safUtil.releasePersistedPermission(uri);
-      } catch (_) {
+      } catch (e, st) {
         // Ignore — the URI is being forgotten regardless.
+        logError('SafService.forgetTreeUri', e, st);
       }
     }
     await prefs.remove(_key(prefsKey));

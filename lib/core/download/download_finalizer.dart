@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:background_downloader/background_downloader.dart';
 import 'package:flutter/widgets.dart';
 
+import '../logging/app_log.dart';
 import '../notifications/media_notification_service.dart';
 import '../storage/media_save_service.dart';
 
@@ -156,8 +157,8 @@ class DownloadFinalizer {
       await FileDownloader().resumeFromBackground();
       AppLifecycleListener(onResume: () => unawaited(reconcile()));
       await reconcile();
-    } catch (error, stack) {
-      debugPrint('[DownloadFinalizer] start failed: $error\n$stack');
+    } catch (e, st) {
+      logError('DownloadFinalizer.start', e, st);
     }
   }
 
@@ -165,7 +166,11 @@ class DownloadFinalizer {
     if (update.status == TaskStatus.complete) {
       unawaited(_finalizeQuietly(_fromTask(update.task, update.status)));
     } else if (update.status.isFinalState) {
-      unawaited(_store.delete(update.task.taskId).catchError((_) {}));
+      unawaited(
+        _store.delete(update.task.taskId).catchError((Object e, StackTrace st) {
+          logError('DownloadFinalizer.onOrphanStatus', e, st);
+        }),
+      );
     }
   }
 
@@ -175,8 +180,8 @@ class DownloadFinalizer {
     final List<TrackedDownload> records;
     try {
       records = await _store.all();
-    } catch (error) {
-      debugPrint('[DownloadFinalizer] reading records failed: $error');
+    } catch (e, st) {
+      logError('DownloadFinalizer.reconcile', e, st);
       return;
     }
     for (final record in records) {
@@ -185,7 +190,9 @@ class DownloadFinalizer {
       } else if (record.status.isFinalState) {
         try {
           await _store.delete(record.taskId);
-        } catch (_) {}
+        } catch (e, st) {
+          logError('DownloadFinalizer.reconcile', e, st);
+        }
       }
     }
   }
@@ -206,10 +213,8 @@ class DownloadFinalizer {
   Future<void> _finalizeQuietly(TrackedDownload download) async {
     try {
       await _finalize(download);
-    } catch (error) {
-      debugPrint(
-        '[DownloadFinalizer] background save of ${download.taskId} failed: $error',
-      );
+    } catch (e, st) {
+      logError('DownloadFinalizer.backgroundSave ${download.taskId}', e, st);
     }
   }
 
@@ -257,9 +262,10 @@ class DownloadFinalizer {
           contentUri: contentUri,
           mimeType: isImage ? 'image/*' : 'video/*',
         );
-      } catch (_) {
+      } catch (e, st) {
         // A notification failure must never turn a successful save into a
         // reported download failure.
+        logError('DownloadFinalizer.save', e, st);
       }
       return contentUri;
     } finally {
@@ -268,10 +274,14 @@ class DownloadFinalizer {
       // the next reconcile.
       try {
         if (await file.exists()) await file.delete();
-      } catch (_) {}
+      } catch (e, st) {
+        logError('DownloadFinalizer.save', e, st);
+      }
       try {
         await _store.delete(download.taskId);
-      } catch (_) {}
+      } catch (e, st) {
+        logError('DownloadFinalizer.save', e, st);
+      }
     }
   }
 }

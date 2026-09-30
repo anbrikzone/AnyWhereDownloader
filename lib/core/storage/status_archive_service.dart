@@ -4,6 +4,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:saf_stream/saf_stream.dart';
 
 import '../../services/whatsapp/whatsapp_status_reader.dart';
+import '../logging/app_log.dart';
 import 'media_library_service.dart';
 import 'media_save_service.dart';
 
@@ -86,7 +87,8 @@ class StatusArchiveService {
         await _safStream.copyToLocalFile(status.uri, dest);
         existing.add(status.name);
         archived++;
-      } catch (_) {
+      } catch (e, st) {
+        logError('StatusArchiveService.archiveNew', e, st);
         final f = File(dest);
         if (await f.exists()) await f.delete();
       }
@@ -124,7 +126,8 @@ class StatusArchiveService {
       }
       items.sort((a, b) => b.lastModified.compareTo(a.lastModified));
       return items;
-    } catch (_) {
+    } catch (e, st) {
+      logError('StatusArchiveService.loadArchived', e, st);
       return const [];
     }
   }
@@ -148,11 +151,14 @@ class StatusArchiveService {
           try {
             await entity.delete();
             removed++;
-          } catch (_) {}
+          } catch (e, st) {
+            logError('StatusArchiveService.pruneExpired', e, st);
+          }
         }
       }
       return removed;
-    } catch (_) {
+    } catch (e, st) {
+      logError('StatusArchiveService.pruneExpired', e, st);
       return 0;
     }
   }
@@ -163,7 +169,9 @@ class StatusArchiveService {
     try {
       final dir = await _archiveDir();
       if (await dir.exists()) await dir.delete(recursive: true);
-    } catch (_) {}
+    } catch (e, st) {
+      logError('StatusArchiveService.purgeAll', e, st);
+    }
   }
 
   /// One-time cleanup of the gallery album the 0.3.4 archiver wrote into.
@@ -173,7 +181,9 @@ class StatusArchiveService {
     try {
       // `Duration.zero` => "older than now" => the whole album.
       await _mediaSaveService.pruneAlbum(_legacyAlbum, Duration.zero);
-    } catch (_) {}
+    } catch (e, st) {
+      logError('StatusArchiveService.purgeLegacyGalleryAlbum', e, st);
+    }
   }
 
   Future<Set<String>> _existingOriginalNames(Directory dir) async {

@@ -2,6 +2,7 @@ import 'package:background_downloader/background_downloader.dart';
 import 'package:flutter/services.dart';
 
 import '../download/download_engine.dart';
+import '../logging/app_log.dart';
 import 'update_service.dart';
 
 /// Result of [UpdateInstaller.downloadApk].
@@ -44,7 +45,8 @@ class UpdateInstaller {
         name: (m['name'] as String?) ?? '',
         code: (m['code'] as num?)?.toInt() ?? 0,
       );
-    } catch (_) {
+    } catch (e, st) {
+      logError('UpdateInstaller.appVersion', e, st);
       return null;
     }
   }

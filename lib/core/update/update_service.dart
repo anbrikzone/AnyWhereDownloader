@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:pub_semver/pub_semver.dart';
 
 import '../changelog/changelog.dart';
+import '../logging/app_log.dart';
 
 /// The public GitHub repository whose Releases feed is checked for a newer
 /// APK. Format `owner/repo`. See `RELEASE.md` for how releases are cut and
@@ -129,7 +130,8 @@ class UpdateService {
         releaseNotes: (body['body'] as String?)?.trim() ?? '',
         assets: assets,
       );
-    } catch (_) {
+    } catch (e, st) {
+      logError('UpdateService.checkForUpdate', e, st);
       return null;
     }
   }

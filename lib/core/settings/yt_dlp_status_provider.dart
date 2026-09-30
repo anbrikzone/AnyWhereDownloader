@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../logging/app_log.dart';
 import '../yt_dlp_engine/yt_dlp_engine.dart';
 
 /// State for the Settings → About "yt-dlp engine" row: the bundled binary's
@@ -42,7 +43,8 @@ class YtDlpStatusController extends StateNotifier<YtDlpStatusState> {
     try {
       final info = await _engine.getYtDlpStatus();
       if (mounted) state = state.copyWith(info: info, loading: false);
-    } catch (_) {
+    } catch (e, st) {
+      logError('YtDlpStatus.refresh', e, st);
       if (mounted) state = state.copyWith(loading: false);
     }
   }
@@ -58,7 +60,8 @@ class YtDlpStatusController extends StateNotifier<YtDlpStatusState> {
         state = state.copyWith(info: info, updating: false, loading: false);
       }
       return info;
-    } catch (_) {
+    } catch (e, st) {
+      logError('YtDlpStatus.updateNow', e, st);
       if (mounted) state = state.copyWith(updating: false);
       return null;
     }

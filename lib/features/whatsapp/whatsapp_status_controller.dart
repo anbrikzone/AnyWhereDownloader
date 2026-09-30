@@ -7,6 +7,7 @@ import 'package:saf_stream/saf_stream.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../core/l10n/status_message.dart';
+import '../../core/logging/app_log.dart';
 import '../../core/notifications/media_notification_service.dart';
 import '../../core/notifications/notification_permission_service.dart';
 import '../../core/settings/app_settings_service.dart';
@@ -131,7 +132,9 @@ class WhatsAppStatusController extends StateNotifier<WhatsAppStatusState> {
       if (await _appSettingsService.getLegacyArchivePurged()) return;
       await _statusArchiveService.purgeLegacyGalleryAlbum();
       await _appSettingsService.setLegacyArchivePurged(true);
-    } catch (_) {}
+    } catch (e, st) {
+      logError('WhatsAppStatusController.purgeLegacyGalleryAlbumOnce', e, st);
+    }
   }
 
   Future<void> pickFolder({required bool business}) async {
@@ -183,7 +186,9 @@ class WhatsAppStatusController extends StateNotifier<WhatsAppStatusState> {
       }
       await _statusArchiveService.archiveNew(statuses);
       await _statusArchiveService.pruneExpired(retention.duration);
-    } catch (_) {}
+    } catch (e, st) {
+      logError('WhatsAppStatusController.runArchive', e, st);
+    }
   }
 
   /// Loads the private archive into [WhatsAppStatusState.archivedItems],
@@ -205,7 +210,8 @@ class WhatsAppStatusController extends StateNotifier<WhatsAppStatusState> {
         archivedItems:
             archived.where((a) => !freshNames.contains(a.name)).toList(),
       );
-    } catch (_) {
+    } catch (e, st) {
+      logError('WhatsAppStatusController.loadArchived', e, st);
       state = state.copyWith(archivedItems: const []);
     }
   }
@@ -271,7 +277,8 @@ class WhatsAppStatusController extends StateNotifier<WhatsAppStatusState> {
         lastSavedMimeType = isImage ? 'image/*' : 'video/*';
         lastSavedName = item.name;
         succeeded++;
-      } catch (_) {
+      } catch (e, st) {
+        logError('WhatsAppStatusController.saveSelected', e, st);
         failed++;
       } finally {
         if (tempPath != null) {
@@ -300,7 +307,9 @@ class WhatsAppStatusController extends StateNotifier<WhatsAppStatusState> {
               : 'Saved $succeeded, failed $failed',
         );
       }
-    } catch (_) {}
+    } catch (e, st) {
+      logError('WhatsAppStatusController.saveSelected', e, st);
+    }
 
     state = state.copyWith(
       saving: false,
@@ -347,7 +356,8 @@ class WhatsAppStatusController extends StateNotifier<WhatsAppStatusState> {
         );
       }
       state = state.copyWith(sharing: false, selectedUris: {});
-    } catch (_) {
+    } catch (e, st) {
+      logError('WhatsAppStatusController.shareSelected', e, st);
       state = state.copyWith(
         sharing: false,
         lastResultMessage: const StatusMessage(StatusMessageKey.couldNotShareFiles),
