@@ -15,12 +15,9 @@ import '../../services/x_twitter/x_twitter_extractor.dart';
 import '../../services/youtube/youtube_extractor.dart';
 import '../../core/ui/app_toast.dart';
 import '../../l10n/app_localizations.dart';
-import '../instagram/instagram_screen.dart';
-import '../linkedin/linkedin_screen.dart';
+import '../direct_download/direct_download_screen.dart';
 import '../settings/settings_screen.dart';
-import '../tiktok/tiktok_screen.dart';
 import '../whatsapp/whatsapp_status_screen.dart';
-import '../x_twitter/x_twitter_screen.dart';
 import '../youtube/youtube_screen.dart';
 
 /// Static per-service definition — everything about a service that doesn't
@@ -104,10 +101,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   static Widget _buildYouTube(BuildContext _) => const YouTubeScreen();
   static Widget _buildWhatsApp(BuildContext _) => const WhatsAppStatusScreen();
-  static Widget _buildTikTok(BuildContext _) => const TikTokScreen();
-  static Widget _buildXTwitter(BuildContext _) => const XTwitterScreen();
-  static Widget _buildInstagram(BuildContext _) => const InstagramScreen();
-  static Widget _buildLinkedIn(BuildContext _) => const LinkedInScreen();
+  static Widget _buildTikTok(BuildContext _) =>
+      const DirectDownloadScreen(service: ServiceType.tiktok);
+  static Widget _buildXTwitter(BuildContext _) =>
+      const DirectDownloadScreen(service: ServiceType.xTwitter);
+  static Widget _buildInstagram(BuildContext _) =>
+      const DirectDownloadScreen(service: ServiceType.instagram);
+  static Widget _buildLinkedIn(BuildContext _) =>
+      const DirectDownloadScreen(service: ServiceType.linkedin);
 
   /// Extractor factories keyed by service — used to build a fresh
   /// `ExtractorRegistry` containing only the currently-enabled services
@@ -253,21 +254,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         Navigator.of(
           context,
         ).push(MaterialPageRoute(builder: (_) => YouTubeScreen(initialUrl: url)));
-      case ServiceType.tiktok:
-        Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => TikTokScreen(initialUrl: url)));
-      case ServiceType.xTwitter:
+      case ServiceType.tiktok ||
+          ServiceType.xTwitter ||
+          ServiceType.instagram ||
+          ServiceType.linkedin:
         Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => XTwitterScreen(initialUrl: url)),
-        );
-      case ServiceType.instagram:
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => InstagramScreen(initialUrl: url)),
-        );
-      case ServiceType.linkedin:
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => LinkedInScreen(initialUrl: url)),
+          MaterialPageRoute(
+            builder: (_) => DirectDownloadScreen(service: type, initialUrl: url),
+          ),
         );
       case ServiceType.whatsapp:
         setState(

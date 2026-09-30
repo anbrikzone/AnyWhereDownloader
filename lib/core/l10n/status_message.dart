@@ -1,8 +1,8 @@
 import '../../l10n/app_localizations.dart';
 
 /// Identifies one of the small set of status/result messages a controller
-/// (`YouTubeController`, `TikTokController`, `XTwitterController`,
-/// `InstagramController`, `WhatsAppStatusController`, `LibraryController`)
+/// (`YouTubeController`, `DirectDownloadController` for TikTok/X/Instagram/
+/// LinkedIn, `WhatsAppStatusController`, `LibraryController`)
 /// can set on its state. Controllers are plain `StateNotifier`s with no
 /// `BuildContext`, so they can't call `AppLocalizations.of(context)`
 /// directly — they set one of these instead, and the screen (which has a

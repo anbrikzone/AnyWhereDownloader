@@ -3,31 +3,41 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/clipboard/clipboard_link_tracker.dart';
+import '../../core/extraction/media_extractor.dart';
 import '../../core/l10n/status_message.dart';
 import '../../core/settings/settings_providers.dart';
 import '../../core/ui/app_toast.dart';
 import '../../l10n/app_localizations.dart';
-import '../../services/instagram/instagram_extractor.dart';
 import '../format_selection/format_selection_sheet.dart';
 import '../format_selection/rename_dialog.dart';
-import 'instagram_controller.dart';
+import 'direct_download_controller.dart';
+import 'direct_download_service.dart';
 
-/// Modeled closely on `XTwitterScreen`/`TikTokScreen` — Instagram's formats
-/// are always muxed (see `InstagramExtractor`), so pause/resume always
-/// applies and there's no adaptive/merge-path UI (phase label, etc.) needed.
-class InstagramScreen extends ConsumerStatefulWidget {
-  const InstagramScreen({super.key, this.initialUrl});
+/// The screen for every [DirectDownloadService] (TikTok, X/Twitter,
+/// Instagram, LinkedIn). Modeled closely on `YouTubeScreen`, minus the
+/// adaptive/merge-path UI (download-phase label) — these formats are always
+/// muxed or a single photo, so pause/resume always applies.
+class DirectDownloadScreen extends ConsumerStatefulWidget {
+  const DirectDownloadScreen({
+    super.key,
+    required this.service,
+    this.initialUrl,
+  });
 
+  /// Must be one [DirectDownloadService.of] knows.
+  final ServiceType service;
   final String? initialUrl;
 
   @override
-  ConsumerState<InstagramScreen> createState() => _InstagramScreenState();
+  ConsumerState<DirectDownloadScreen> createState() =>
+      _DirectDownloadScreenState();
 }
 
-class _InstagramScreenState extends ConsumerState<InstagramScreen>
+class _DirectDownloadScreenState extends ConsumerState<DirectDownloadScreen>
     with WidgetsBindingObserver {
   late final _urlController = TextEditingController(text: widget.initialUrl);
-  final _extractor = InstagramExtractor();
+  late final _provider = directDownloadControllerProvider(widget.service);
+  late final _service = DirectDownloadService.of(widget.service)!;
 
   @override
   void initState() {
@@ -75,9 +85,8 @@ class _InstagramScreenState extends ConsumerState<InstagramScreen>
     final text = data?.text?.trim();
     if (text == null || text.isEmpty) return;
     if (!ClipboardLinkTracker.instance.shouldOffer(text)) return;
-    if (!_extractor.canHandle(text)) return;
-    final busy = ref.read(instagramControllerProvider).busy;
-    if (busy) return;
+    if (!ref.read(_provider.notifier).canHandle(text)) return;
+    if (ref.read(_provider).busy) return;
 
     ClipboardLinkTracker.instance.markHandled(text);
     if (!mounted) return;
@@ -97,14 +106,14 @@ class _InstagramScreenState extends ConsumerState<InstagramScreen>
   }
 
   Future<void> _onFetchPressed() async {
-    final controller = ref.read(instagramControllerProvider.notifier);
+    final controller = ref.read(_provider.notifier);
     final info = await controller.fetchInfo(_urlController.text);
     if (info == null || !mounted) return;
 
-    final suggestedName = InstagramController.suggestedFileName(info.title);
+    final suggestedName = controller.suggestedFileName(info.title);
 
-    // A single image variant is not a choice — download it straight away
-    // instead of showing a one-row format sheet.
+    // A single image variant (a photo post) is not a choice — download it
+    // straight away instead of showing a one-row format sheet.
     if (isSingleImageDownload(info)) {
       await controller.downloadVariant(info.variants.single, suggestedName);
       return;
@@ -142,10 +151,10 @@ class _InstagramScreenState extends ConsumerState<InstagramScreen>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final state = ref.watch(instagramControllerProvider);
-    final controller = ref.read(instagramControllerProvider.notifier);
+    final state = ref.watch(_provider);
+    final controller = ref.read(_provider.notifier);
 
-    ref.listen(instagramControllerProvider, (previous, next) {
+    ref.listen(_provider, (previous, next) {
       final message = next.statusMessage;
       if (message != null && message != previous?.statusMessage) {
         final text = resolveStatusMessage(l10n, message);
@@ -154,14 +163,14 @@ class _InstagramScreenState extends ConsumerState<InstagramScreen>
     });
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Instagram')),
+      appBar: AppBar(title: Text(_service.title)),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              l10n.instagramUrlHint,
+              _service.urlHint(l10n),
               style: const TextStyle(color: Colors.grey),
             ),
             const SizedBox(height: 16),
@@ -169,7 +178,7 @@ class _InstagramScreenState extends ConsumerState<InstagramScreen>
               controller: _urlController,
               enabled: !state.busy,
               decoration: InputDecoration(
-                labelText: l10n.instagramUrlLabel,
+                labelText: _service.urlLabel(l10n),
                 border: const OutlineInputBorder(),
                 suffixIcon: ValueListenableBuilder(
                   valueListenable: _urlController,
@@ -232,7 +241,7 @@ class _InstagramScreenState extends ConsumerState<InstagramScreen>
   }
 }
 
-String _progressLabel(AppLocalizations l10n, InstagramState state) {
+String _progressLabel(AppLocalizations l10n, DirectDownloadState state) {
   final percent = (state.progress * 100).toStringAsFixed(0);
   return state.paused ? l10n.pausedPercent(percent) : l10n.downloadingPercent(percent);
 }

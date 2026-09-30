@@ -9,12 +9,10 @@ import '../../core/extraction/media_extractor.dart';
 import '../../core/l10n/status_message.dart';
 import '../../core/notifications/notification_permission_service.dart';
 import '../../core/storage/media_library_service.dart';
-import '../../services/linkedin/linkedin_extractor.dart';
+import 'direct_download_service.dart';
 
-final _galAlbum = relativePathForSource('LinkedIn');
-
-class LinkedInState {
-  const LinkedInState({
+class DirectDownloadState {
+  const DirectDownloadState({
     this.fetching = false,
     this.downloading = false,
     this.paused = false,
@@ -31,14 +29,15 @@ class LinkedInState {
   final double progress;
   final StatusMessage? statusMessage;
 
-  /// Set while a download is running; used for pause/resume/cancel. Like
-  /// Instagram/TikTok/X-Twitter, LinkedIn downloads always go through the
-  /// `background_downloader` path, so pause/resume always works.
+  /// Set while a download is running; used for pause/resume/cancel. These
+  /// services' formats are always muxed (or a single photo), so every
+  /// download goes through the `background_downloader` path — pause/resume
+  /// always works, no merge-path state needed (unlike YouTube).
   final DownloadTask? currentTask;
 
   bool get busy => fetching || downloading;
 
-  LinkedInState copyWith({
+  DirectDownloadState copyWith({
     bool? fetching,
     bool? downloading,
     bool? paused,
@@ -48,7 +47,7 @@ class LinkedInState {
     DownloadTask? currentTask,
     bool clearCurrentTask = false,
   }) {
-    return LinkedInState(
+    return DirectDownloadState(
       fetching: fetching ?? this.fetching,
       downloading: downloading ?? this.downloading,
       paused: paused ?? this.paused,
@@ -61,23 +60,30 @@ class LinkedInState {
   }
 }
 
-class LinkedInController extends StateNotifier<LinkedInState> {
-  LinkedInController({
-    LinkedInExtractor? extractor,
+/// Fetch → pick a variant → download → save, for one [DirectDownloadService].
+class DirectDownloadController extends StateNotifier<DirectDownloadState> {
+  DirectDownloadController(
+    this.service, {
+    MediaExtractor? extractor,
     DownloadEngine? downloadEngine,
     DownloadFinalizer? downloadFinalizer,
     NotificationPermissionService? notificationPermissionService,
-  }) : _extractor = extractor ?? LinkedInExtractor(),
+  }) : _extractor = extractor ?? service.createExtractor(),
        _downloadEngine = downloadEngine ?? DownloadEngine(),
        _downloadFinalizer = downloadFinalizer ?? DownloadFinalizer.instance,
        _notificationPermissionService =
            notificationPermissionService ?? NotificationPermissionService(),
-       super(const LinkedInState());
+       _galAlbum = relativePathForSource(service.librarySource),
+       super(const DirectDownloadState());
 
-  final LinkedInExtractor _extractor;
+  final DirectDownloadService service;
+  final MediaExtractor _extractor;
   final DownloadEngine _downloadEngine;
   final DownloadFinalizer _downloadFinalizer;
   final NotificationPermissionService _notificationPermissionService;
+  final String _galAlbum;
+
+  bool canHandle(String url) => _extractor.canHandle(url);
 
   /// Fetches format info for [url]. Returns null (and sets an error status
   /// message) on failure so the screen can decide whether to open the
@@ -92,9 +98,7 @@ class LinkedInController extends StateNotifier<LinkedInState> {
       return null;
     }
     if (!_extractor.canHandle(trimmed)) {
-      state = state.copyWith(
-        statusMessage: const StatusMessage(StatusMessageKey.notLinkedInLink),
-      );
+      state = state.copyWith(statusMessage: StatusMessage(service.notHandledKey));
       return null;
     }
 
@@ -108,25 +112,23 @@ class LinkedInController extends StateNotifier<LinkedInState> {
         fetching: false,
         statusMessage: error is ExtractionException
             ? StatusMessage.raw(error.message)
-            : StatusMessage(
-                StatusMessageKey.couldNotFetchPost,
-                error: error.toString(),
-              ),
+            : StatusMessage(service.fetchFailedKey, error: error.toString()),
       );
       return null;
     }
   }
 
-  /// Suggests a safe default base filename (no extension) from a video
-  /// title — same sanitizer as `InstagramController.suggestedFileName`.
-  static String suggestedFileName(String title) {
+  /// Suggests a safe default base filename (no extension) from a post title
+  /// — same sanitizer as `YouTubeController.suggestedFileName`, only strips
+  /// characters actually illegal in a filename.
+  String suggestedFileName(String title) {
     final safeTitle = title
         .replaceAll(RegExp(r'[\\/:*?"<>|\x00-\x1F]'), '_')
         .trim();
     final truncated = safeTitle.length > 80
         ? safeTitle.substring(0, 80)
         : safeTitle;
-    return truncated.isEmpty ? 'linkedin' : truncated;
+    return truncated.isEmpty ? service.fallbackFileName : truncated;
   }
 
   Future<void> downloadVariant(MediaVariant variant, String baseFileName) async {
@@ -175,43 +177,33 @@ class LinkedInController extends StateNotifier<LinkedInState> {
         },
       );
 
+      final StatusMessage message;
       if (result.status == TaskStatus.complete) {
         await _downloadFinalizer.finalize(task);
-        state = state.copyWith(
-          downloading: false,
-          paused: false,
-          clearCurrentTask: true,
-          statusMessage: const StatusMessage(StatusMessageKey.saved),
-        );
+        message = const StatusMessage(StatusMessageKey.saved);
       } else if (result.status == TaskStatus.canceled) {
-        state = state.copyWith(
-          downloading: false,
-          paused: false,
-          clearCurrentTask: true,
-          statusMessage: const StatusMessage(StatusMessageKey.downloadCanceled),
-        );
+        message = const StatusMessage(StatusMessageKey.downloadCanceled);
       } else {
-        state = state.copyWith(
-          downloading: false,
-          paused: false,
-          clearCurrentTask: true,
-          statusMessage: StatusMessage(
-            StatusMessageKey.downloadFailed,
-            error: '${result.exception ?? result.status}',
-          ),
+        message = StatusMessage(
+          StatusMessageKey.downloadFailed,
+          error: '${result.exception ?? result.status}',
         );
       }
+      _finishDownload(message);
     } catch (error) {
-      state = state.copyWith(
-        downloading: false,
-        paused: false,
-        clearCurrentTask: true,
-        statusMessage: StatusMessage(
-          StatusMessageKey.downloadFailed,
-          error: error.toString(),
-        ),
+      _finishDownload(
+        StatusMessage(StatusMessageKey.downloadFailed, error: error.toString()),
       );
     }
+  }
+
+  void _finishDownload(StatusMessage message) {
+    state = state.copyWith(
+      downloading: false,
+      paused: false,
+      clearCurrentTask: true,
+      statusMessage: message,
+    );
   }
 
   Future<void> togglePause() async {
@@ -231,7 +223,12 @@ class LinkedInController extends StateNotifier<LinkedInState> {
   }
 }
 
-final linkedInControllerProvider =
-    StateNotifierProvider<LinkedInController, LinkedInState>(
-      (ref) => LinkedInController(),
-    );
+/// One long-lived controller per service (not auto-disposed, so a download
+/// keeps its state while the screen is closed), keyed by [ServiceType].
+/// Only the types [DirectDownloadService.of] knows are valid keys.
+final directDownloadControllerProvider =
+    StateNotifierProvider.family<
+      DirectDownloadController,
+      DirectDownloadState,
+      ServiceType
+    >((ref, type) => DirectDownloadController(DirectDownloadService.of(type)!));

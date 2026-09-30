@@ -64,8 +64,8 @@ final enabledServicesProvider =
     );
 
 /// Whether a recognized clipboard link is auto-inserted into a URL field
-/// (`HomeScreen`/`YouTubeScreen`/`TikTokScreen`/`XTwitterScreen`/
-/// `InstagramScreen` each check this before doing so). Starts `true` — the
+/// (`HomeScreen`/`YouTubeScreen`/`DirectDownloadScreen` each check this
+/// before doing so). Starts `true` — the
 /// previous hardcoded behavior — and loads the persisted value the same
 /// "default now, correct once loaded" way as the other controllers here.
 class ClipboardAutoPasteController extends StateNotifier<bool> {
