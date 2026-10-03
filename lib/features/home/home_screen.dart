@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/clipboard/clipboard_link_tracker.dart';
+import '../../core/logging/app_log.dart';
 import '../../core/extraction/extractor_registry.dart';
 import '../../core/extraction/media_extractor.dart';
 import '../../core/settings/settings_providers.dart';
@@ -165,6 +166,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     }
   }
 
+  static const _clipTag = 'Clipboard/Home';
+
   Future<void> _checkClipboard() async {
     // Home keeps running its lifecycle observer even while another screen
     // (e.g. YouTubeScreen) is pushed on top of it (MainShell's IndexedStack
@@ -176,15 +179,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // Nothing to auto-fill once the field has content — and not reading the
     // clipboard here is what stops Android's system "pasted from your
     // clipboard" toast firing on every return to the app.
-    if (_urlController.text.trim().isNotEmpty) return;
+    if (_urlController.text.trim().isNotEmpty) {
+      return logInfo(_clipTag, 'skip: URL field not empty');
+    }
     // hasStrings() inspects the clip's type, not its content, so it does
     // not trigger that toast; only getData() (the real read) does.
-    if (!await Clipboard.hasStrings()) return;
+    if (!await Clipboard.hasStrings()) {
+      return logInfo(_clipTag, 'skip: clipboard has no text (or no focus yet)');
+    }
     if (!mounted) return;
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     final text = data?.text?.trim();
-    if (text == null || text.isEmpty) return;
-    if (!ClipboardLinkTracker.instance.shouldOffer(text)) return;
+    if (text == null || text.isEmpty) {
+      return logInfo(_clipTag, 'skip: clipboard read returned empty');
+    }
+    if (!ClipboardLinkTracker.instance.shouldOffer(text)) {
+      return logInfo(_clipTag, 'skip: this link was already offered');
+    }
     if (_buildRegistry().resolve(text) == null) return;
 
     ClipboardLinkTracker.instance.markHandled(text);
