@@ -8,6 +8,7 @@ import java.io.File
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
 /**
@@ -223,15 +224,35 @@ object YtDlpCore {
     }
 
     /**
+     * Init for an interactive extraction (the user just tapped Go): the fast
+     * native init only, never the self-update — that runs (or is re-kicked,
+     * after a failure) in the background via [warmUp]. Blocking here cost up
+     * to [INLINE_UPDATE_TIMEOUT_MS] whenever the startup check was still in
+     * flight or had failed (2026-10-03 report: 10–15 s before the format
+     * list). A stale binary at worst fails this one extraction; the next one
+     * runs on whatever the background update fetched.
+     */
+    fun ensureReadyForExtraction(appContext: Context) {
+        ensureInitOnly(appContext)
+        if (!updateSucceededThisProcess) warmUp(appContext)
+    }
+
+    private val warmUpRunning = AtomicBoolean(false)
+
+    /**
      * Fire-and-forget init + update on a background thread. Called at app
      * startup so the update is off the first extraction's critical path.
+     * At most one runs at a time.
      */
     fun warmUp(appContext: Context) {
+        if (!warmUpRunning.compareAndSet(false, true)) return
         Thread {
             try {
                 ensureInitialized(appContext)
             } catch (e: Throwable) {
                 Log.w(TAG, "yt-dlp warm-up failed", e)
+            } finally {
+                warmUpRunning.set(false)
             }
         }.apply {
             isDaemon = true

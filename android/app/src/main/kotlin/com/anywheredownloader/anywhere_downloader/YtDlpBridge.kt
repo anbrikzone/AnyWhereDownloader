@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.yausername.youtubedl_android.YoutubeDL
@@ -207,7 +208,9 @@ class YtDlpBridge(private val appContext: Context) {
     private fun getInfo(url: String, result: MethodChannel.Result) {
         executor.execute {
             try {
-                YtDlpCore.ensureInitialized(appContext)
+                val startMs = SystemClock.elapsedRealtime()
+                YtDlpCore.ensureReadyForExtraction(appContext)
+                val initMs = SystemClock.elapsedRealtime() - startMs
                 val request = YoutubeDLRequest(url)
                 // SABR / player-client workaround for YouTube (no-op for
                 // every other host) — see YtDlpOptions.
@@ -241,6 +244,12 @@ class YtDlpBridge(private val appContext: Context) {
                     }
                 }
                 val map = videoInfoToMap(info)
+                Log.i(
+                    TAG,
+                    "getInfo timing: init=${initMs}ms " +
+                        "extract=${SystemClock.elapsedRealtime() - startMs - initMs}ms " +
+                        "formats=${info.formats?.size ?: 0}",
+                )
                 mainHandler.post { result.success(map) }
             } catch (e: YoutubeDLException) {
                 Log.e(TAG, "getInfo failed for $url", e)
@@ -262,7 +271,7 @@ class YtDlpBridge(private val appContext: Context) {
     private fun getPlaylistInfo(url: String, result: MethodChannel.Result) {
         executor.execute {
             try {
-                YtDlpCore.ensureInitialized(appContext)
+                YtDlpCore.ensureReadyForExtraction(appContext)
                 val request = YoutubeDLRequest(url)
                 request.addOption("--flat-playlist")
                 request.addOption("--dump-single-json")
