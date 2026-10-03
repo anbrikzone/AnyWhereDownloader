@@ -7,13 +7,17 @@ import '../../core/yt_dlp_engine/yt_dlp_engine.dart';
 
 /// `pinterest.com`, a country domain (`pinterest.ru`, `pinterest.co.uk`),
 /// with or without a subdomain (`www.`, `ru.`).
-final _pinterestHost =
-    RegExp(r'^(?:[\w-]+\.)?pinterest\.(?:[a-z]{2,4}|co\.[a-z]{2}|com\.[a-z]{2})$');
+final _pinterestHost = RegExp(
+  r'^(?:[\w-]+\.)?pinterest\.(?:[a-z]{2,4}|co\.[a-z]{2}|com\.[a-z]{2})$',
+);
 
 const _imageExts = {'jpg', 'jpeg', 'png', 'webp', 'gif'};
 
-/// `ORIGIN/videos/iht/hls/PATH_WIDTHw.m3u8` → groups (ORIGIN, `PATH_WIDTHw`).
-final _hlsRendition = RegExp(r'^(https?://[^/]+)/videos/iht/hls/(.+_\d+w)\.m3u8$');
+/// `ORIGIN/videos/iht/hls/[vN/]aa/bb/cc/HASH[_vN]_WIDTHw.m3u8` → groups
+/// (ORIGIN, `aa/bb/cc/HASH`, `_vN` or null, `WIDTHw`).
+final _hlsRendition = RegExp(
+  r'^(https?://[^/]+)/videos/iht/hls/(?:v\d+/)?([0-9a-f]{2}/[0-9a-f]{2}/[0-9a-f]{2}/[0-9a-f]+)(_v\d+)?_(\d+w)\.m3u8$',
+);
 
 /// Pinterest pins via yt-dlp's `pinterest` extractor (read from the bundled
 /// source, 2026-10-03):
@@ -31,8 +35,8 @@ final _hlsRendition = RegExp(r'^(https?://[^/]+)/videos/iht/hls/(.+_\d+w)\.m3u8$
 ///   expanded here by following redirects to `pinterest.com/pin/<id>`.
 class PinterestExtractor implements MediaExtractor {
   PinterestExtractor({YtDlpEngine? engine, http.Client? client})
-      : _engine = engine ?? YtDlpEngine(),
-        _client = client ?? http.Client();
+    : _engine = engine ?? YtDlpEngine(),
+      _client = client ?? http.Client();
 
   final YtDlpEngine _engine;
   final http.Client _client;
@@ -85,37 +89,56 @@ class PinterestExtractor implements MediaExtractor {
     );
   }
 
-  /// Pinterest serves every HLS rendition `…/videos/iht/hls/<path>_<w>w.m3u8`
-  /// as a muxed (video + audio) MP4 at `…/videos/iht/expMp4/<path>_<w>w.mp4`
-  /// too — not part of yt-dlp's output, found by probing (2026-10-03: a pin
-  /// with only HLS had 240w/360w/540w/720w MP4 twins, each with an `mp4a`
-  /// track). It's an undocumented URL scheme, so each twin is HEAD-checked
-  /// and only ones that really exist are offered (with their exact size).
+  /// Pinterest serves every HLS rendition `…/videos/iht/hls/…/HASH_Ww.m3u8`
+  /// as a muxed (video + audio) MP4 at `…/videos/iht/expMp4/aa/bb/cc/HASH_Ww.mp4`
+  /// too — not part of yt-dlp's output, found by probing (2026-10-03, two
+  /// pins, 240w–720w, each MP4 with an `mp4a` track). Newer pins put a `v2/`
+  /// directory and a `_v2` suffix into the HLS name; the MP4 has neither
+  /// (`…_v2_720w.mp4` is 403, `…_720w.mp4` is 200), so that form is tried
+  /// first and the literal one only as a fallback. It's an undocumented
+  /// scheme, so every candidate is HEAD-checked and only ones that really
+  /// exist are offered (with their exact size).
   Future<List<RawFormat>> _mp4TwinsOfHls(RawVideoInfo info) async {
-    final candidates = <RawFormat>[];
+    final candidates = <List<RawFormat>>[];
     for (final f in info.formats) {
       final url = f.url;
       if (url == null || !f.hasVideo) continue;
       final match = _hlsRendition.firstMatch(url);
       if (match == null) continue;
+      final base = '${match.group(1)}/videos/iht/expMp4/${match.group(2)}';
+      final width = match.group(4);
+      final suffix = match.group(3);
       candidates.add(
-        RawFormat(
-          formatId: f.formatId,
-          ext: 'mp4',
-          vcodec: f.vcodec,
-          acodec: null,
-          height: f.height,
-          width: f.width,
-          formatNote: f.formatNote,
-          url: '${match.group(1)}/videos/iht/expMp4/${match.group(2)}.mp4',
-          fileSizeBytes: 0,
-          httpHeaders: null,
-          tbrKbps: 0,
-        ),
+        ['${base}_$width.mp4', if (suffix != null) '$base${suffix}_$width.mp4']
+            .map(
+              (mp4) => RawFormat(
+                formatId: f.formatId,
+                ext: 'mp4',
+                vcodec: f.vcodec,
+                acodec: null,
+                height: f.height,
+                width: f.width,
+                formatNote: f.formatNote,
+                url: mp4,
+                fileSizeBytes: 0,
+                httpHeaders: null,
+                tbrKbps: 0,
+              ),
+            )
+            .toList(),
       );
     }
-    final checked = await Future.wait(candidates.map(_withSizeIfExists));
+    final checked = await Future.wait(candidates.map(_firstExisting));
     return checked.whereType<RawFormat>().toList();
+  }
+
+  /// The first of [options] (alternative URLs for one rendition) that exists.
+  Future<RawFormat?> _firstExisting(List<RawFormat> options) async {
+    for (final option in options) {
+      final found = await _withSizeIfExists(option);
+      if (found != null) return found;
+    }
+    return null;
   }
 
   Future<RawFormat?> _withSizeIfExists(RawFormat f) async {
@@ -136,7 +159,8 @@ class PinterestExtractor implements MediaExtractor {
         width: f.width,
         formatNote: f.formatNote,
         url: f.url,
-        fileSizeBytes: int.tryParse(response.headers['content-length'] ?? '') ?? 0,
+        fileSizeBytes:
+            int.tryParse(response.headers['content-length'] ?? '') ?? 0,
         httpHeaders: null,
         tbrKbps: 0,
       );
@@ -176,8 +200,9 @@ class PinterestExtractor implements MediaExtractor {
         final request = http.Request('GET', current)
           ..followRedirects = false
           ..headers['User-Agent'] = 'Mozilla/5.0 (Linux; Android 14)';
-        final response =
-            await _client.send(request).timeout(const Duration(seconds: 15));
+        final response = await _client
+            .send(request)
+            .timeout(const Duration(seconds: 15));
         await response.stream.drain<void>();
         final location = response.headers['location'];
         if (response.statusCode < 300 ||

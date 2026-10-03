@@ -128,4 +128,29 @@ void main() {
     expect(video.sourceUrl, '${mp4}_720w.mp4');
     expect(video.approxSizeBytes, 9888598);
   });
+
+  test('v2 HLS names: tries the MP4 without the _v2 suffix first', () async {
+    const hls = 'https://v1.pinimg.com/videos/iht/hls/v2/c7/be/56/'
+        'c7be564dd014302c1fc415fd1c5a81e6_v2';
+    const mp4 = 'https://v1.pinimg.com/videos/iht/expMp4/c7/be/56/'
+        'c7be564dd014302c1fc415fd1c5a81e6_720w.mp4';
+    final probed = <String>[];
+    final client = MockClient((request) async {
+      probed.add(request.url.toString());
+      if (request.url.toString() == mp4) {
+        return http.Response('', 200, headers: {
+          'content-type': 'video/mp4',
+          'content-length': '1740174',
+        });
+      }
+      return http.Response('', 403);
+    });
+    final engine = _FakeEngine(_info(formats: [
+      _f('V_HLSV3_MOBILE-755', '${hls}_720w.m3u8', height: 1280, vcodec: 'avc1'),
+    ]));
+    final info = await PinterestExtractor(engine: engine, client: client)
+        .extract('https://www.pinterest.com/pin/676736281544330210/');
+    expect(info.variants.single.sourceUrl, mp4);
+    expect(probed, [mp4]);
+  });
 }
