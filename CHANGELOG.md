@@ -10,36 +10,54 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 
 ### English
 
+**Added**
+- Pinterest: download videos and pictures from pins, including pin.it short links.
+
 **Changed**
 - Notifications and error messages are now shown in Russian and Kazakh too, not only in English.
+- The format list appears faster: the app no longer checks for a yt-dlp update every time. Update it in Settings → About → Check for updates; the app suggests this when an error looks like an outdated yt-dlp.
+- The link field is cleared once a download starts, so the next link you copy is pasted automatically.
 
 **Fixed**
 - A download that finishes after you've left or closed the app is still saved to your gallery.
 - TikTok photo posts now download as photos instead of just their background music.
 - Double-tap zoom in the photo viewer now uses the whole screen instead of a narrow frame.
 - Library now sorts by when you downloaded something, not by the original date stored in the video.
+- Instagram and LinkedIn no longer show several identical unnamed quality options; each option shows its resolution or bitrate.
 
 ### Русский
 
+**Добавлено**
+- Pinterest: скачивание видео и картинок из пинов, включая короткие ссылки pin.it.
+
 **Изменено**
 - Уведомления и сообщения об ошибках теперь тоже на русском и казахском, а не только на английском.
+- Список форматов появляется быстрее: приложение больше не проверяет обновление yt-dlp каждый раз. Обновить его можно в «Настройки → О приложении → Проверить обновления»; приложение само подскажет это, если ошибка похожа на устаревший yt-dlp.
+- Поле ссылки очищается после начала загрузки, поэтому следующая скопированная ссылка вставляется автоматически.
 
 **Исправлено**
 - Загрузка, завершившаяся после того, как вы вышли из приложения или закрыли его, всё равно сохраняется в галерею.
 - Фото-посты TikTok теперь скачиваются как фото, а не только как фоновая музыка.
 - Увеличение двойным тапом в просмотре фото теперь использует весь экран, а не узкую рамку.
 - Медиатека теперь сортирует по дате скачивания, а не по исходной дате, записанной в видео.
+- Instagram и LinkedIn больше не показывают несколько одинаковых безымянных вариантов качества — у каждого указано разрешение или битрейт.
 
 ### Қазақша
 
+**Қосылды**
+- Pinterest: пиндерден бейнелер мен суреттерді жүктеу, оның ішінде pin.it қысқа сілтемелері.
+
 **Өзгертілді**
 - Хабарландырулар мен қате туралы хабарлар енді тек ағылшынша емес, орысша және қазақша да көрсетіледі.
+- Пішімдер тізімі тезірек шығады: қолданба енді yt-dlp жаңартуын әр жолы тексермейді. Оны «Параметрлер → Қолданба туралы → Жаңартуларды тексеру» арқылы жаңартуға болады; қате ескірген yt-dlp-ке ұқсаса, қолданба өзі ұсынады.
+- Жүктеу басталғаннан кейін сілтеме өрісі тазаланады, сондықтан келесі көшірілген сілтеме автоматты түрде қойылады.
 
 **Түзетілді**
 - Қолданбадан шыққаннан немесе оны жапқаннан кейін аяқталған жүктеу бәрібір галереяға сақталады.
 - TikTok фото-жазбалары енді тек фондық музыкасы емес, фото ретінде жүктеледі.
 - Фотоны көруде екі рет түрту арқылы үлкейту енді тар жақтау емес, бүкіл экранды пайдаланады.
 - Медиатека енді бейнеге жазылған бастапқы күн бойынша емес, жүктелген күн бойынша сұрыптайды.
+- Instagram мен LinkedIn енді бірнеше бірдей атаусыз сапа нұсқасын көрсетпейді — әрқайсысында ажыратымдылық немесе битрейт көрсетілген.
 
 ---
 
