@@ -110,6 +110,16 @@ class _YouTubeScreenState extends ConsumerState<YouTubeScreen>
     setState(() => _urlController.clear());
   }
 
+  /// Empties the URL field once its link has been used (a download was
+  /// started), so the next copied link auto-pastes on return — the clipboard
+  /// check skips a non-empty field. The link is marked handled so the same
+  /// clip isn't pasted straight back. The system clipboard is left alone.
+  void _consumeUrl() {
+    final url = _urlController.text.trim();
+    if (url.isNotEmpty) ClipboardLinkTracker.instance.markHandled(url);
+    if (mounted) setState(() => _urlController.clear());
+  }
+
   Future<void> _onFetchPressed() async {
     final url = _urlController.text.trim();
     if (url.isEmpty) return;
@@ -161,6 +171,7 @@ class _YouTubeScreenState extends ConsumerState<YouTubeScreen>
       entries: info.entries,
     );
     if (pick == null || !mounted || pick.positions.isEmpty) return;
+    _consumeUrl();
     await controller.downloadPlaylist(
       playlistUrl: url,
       selectedPositions: pick.positions,
@@ -204,6 +215,7 @@ class _YouTubeScreenState extends ConsumerState<YouTubeScreen>
         chosenName = suggestedName;
       }
 
+      _consumeUrl();
       await controller.downloadVariant(result.variant, chosenName);
       return;
     }

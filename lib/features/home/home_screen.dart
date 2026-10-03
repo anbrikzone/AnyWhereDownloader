@@ -232,7 +232,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       );
       return;
     }
-    setState(() => _urlError = null);
+    // The service screen now owns the link; empty Home's field so the next
+    // copied link auto-pastes here (the clipboard check skips a filled
+    // field), and mark it handled so it isn't pasted straight back.
+    ClipboardLinkTracker.instance.markHandled(url);
+    setState(() {
+      _urlError = null;
+      _urlController.clear();
+    });
     _navigateForService(extractor.serviceType, url);
   }
 
@@ -254,8 +261,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       showAppToast(context, l10n.linkNotRecognized);
       return;
     }
-    // Keep the clipboard check from re-offering the same link right after.
+    // Keep the clipboard check from re-offering the same link right after,
+    // and leave Home's field empty for the next one (see _onGoPressed).
     ClipboardLinkTracker.instance.markHandled(url);
+    setState(() => _urlController.clear());
     _navigateForService(extractor.serviceType, url);
   }
 

@@ -116,6 +116,16 @@ class _DirectDownloadScreenState extends ConsumerState<DirectDownloadScreen>
     setState(() => _urlController.clear());
   }
 
+  /// Empties the URL field once its link has been used (a download was
+  /// started), so the next copied link auto-pastes on return — the clipboard
+  /// check skips a non-empty field. The link is marked handled so the same
+  /// clip isn't pasted straight back. The system clipboard is left alone.
+  void _consumeUrl() {
+    final url = _urlController.text.trim();
+    if (url.isNotEmpty) ClipboardLinkTracker.instance.markHandled(url);
+    if (mounted) setState(() => _urlController.clear());
+  }
+
   Future<void> _onFetchPressed() async {
     final controller = ref.read(_provider.notifier);
     final info = await controller.fetchInfo(_urlController.text);
@@ -126,6 +136,7 @@ class _DirectDownloadScreenState extends ConsumerState<DirectDownloadScreen>
     // A single image variant (a photo post) is not a choice — download it
     // straight away instead of showing a one-row format sheet.
     if (isSingleImageDownload(info)) {
+      _consumeUrl();
       await controller.downloadVariant(info.variants.single, suggestedName);
       return;
     }
@@ -154,6 +165,7 @@ class _DirectDownloadScreenState extends ConsumerState<DirectDownloadScreen>
         chosenName = suggestedName;
       }
 
+      _consumeUrl();
       await controller.downloadVariant(result.variant, chosenName);
       return;
     }
