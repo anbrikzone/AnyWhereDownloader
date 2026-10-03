@@ -1,13 +1,14 @@
 import '../../core/extraction/image_fallback.dart';
 import '../../core/extraction/media_extractor.dart';
+import '../../core/extraction/progressive_formats.dart';
 import '../../core/yt_dlp_engine/yt_dlp_engine.dart';
 
 /// Thin [YtDlpEngine] wrapper for Instagram reels/posts. Picks the
 /// progressive (directly downloadable) format by name — `format_id` not
 /// starting with `dash-` — because Instagram's progressive entries report
 /// null codecs and `height=0`, so a `hasVideo && hasAudio` filter drops
-/// exactly what we want. Deduped by URL, not height, since those entries
-/// are duplicate URLs under different ids. See CLAUDE.md "Instagram" for
+/// exactly what we want. Indistinguishable entries collapse to one (see
+/// [progressiveVideoVariants]) — they're one asset under different ids. See CLAUDE.md "Instagram" for
 /// the on-device investigation behind this.
 class InstagramExtractor implements MediaExtractor {
   InstagramExtractor({YtDlpEngine? engine}) : _engine = engine ?? YtDlpEngine();
@@ -41,30 +42,17 @@ class InstagramExtractor implements MediaExtractor {
 
     // Progressive only: drop `dash-` (adaptive, needs muxing) and any
     // manifest URL. See the class doc for why not `hasVideo && hasAudio`.
-    final progressive =
-        info.formats
-            .where((f) => f.url != null)
-            .where((f) => !(f.formatId?.startsWith('dash-') ?? false))
-            .where((f) => !f.url!.contains('.m3u8'))
-            .where((f) => !f.url!.contains('.mpd'))
-            .toList()
-          ..sort((a, b) => b.height.compareTo(a.height));
+    final progressive = info.formats
+        .where((f) => f.url != null)
+        .where((f) => !(f.formatId?.startsWith('dash-') ?? false))
+        .where((f) => !f.url!.contains('.m3u8'))
+        .where((f) => !f.url!.contains('.mpd'))
+        .toList();
 
-    final seenUrls = <String>{};
-    final variants = <MediaVariant>[];
-    for (final format in progressive) {
-      if (!seenUrls.add(format.url!)) continue;
-      variants.add(
-        MediaVariant(
-          type: MediaVariantType.video,
-          resolutionLabel: format.height > 0 ? '${format.height}p' : null,
-          container: format.ext ?? 'mp4',
-          approxSizeBytes: format.estimatedSizeBytes(duration),
-          sourceUrl: format.url!,
-          requestHeaders: format.httpHeaders,
-        ),
-      );
-    }
+    final variants = progressiveVideoVariants(
+      progressive,
+      durationSeconds: duration,
+    );
 
     if (variants.isEmpty) {
       // No video — offer the image if this is a (single-image) photo post.

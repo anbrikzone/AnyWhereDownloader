@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../core/extraction/image_fallback.dart';
 import '../../core/extraction/media_extractor.dart';
+import '../../core/extraction/progressive_formats.dart';
 import '../../core/yt_dlp_engine/yt_dlp_engine.dart';
 import 'linkedin_og_fallback.dart';
 
@@ -75,27 +76,12 @@ class LinkedInExtractor implements MediaExtractor {
       return vcodec != null && vcodec.isNotEmpty && vcodec != 'none';
     }
 
-    final downloadable = info.formats.where(looksLikeVideo).toList()
-      ..sort((a, b) => b.height.compareTo(a.height));
-
-    final seen = <String>{};
-    final variants = <MediaVariant>[];
-    for (final format in downloadable) {
-      final key = format.height > 0 ? '${format.height}p' : format.url!;
-      if (!seen.add(key)) continue;
-      variants.add(
-        MediaVariant(
-          type: MediaVariantType.video,
-          resolutionLabel: format.height > 0 ? '${format.height}p' : null,
-          container: _videoExts.contains(format.ext?.toLowerCase())
-              ? format.ext!
-              : 'mp4',
-          approxSizeBytes: format.estimatedSizeBytes(duration),
-          sourceUrl: format.url!,
-          requestHeaders: format.httpHeaders,
-        ),
-      );
-    }
+    final variants = progressiveVideoVariants(
+      info.formats.where(looksLikeVideo).toList(),
+      durationSeconds: duration,
+      container: (f) =>
+          _videoExts.contains(f.ext?.toLowerCase()) ? f.ext! : 'mp4',
+    );
 
     if (variants.isEmpty) {
       // No video — try yt-dlp's own image fields, then the OpenGraph page.

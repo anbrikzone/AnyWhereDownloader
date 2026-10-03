@@ -30,6 +30,7 @@ class MediaVariant {
     this.mergeFormatSelector,
     this.durationSeconds,
     this.audioSpec,
+    this.bitrateKbps,
   });
 
   final MediaVariantType type;
@@ -69,6 +70,10 @@ class MediaVariant {
   /// the audio. When set, [sourceUrl] holds the original watch URL (there's
   /// no single direct URL for a to-be-transcoded track).
   final AudioSpec? audioSpec;
+
+  /// Total bitrate, when yt-dlp reported one — the format sheet's fallback
+  /// label for a video variant with no known resolution.
+  final int? bitrateKbps;
 }
 
 class MediaInfo {

@@ -145,7 +145,9 @@ String _title(BuildContext context, MediaVariant variant) {
       final kbps = variant.audioSpec?.qualityKbps;
       return kbps != null ? '$kbps kbps' : l10n.audioOriginalLabel;
     case MediaVariantType.video:
-      return variant.resolutionLabel ?? variant.container;
+      final kbps = variant.bitrateKbps;
+      return variant.resolutionLabel ??
+          (kbps != null ? '$kbps kbps' : variant.container);
   }
 }
 
