@@ -407,6 +407,15 @@ class AppLocalizationsRu extends AppLocalizations {
   String get closeButton => 'Закрыть';
 
   @override
+  String get pinterestUrlHint => 'Вставьте ссылку на пин Pinterest.';
+
+  @override
+  String get pinterestUrlLabel => 'Ссылка Pinterest';
+
+  @override
+  String get notPinterestLink => 'Это не похоже на ссылку Pinterest';
+
+  @override
   String get savedMessage => 'Сохранено';
 
   @override

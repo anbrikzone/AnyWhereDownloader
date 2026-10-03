@@ -3,14 +3,15 @@ import '../../core/l10n/status_message.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/instagram/instagram_extractor.dart';
 import '../../services/linkedin/linkedin_extractor.dart';
+import '../../services/pinterest/pinterest_extractor.dart';
 import '../../services/tiktok/tiktok_extractor.dart';
 import '../../services/x_twitter/x_twitter_extractor.dart';
 
 /// Everything that differs between the "direct download" services — TikTok,
-/// X/Twitter, Instagram, LinkedIn. Each resolves a link to muxed video (or a
+/// X/Twitter, Instagram, LinkedIn, Pinterest. Each resolves a link to muxed video (or a
 /// single photo) and downloads it through the pausable `background_downloader`
 /// path, so one [DirectDownloadController] + [DirectDownloadScreen] serve all
-/// four; only this data varies. YouTube (merge/audio/playlist paths) and
+/// of them; only this data varies. YouTube (merge/audio/playlist paths) and
 /// WhatsApp (SAF, no URL) have their own features.
 class DirectDownloadService {
   const DirectDownloadService._({
@@ -99,8 +100,21 @@ class DirectDownloadService {
     urlLabel: (l10n) => l10n.linkedinUrlLabel,
   );
 
+  static final pinterest = DirectDownloadService._(
+    type: ServiceType.pinterest,
+    title: 'Pinterest',
+    librarySource: 'Pinterest',
+    createExtractor: PinterestExtractor.new,
+    notHandledKey: StatusMessageKey.notPinterestLink,
+    fetchFailedKey: StatusMessageKey.couldNotFetchPost,
+    fallbackFileName: 'pinterest',
+    urlHint: (l10n) => l10n.pinterestUrlHint,
+    urlLabel: (l10n) => l10n.pinterestUrlLabel,
+  );
+
   static final _byType = {
-    for (final s in [tiktok, xTwitter, instagram, linkedin]) s.type: s,
+    for (final s in [tiktok, xTwitter, instagram, linkedin, pinterest])
+      s.type: s,
   };
 
   /// Null for a service that isn't a direct-download one (YouTube, WhatsApp).

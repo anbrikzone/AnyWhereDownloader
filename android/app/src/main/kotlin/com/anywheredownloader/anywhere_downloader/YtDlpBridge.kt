@@ -210,6 +210,10 @@ class YtDlpBridge(private val appContext: Context) {
         // SABR / player-client workaround for YouTube (no-op for
         // every other host) — see YtDlpOptions.
         YtDlpOptions.applyYouTube(request, url)
+        // An image pin has no formats, and yt-dlp would fail on that; with
+        // this flag it still returns the pin's metadata + thumbnails, which
+        // PinterestExtractor turns into an image download.
+        if (isPinterestUrl(url)) request.addOption("--ignore-no-formats-error")
         return try {
             YoutubeDL.getInstance().getInfo(request)
         } catch (e: YoutubeDLException) {
@@ -325,6 +329,15 @@ class YtDlpBridge(private val appContext: Context) {
                 mainHandler.post { result.error("unknown_error", e.message, null) }
             }
         }
+    }
+
+    private fun isPinterestUrl(url: String): Boolean {
+        val host = try {
+            java.net.URI(url).host?.lowercase()
+        } catch (e: Exception) {
+            null
+        } ?: return false
+        return host == "pin.it" || host.contains("pinterest.")
     }
 
     private fun isTwitterUrl(url: String): Boolean {

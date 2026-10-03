@@ -408,6 +408,15 @@ class AppLocalizationsKk extends AppLocalizations {
   String get closeButton => 'Жабу';
 
   @override
+  String get pinterestUrlHint => 'Pinterest пинінің сілтемесін қойыңыз.';
+
+  @override
+  String get pinterestUrlLabel => 'Pinterest сілтемесі';
+
+  @override
+  String get notPinterestLink => 'Бұл Pinterest сілтемесіне ұқсамайды';
+
+  @override
   String get savedMessage => 'Сақталды';
 
   @override

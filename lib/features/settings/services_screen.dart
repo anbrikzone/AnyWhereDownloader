@@ -14,6 +14,7 @@ const serviceLabels = {
   ServiceType.xTwitter: 'X / Twitter',
   ServiceType.instagram: 'Instagram',
   ServiceType.linkedin: 'LinkedIn',
+  ServiceType.pinterest: 'Pinterest',
 };
 
 /// Per-service enable/disable toggles, moved off the main Settings list into

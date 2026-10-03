@@ -1,4 +1,12 @@
-enum ServiceType { youtube, whatsapp, instagram, xTwitter, tiktok, linkedin }
+enum ServiceType {
+  youtube,
+  whatsapp,
+  instagram,
+  xTwitter,
+  tiktok,
+  linkedin,
+  pinterest,
+}
 
 enum MediaVariantType { video, audio, image }
 

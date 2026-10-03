@@ -407,6 +407,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get closeButton => 'Close';
 
   @override
+  String get pinterestUrlHint => 'Paste a Pinterest pin link.';
+
+  @override
+  String get pinterestUrlLabel => 'Pinterest URL';
+
+  @override
+  String get notPinterestLink => 'That doesn\'t look like a Pinterest link';
+
+  @override
   String get savedMessage => 'Saved';
 
   @override

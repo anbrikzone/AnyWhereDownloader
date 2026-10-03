@@ -28,10 +28,11 @@ const _directTypes = [
   ServiceType.xTwitter,
   ServiceType.instagram,
   ServiceType.linkedin,
+  ServiceType.pinterest,
 ];
 
 void main() {
-  test('exactly the four direct-download services are configured', () {
+  test('exactly the direct-download services are configured', () {
     for (final type in ServiceType.values) {
       final service = DirectDownloadService.of(type);
       if (_directTypes.contains(type)) {

@@ -790,6 +790,24 @@ abstract class AppLocalizations {
   /// **'Close'**
   String get closeButton;
 
+  /// No description provided for @pinterestUrlHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste a Pinterest pin link.'**
+  String get pinterestUrlHint;
+
+  /// No description provided for @pinterestUrlLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinterest URL'**
+  String get pinterestUrlLabel;
+
+  /// No description provided for @notPinterestLink.
+  ///
+  /// In en, this message translates to:
+  /// **'That doesn\'t look like a Pinterest link'**
+  String get notPinterestLink;
+
   /// No description provided for @savedMessage.
   ///
   /// In en, this message translates to:

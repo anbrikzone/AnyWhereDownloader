@@ -20,6 +20,7 @@ enum StatusMessageKey {
   notXTwitterLink,
   notInstagramLink,
   notLinkedInLink,
+  notPinterestLink,
   couldNotFetchVideo,
   couldNotFetchPost,
   couldNotFetchPlaylist,
@@ -108,6 +109,8 @@ String resolveStatusMessage(AppLocalizations l10n, StatusMessage message) {
       return l10n.notInstagramLink;
     case StatusMessageKey.notLinkedInLink:
       return l10n.notLinkedinLink;
+    case StatusMessageKey.notPinterestLink:
+      return l10n.notPinterestLink;
     case StatusMessageKey.couldNotFetchVideo:
       return l10n.couldNotFetchVideo(message.error ?? '');
     case StatusMessageKey.couldNotFetchPost:

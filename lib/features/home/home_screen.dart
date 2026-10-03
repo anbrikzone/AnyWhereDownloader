@@ -11,6 +11,7 @@ import '../../core/share/share_intent_service.dart';
 import '../../core/update/update_providers.dart';
 import '../../services/instagram/instagram_extractor.dart';
 import '../../services/linkedin/linkedin_extractor.dart';
+import '../../services/pinterest/pinterest_extractor.dart';
 import '../../services/tiktok/tiktok_extractor.dart';
 import '../../services/x_twitter/x_twitter_extractor.dart';
 import '../../services/youtube/youtube_extractor.dart';
@@ -98,6 +99,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       icon: Icons.work_outline,
       builder: _buildLinkedIn,
     ),
+    _ServiceDef(
+      serviceType: ServiceType.pinterest,
+      title: 'Pinterest',
+      icon: Icons.push_pin_outlined,
+      builder: _buildPinterest,
+    ),
   ];
 
   static Widget _buildYouTube(BuildContext _) => const YouTubeScreen();
@@ -110,6 +117,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       const DirectDownloadScreen(service: ServiceType.instagram);
   static Widget _buildLinkedIn(BuildContext _) =>
       const DirectDownloadScreen(service: ServiceType.linkedin);
+  static Widget _buildPinterest(BuildContext _) =>
+      const DirectDownloadScreen(service: ServiceType.pinterest);
 
   /// Extractor factories keyed by service — used to build a fresh
   /// `ExtractorRegistry` containing only the currently-enabled services
@@ -122,6 +131,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     ServiceType.xTwitter: XTwitterExtractor.new,
     ServiceType.instagram: InstagramExtractor.new,
     ServiceType.linkedin: LinkedInExtractor.new,
+    ServiceType.pinterest: PinterestExtractor.new,
   };
 
   /// Built fresh from the current Settings toggle state on every call
@@ -277,7 +287,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       case ServiceType.tiktok ||
           ServiceType.xTwitter ||
           ServiceType.instagram ||
-          ServiceType.linkedin:
+          ServiceType.linkedin ||
+          ServiceType.pinterest:
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => DirectDownloadScreen(service: type, initialUrl: url),
