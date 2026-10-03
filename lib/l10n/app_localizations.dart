@@ -742,6 +742,36 @@ abstract class AppLocalizations {
   /// **'Could not fetch this post: {error}'**
   String couldNotFetchPost(String error);
 
+  /// No description provided for @extractionNoDownloadableMedia.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing downloadable was found at this link in this version of the app.'**
+  String get extractionNoDownloadableMedia;
+
+  /// No description provided for @extractionLookupUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t reach the TikTok lookup service. Check your connection and try again.'**
+  String get extractionLookupUnreachable;
+
+  /// No description provided for @extractionLookupHttpError.
+  ///
+  /// In en, this message translates to:
+  /// **'The TikTok lookup service returned an error.'**
+  String get extractionLookupHttpError;
+
+  /// No description provided for @extractionLookupBadResponse.
+  ///
+  /// In en, this message translates to:
+  /// **'The TikTok lookup service returned an unexpected response.'**
+  String get extractionLookupBadResponse;
+
+  /// No description provided for @extractionNotResolved.
+  ///
+  /// In en, this message translates to:
+  /// **'This TikTok post could not be resolved.'**
+  String get extractionNotResolved;
+
   /// No description provided for @savedMessage.
   ///
   /// In en, this message translates to:

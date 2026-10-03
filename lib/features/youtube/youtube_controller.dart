@@ -200,7 +200,7 @@ class YouTubeController extends StateNotifier<YouTubeState> {
       state = state.copyWith(
         fetching: false,
         statusMessage: error is ExtractionException
-            ? StatusMessage.raw(error.message)
+            ? StatusMessage.extraction(error)
             : StatusMessage(
                 StatusMessageKey.couldNotFetchVideo,
                 error: error.toString(),

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../../core/extraction/media_extractor.dart';
+import '../../core/logging/app_log.dart';
 
 /// The one extractor that does **not** use `yt_dlp_engine`: yt-dlp's TikTok
 /// paths both proved unreliable on-device (need `curl_cffi` impersonation,
@@ -49,12 +50,14 @@ class TikTokExtractor implements MediaExtractor {
           .get(requestUri)
           .timeout(const Duration(seconds: 20));
     } catch (error) {
-      throw ExtractionException('Could not reach the TikTok lookup service: $error');
+      logError('TikTokExtractor.lookup', error);
+      throw ExtractionException(ExtractionErrorCode.lookupUnreachable);
     }
 
     if (response.statusCode != 200) {
       throw ExtractionException(
-        'TikTok lookup service returned an error (HTTP ${response.statusCode}).',
+        ExtractionErrorCode.lookupHttpError,
+        detail: 'HTTP ${response.statusCode}',
       );
     }
 
@@ -62,18 +65,19 @@ class TikTokExtractor implements MediaExtractor {
     try {
       body = jsonDecode(response.body) as Map<String, dynamic>;
     } catch (_) {
-      throw ExtractionException('TikTok lookup service returned an unexpected response.');
+      throw ExtractionException(ExtractionErrorCode.lookupBadResponse);
     }
 
     if (body['code'] != 0) {
       throw ExtractionException(
-        (body['msg'] as String?) ?? 'This TikTok video could not be resolved.',
+        ExtractionErrorCode.notResolved,
+        detail: body['msg'] as String?,
       );
     }
 
     final data = body['data'] as Map<String, dynamic>?;
     if (data == null) {
-      throw ExtractionException('This TikTok video could not be resolved.');
+      throw ExtractionException(ExtractionErrorCode.notResolved);
     }
 
     // A photo post (slideshow) comes back with `images` filled and
@@ -131,9 +135,7 @@ class TikTokExtractor implements MediaExtractor {
     }
 
     if (variants.isEmpty) {
-      throw ExtractionException(
-        'No downloadable format found for this video in this version.',
-      );
+      throw ExtractionException(ExtractionErrorCode.noDownloadableMedia);
     }
 
     final title = data['title'] as String?;

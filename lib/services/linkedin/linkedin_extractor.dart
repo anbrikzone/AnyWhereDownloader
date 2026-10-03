@@ -109,9 +109,7 @@ class LinkedInExtractor implements MediaExtractor {
     }
 
     if (variants.isEmpty) {
-      throw ExtractionException(
-        'No downloadable video or image found for this LinkedIn post.',
-      );
+      throw ExtractionException(ExtractionErrorCode.noDownloadableMedia);
     }
 
     if (kDebugMode) {

@@ -94,11 +94,38 @@ abstract class MediaExtractor {
   Future<MediaInfo> extract(String url);
 }
 
-class ExtractionException implements Exception {
-  ExtractionException(this.message);
+/// Why an extractor gave up — a code rather than a sentence, because
+/// extractors have no `BuildContext`; the screen localizes it (see
+/// `StatusMessage.extraction`).
+enum ExtractionErrorCode {
+  /// The link resolved, but nothing in it is a video/image/audio this
+  /// version knows how to download.
+  noDownloadableMedia,
 
-  final String message;
+  /// TikTok's lookup service (tikwm.com) couldn't be reached at all.
+  lookupUnreachable,
+
+  /// The lookup service answered with a non-200 status ([detail] = code).
+  lookupHttpError,
+
+  /// The lookup service answered 200 with something that isn't its JSON.
+  lookupBadResponse,
+
+  /// The lookup service understood the request but couldn't resolve the
+  /// post ([detail] = its own English reason, if it gave one).
+  notResolved,
+}
+
+class ExtractionException implements Exception {
+  ExtractionException(this.code, {this.detail});
+
+  final ExtractionErrorCode code;
+
+  /// Untranslated technical detail (an HTTP status, a server's own error
+  /// text) shown after the localized message — never a whole sentence.
+  final String? detail;
 
   @override
-  String toString() => message;
+  String toString() =>
+      'ExtractionException(${code.name}${detail != null ? ': $detail' : ''})';
 }

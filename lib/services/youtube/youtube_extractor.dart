@@ -109,9 +109,7 @@ class YouTubeExtractor implements MediaExtractor {
     }
 
     if (entries.isEmpty) {
-      throw ExtractionException(
-        'No downloadable format found for this video in this version.',
-      );
+      throw ExtractionException(ExtractionErrorCode.noDownloadableMedia);
     }
 
     entries.sort((a, b) => b.$1.compareTo(a.$1));

@@ -176,6 +176,11 @@
   "@couldNotFetchPost": {
     "placeholders": { "error": { "type": "String" } }
   },
+  "extractionNoDownloadableMedia": "Nothing downloadable was found at this link in this version of the app.",
+  "extractionLookupUnreachable": "Couldn't reach the TikTok lookup service. Check your connection and try again.",
+  "extractionLookupHttpError": "The TikTok lookup service returned an error.",
+  "extractionLookupBadResponse": "The TikTok lookup service returned an unexpected response.",
+  "extractionNotResolved": "This TikTok post could not be resolved.",
   "savedMessage": "Saved",
   "downloadCanceledMessage": "Download canceled",
   "downloadFailedMessage": "Download failed: {error}",

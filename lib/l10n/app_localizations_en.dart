@@ -378,6 +378,25 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get extractionNoDownloadableMedia =>
+      'Nothing downloadable was found at this link in this version of the app.';
+
+  @override
+  String get extractionLookupUnreachable =>
+      'Couldn\'t reach the TikTok lookup service. Check your connection and try again.';
+
+  @override
+  String get extractionLookupHttpError =>
+      'The TikTok lookup service returned an error.';
+
+  @override
+  String get extractionLookupBadResponse =>
+      'The TikTok lookup service returned an unexpected response.';
+
+  @override
+  String get extractionNotResolved => 'This TikTok post could not be resolved.';
+
+  @override
   String get savedMessage => 'Saved';
 
   @override

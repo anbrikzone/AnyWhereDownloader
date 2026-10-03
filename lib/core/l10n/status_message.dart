@@ -1,4 +1,5 @@
 import '../../l10n/app_localizations.dart';
+import '../extraction/media_extractor.dart';
 
 /// Identifies one of the small set of status/result messages a controller
 /// (`YouTubeController`, `DirectDownloadController` for TikTok/X/Instagram/
@@ -9,14 +10,10 @@ import '../../l10n/app_localizations.dart';
 /// `BuildContext` in its `ref.listen` callback) resolves it to localized
 /// text via [resolveStatusMessage].
 enum StatusMessageKey {
-  /// Pass-through for an already-formatted string that isn't localized yet
-  /// — currently only `ExtractionException.message` (thrown by
-  /// `youtube_extractor.dart`/`tiktok_extractor.dart`/
-  /// `x_twitter_extractor.dart`/`instagram_extractor.dart` when no
-  /// downloadable format is found). A known, documented gap (see
-  /// CLAUDE.md's "Multi-language support" section) rather than a silent
-  /// one — these are rare edge-case messages, not the common path.
-  raw,
+  /// An extractor's own [ExtractionException] — localized from its
+  /// [StatusMessage.extractionCode], with [StatusMessage.error] holding the
+  /// untranslated detail (if any).
+  extractionFailed,
   downloadAlreadyInProgress,
   notYoutubeLink,
   notTiktokLink,
@@ -49,17 +46,22 @@ class StatusMessage {
     this.error,
     this.count,
     this.failedCount,
-    this.rawText,
+    this.extractionCode,
   });
 
-  /// Convenience constructor for [StatusMessageKey.raw].
-  const StatusMessage.raw(String text) : this(StatusMessageKey.raw, rawText: text);
+  /// Convenience constructor for [StatusMessageKey.extractionFailed].
+  StatusMessage.extraction(ExtractionException e)
+      : this(
+          StatusMessageKey.extractionFailed,
+          extractionCode: e.code,
+          error: e.detail,
+        );
 
   final StatusMessageKey key;
   final String? error;
   final int? count;
   final int? failedCount;
-  final String? rawText;
+  final ExtractionErrorCode? extractionCode;
 
   @override
   bool operator ==(Object other) =>
@@ -68,16 +70,18 @@ class StatusMessage {
       other.error == error &&
       other.count == count &&
       other.failedCount == failedCount &&
-      other.rawText == rawText;
+      other.extractionCode == extractionCode;
 
   @override
-  int get hashCode => Object.hash(key, error, count, failedCount, rawText);
+  int get hashCode => Object.hash(key, error, count, failedCount, extractionCode);
 }
 
 String resolveStatusMessage(AppLocalizations l10n, StatusMessage message) {
   switch (message.key) {
-    case StatusMessageKey.raw:
-      return message.rawText ?? '';
+    case StatusMessageKey.extractionFailed:
+      final text = _extractionText(l10n, message.extractionCode);
+      final detail = message.error;
+      return detail == null || detail.isEmpty ? text : '$text ($detail)';
     case StatusMessageKey.downloadAlreadyInProgress:
       return l10n.downloadAlreadyInProgress;
     case StatusMessageKey.notYoutubeLink:
@@ -126,5 +130,21 @@ String resolveStatusMessage(AppLocalizations l10n, StatusMessage message) {
       return l10n.migrationIncomplete;
     case StatusMessageKey.migrationPostponed:
       return l10n.migrationPostponed;
+  }
+}
+
+String _extractionText(AppLocalizations l10n, ExtractionErrorCode? code) {
+  switch (code) {
+    case ExtractionErrorCode.noDownloadableMedia:
+    case null:
+      return l10n.extractionNoDownloadableMedia;
+    case ExtractionErrorCode.lookupUnreachable:
+      return l10n.extractionLookupUnreachable;
+    case ExtractionErrorCode.lookupHttpError:
+      return l10n.extractionLookupHttpError;
+    case ExtractionErrorCode.lookupBadResponse:
+      return l10n.extractionLookupBadResponse;
+    case ExtractionErrorCode.notResolved:
+      return l10n.extractionNotResolved;
   }
 }

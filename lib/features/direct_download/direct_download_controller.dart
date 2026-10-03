@@ -111,7 +111,7 @@ class DirectDownloadController extends StateNotifier<DirectDownloadState> {
       state = state.copyWith(
         fetching: false,
         statusMessage: error is ExtractionException
-            ? StatusMessage.raw(error.message)
+            ? StatusMessage.extraction(error)
             : StatusMessage(service.fetchFailedKey, error: error.toString()),
       );
       return null;

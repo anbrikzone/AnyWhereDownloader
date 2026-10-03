@@ -67,9 +67,7 @@ class XTwitterExtractor implements MediaExtractor {
     }
 
     if (variants.isEmpty) {
-      throw ExtractionException(
-        'No downloadable format found for this post in this version.',
-      );
+      throw ExtractionException(ExtractionErrorCode.noDownloadableMedia);
     }
 
     return MediaInfo(

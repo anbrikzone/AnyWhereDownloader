@@ -78,12 +78,21 @@ void main() {
     });
   }
 
-  test('an ExtractionException message is passed through as-is', () async {
+  test('an ExtractionException keeps its code and detail for localizing',
+      () async {
     final controller = DirectDownloadController(
       DirectDownloadService.tiktok,
-      extractor: _FakeExtractor(error: ExtractionException('No format')),
+      extractor: _FakeExtractor(
+        error: ExtractionException(
+          ExtractionErrorCode.lookupHttpError,
+          detail: 'HTTP 503',
+        ),
+      ),
     );
     await controller.fetchInfo('https://www.tiktok.com/@a/video/1');
-    expect(controller.state.statusMessage?.key, StatusMessageKey.raw);
+    final message = controller.state.statusMessage;
+    expect(message?.key, StatusMessageKey.extractionFailed);
+    expect(message?.extractionCode, ExtractionErrorCode.lookupHttpError);
+    expect(message?.error, 'HTTP 503');
   });
 }

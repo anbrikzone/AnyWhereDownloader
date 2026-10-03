@@ -380,6 +380,24 @@ class AppLocalizationsKk extends AppLocalizations {
   }
 
   @override
+  String get extractionNoDownloadableMedia =>
+      'Бұл сілтемеден қолданбаның осы нұсқасы жүктей алатын ештеңе табылмады.';
+
+  @override
+  String get extractionLookupUnreachable =>
+      'TikTok қызметіне қосылу мүмкін болмады. Байланысты тексеріп, қайталап көріңіз.';
+
+  @override
+  String get extractionLookupHttpError => 'TikTok қызметі қате қайтарды.';
+
+  @override
+  String get extractionLookupBadResponse =>
+      'TikTok қызметі күтпеген жауап қайтарды.';
+
+  @override
+  String get extractionNotResolved => 'Бұл TikTok жазбасын алу мүмкін болмады.';
+
+  @override
   String get savedMessage => 'Сақталды';
 
   @override

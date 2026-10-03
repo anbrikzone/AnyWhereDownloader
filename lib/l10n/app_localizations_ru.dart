@@ -379,6 +379,24 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String get extractionNoDownloadableMedia =>
+      'По этой ссылке не найдено ничего, что эта версия приложения может скачать.';
+
+  @override
+  String get extractionLookupUnreachable =>
+      'Не удалось связаться с сервисом TikTok. Проверьте подключение и попробуйте снова.';
+
+  @override
+  String get extractionLookupHttpError => 'Сервис TikTok вернул ошибку.';
+
+  @override
+  String get extractionLookupBadResponse =>
+      'Сервис TikTok вернул неожиданный ответ.';
+
+  @override
+  String get extractionNotResolved => 'Не удалось получить этот пост TikTok.';
+
+  @override
   String get savedMessage => 'Сохранено';
 
   @override
