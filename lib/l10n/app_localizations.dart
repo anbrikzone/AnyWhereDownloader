@@ -814,6 +814,54 @@ abstract class AppLocalizations {
   /// **'That doesn\'t look like a Pinterest link'**
   String get notPinterestLink;
 
+  /// No description provided for @downloadsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloads'**
+  String get downloadsTitle;
+
+  /// No description provided for @downloadsActiveSection.
+  ///
+  /// In en, this message translates to:
+  /// **'In progress'**
+  String get downloadsActiveSection;
+
+  /// No description provided for @downloadsHistorySection.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent'**
+  String get downloadsHistorySection;
+
+  /// No description provided for @downloadsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No downloads yet. Paste a link on Home to start one.'**
+  String get downloadsEmpty;
+
+  /// No description provided for @downloadsClearHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear history'**
+  String get downloadsClearHistory;
+
+  /// No description provided for @downloadStatusFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get downloadStatusFailed;
+
+  /// No description provided for @downloadStatusCanceled.
+  ///
+  /// In en, this message translates to:
+  /// **'Canceled'**
+  String get downloadStatusCanceled;
+
+  /// No description provided for @downloadsOpenFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the file. It may have been deleted.'**
+  String get downloadsOpenFailed;
+
   /// No description provided for @savedMessage.
   ///
   /// In en, this message translates to:

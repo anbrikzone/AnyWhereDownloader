@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../core/download/download_engine.dart';
 import '../../core/download/download_finalizer.dart';
+import '../../core/download/download_registry.dart';
 import '../../core/download/ytdlp_service_download.dart';
 import '../../core/extraction/media_extractor.dart';
 import '../../core/l10n/current_l10n.dart';
@@ -155,6 +156,7 @@ class YouTubeController extends StateNotifier<YouTubeState> {
     MediaSaveService? mediaSaveService,
     DownloadFinalizer? downloadFinalizer,
     NotificationPermissionService? notificationPermissionService,
+    DownloadRegistry? registry,
   }) : _extractor = extractor ?? YouTubeExtractor(),
        _downloadEngine = downloadEngine ?? DownloadEngine(),
        _ytDlpEngine = ytDlpEngine ?? YtDlpEngine(),
@@ -164,6 +166,7 @@ class YouTubeController extends StateNotifier<YouTubeState> {
          engine: ytDlpEngine,
          mediaSaveService: mediaSaveService,
        ),
+       _downloads = registry,
        _notificationPermissionService =
            notificationPermissionService ?? NotificationPermissionService(),
        super(const YouTubeState());
@@ -175,6 +178,13 @@ class YouTubeController extends StateNotifier<YouTubeState> {
   final DownloadFinalizer _downloadFinalizer;
   final NotificationPermissionService _notificationPermissionService;
   final YtDlpServiceDownload _serviceDownload;
+
+  /// Where downloads are reported for the Downloads screen; null in tests
+  /// that don't care.
+  final DownloadRegistry? _downloads;
+
+  /// The registry id of the download in flight, if any.
+  String? _trackedId;
 
   /// Fetches format info for [url]. Returns null (and sets an error status
   /// message) on failure. Guards against running while a download from
@@ -314,6 +324,7 @@ class YouTubeController extends StateNotifier<YouTubeState> {
       playlistSaved: 0,
       playlistFailed: 0,
     );
+    _track(processId, playlistTitle, DownloadKind.playlist, canPause: false);
 
     var saved = 0;
     var failed = 0;
@@ -358,13 +369,16 @@ class YouTubeController extends StateNotifier<YouTubeState> {
           '{saved}',
           '{total}',
         ),
-        onProgress: (update) => state = state.copyWith(
-          progress: update.progress,
-          playlistItemPhase: update.subPhase,
-          playlistCurrentIndex: update.itemIndex ?? state.playlistCurrentIndex,
-          playlistItemProgress:
-              update.itemProgress ?? state.playlistItemProgress,
-        ),
+        onProgress: (update) {
+          state = state.copyWith(
+            progress: update.progress,
+            playlistItemPhase: update.subPhase,
+            playlistCurrentIndex: update.itemIndex ?? state.playlistCurrentIndex,
+            playlistItemProgress:
+                update.itemProgress ?? state.playlistItemProgress,
+          );
+          _downloads?.progress(processId, update.progress);
+        },
         onItem: onItem,
       );
 
@@ -418,6 +432,7 @@ class YouTubeController extends StateNotifier<YouTubeState> {
         ),
       );
     }
+    _finishTracked(state.statusMessage);
   }
 
   /// Suggests a safe default base filename (no extension) from a video
@@ -476,22 +491,26 @@ class YouTubeController extends StateNotifier<YouTubeState> {
       currentTask: task,
       clearDownloadPhase: true,
     );
+    _track(task.taskId, filename, DownloadKind.video, canPause: true);
+    String? savedUri;
 
     try {
       final result = await _downloadEngine.run(
         task,
         onStatus: (status) {
           state = state.copyWith(paused: status == TaskStatus.paused);
+          _downloads?.setPaused(task.taskId, status == TaskStatus.paused);
         },
         onProgress: (progress) {
           if (progress >= 0) {
             state = state.copyWith(progress: progress);
+            _downloads?.progress(task.taskId, progress);
           }
         },
       );
 
       if (result.status == TaskStatus.complete) {
-        await _downloadFinalizer.finalize(task);
+        savedUri = await _downloadFinalizer.finalize(task);
         state = state.copyWith(
           downloading: false,
           paused: false,
@@ -527,6 +546,7 @@ class YouTubeController extends StateNotifier<YouTubeState> {
         ),
       );
     }
+    _finishTracked(state.statusMessage, contentUri: savedUri);
   }
 
   /// Downloads an adaptive video-only format merged with the best audio
@@ -535,7 +555,7 @@ class YouTubeController extends StateNotifier<YouTubeState> {
   /// cancel.
   Future<void> _downloadViaMerge(MediaVariant variant, String filename) async {
     final processId = YtDlpServiceDownload.newProcessId();
-    _startServiceDownload(variant, processId);
+    _startServiceDownload(variant, processId, filename, DownloadKind.video);
     _finishServiceDownload(
       await _serviceDownload.merge(
         variant: variant,
@@ -552,7 +572,13 @@ class YouTubeController extends StateNotifier<YouTubeState> {
   /// only cancel. Saves the result into `Music/<album>/` (not the gallery).
   Future<void> _downloadViaAudio(MediaVariant variant, String filename) async {
     final processId = YtDlpServiceDownload.newProcessId();
-    _startServiceDownload(variant, processId, phase: 'audio');
+    _startServiceDownload(
+      variant,
+      processId,
+      filename,
+      DownloadKind.audio,
+      phase: 'audio',
+    );
     _finishServiceDownload(
       await _serviceDownload.audio(
         variant: variant,
@@ -566,7 +592,9 @@ class YouTubeController extends StateNotifier<YouTubeState> {
 
   void _startServiceDownload(
     MediaVariant variant,
-    String processId, {
+    String processId,
+    String filename,
+    DownloadKind kind, {
     String? phase,
   }) {
     state = state.copyWith(
@@ -579,6 +607,7 @@ class YouTubeController extends StateNotifier<YouTubeState> {
       downloadPhase: phase,
       mergeDurationKnown: (variant.durationSeconds ?? 0) > 0,
     );
+    _track(processId, filename, kind, canPause: false);
   }
 
   void _onServiceProgress(MergeProgress update) {
@@ -586,15 +615,44 @@ class YouTubeController extends StateNotifier<YouTubeState> {
       progress: update.progress,
       downloadPhase: update.phase,
     );
+    final id = _trackedId;
+    if (id != null) _downloads?.progress(id, update.progress);
   }
 
-  void _finishServiceDownload(StatusMessage message) {
+  void _finishServiceDownload(ServiceDownloadOutcome outcome) {
     state = state.copyWith(
       downloading: false,
       clearMergeProcessId: true,
       clearDownloadPhase: true,
-      statusMessage: message,
+      statusMessage: outcome.message,
     );
+    _finishTracked(outcome.message, contentUri: outcome.contentUri);
+  }
+
+  void _track(
+    String id,
+    String title,
+    DownloadKind kind, {
+    required bool canPause,
+  }) {
+    _trackedId = id;
+    _downloads?.begin(
+      id: id,
+      source: 'YouTube',
+      title: title,
+      kind: kind,
+      controls: DownloadControls(
+        cancel: cancelDownload,
+        togglePause: canPause ? togglePause : null,
+      ),
+    );
+  }
+
+  void _finishTracked(StatusMessage? message, {String? contentUri}) {
+    final id = _trackedId;
+    _trackedId = null;
+    if (id == null || message == null) return;
+    _downloads?.finish(id, message, contentUri: contentUri);
   }
 
   Future<void> togglePause() async {
@@ -622,5 +680,7 @@ class YouTubeController extends StateNotifier<YouTubeState> {
 
 final youTubeControllerProvider =
     StateNotifierProvider<YouTubeController, YouTubeState>(
-      (ref) => YouTubeController(),
+      (ref) => YouTubeController(
+        registry: ref.read(downloadRegistryProvider.notifier),
+      ),
     );

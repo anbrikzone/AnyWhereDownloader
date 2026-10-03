@@ -419,6 +419,32 @@ class AppLocalizationsRu extends AppLocalizations {
   String get notPinterestLink => 'Это не похоже на ссылку Pinterest';
 
   @override
+  String get downloadsTitle => 'Загрузки';
+
+  @override
+  String get downloadsActiveSection => 'Идут сейчас';
+
+  @override
+  String get downloadsHistorySection => 'Недавние';
+
+  @override
+  String get downloadsEmpty =>
+      'Загрузок пока нет. Вставьте ссылку на главном экране, чтобы начать.';
+
+  @override
+  String get downloadsClearHistory => 'Очистить историю';
+
+  @override
+  String get downloadStatusFailed => 'Ошибка';
+
+  @override
+  String get downloadStatusCanceled => 'Отменено';
+
+  @override
+  String get downloadsOpenFailed =>
+      'Не удалось открыть файл. Возможно, он удалён.';
+
+  @override
   String get savedMessage => 'Сохранено';
 
   @override

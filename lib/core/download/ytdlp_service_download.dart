@@ -7,6 +7,15 @@ import '../l10n/status_message.dart';
 import '../storage/media_save_service.dart';
 import '../yt_dlp_engine/yt_dlp_engine.dart';
 
+/// What a service download ended with: the message the controller shows,
+/// plus the saved MediaStore item when it completed.
+class ServiceDownloadOutcome {
+  const ServiceDownloadOutcome(this.message, {this.contentUri});
+
+  final StatusMessage message;
+  final String? contentUri;
+}
+
 /// Plumbing shared by every *single* download that runs inside the native
 /// `YtDlpDownloadService` (yt-dlp `execute()` in a foreground service) —
 /// a merge (adaptive video + audio, muxed by ffmpeg: YouTube high-res,
@@ -43,8 +52,8 @@ class YtDlpServiceDownload {
 
   /// Downloads [variant] (which has a `mergeFormatSelector`) into
   /// `<root>/<album>`. Never throws — a failure comes back as a
-  /// `downloadFailed` message.
-  Future<StatusMessage> merge({
+  /// `downloadFailed` outcome.
+  Future<ServiceDownloadOutcome> merge({
     required MediaVariant variant,
     required String filename,
     required String album,
@@ -71,7 +80,7 @@ class YtDlpServiceDownload {
 
   /// Extracts [variant]'s audio (which has an `audioSpec`) into the audio
   /// root (`Music/<album>` by default). Never throws, like [merge].
-  Future<StatusMessage> audio({
+  Future<ServiceDownloadOutcome> audio({
     required MediaVariant variant,
     required String filename,
     required String album,
@@ -100,22 +109,30 @@ class YtDlpServiceDownload {
 
   Future<void> cancel(String processId) => _engine.cancelDownload(processId);
 
-  Future<StatusMessage> _run(Future<MergeDownloadResult> Function() start) async {
+  Future<ServiceDownloadOutcome> _run(
+    Future<MergeDownloadResult> Function() start,
+  ) async {
     try {
       final result = await start();
       return switch (result.status) {
         // Already saved + notified by the native service.
-        'complete' => const StatusMessage(StatusMessageKey.saved),
-        'canceled' => const StatusMessage(StatusMessageKey.downloadCanceled),
-        _ => StatusMessage(
-          StatusMessageKey.downloadFailed,
-          error: result.error ?? result.status,
+        'complete' => ServiceDownloadOutcome(
+          const StatusMessage(StatusMessageKey.saved),
+          contentUri: result.contentUri,
+        ),
+        'canceled' => const ServiceDownloadOutcome(
+          StatusMessage(StatusMessageKey.downloadCanceled),
+        ),
+        _ => ServiceDownloadOutcome(
+          StatusMessage(
+            StatusMessageKey.downloadFailed,
+            error: result.error ?? result.status,
+          ),
         ),
       };
     } catch (error) {
-      return StatusMessage(
-        StatusMessageKey.downloadFailed,
-        error: error.toString(),
+      return ServiceDownloadOutcome(
+        StatusMessage(StatusMessageKey.downloadFailed, error: error.toString()),
       );
     }
   }

@@ -419,6 +419,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notPinterestLink => 'That doesn\'t look like a Pinterest link';
 
   @override
+  String get downloadsTitle => 'Downloads';
+
+  @override
+  String get downloadsActiveSection => 'In progress';
+
+  @override
+  String get downloadsHistorySection => 'Recent';
+
+  @override
+  String get downloadsEmpty =>
+      'No downloads yet. Paste a link on Home to start one.';
+
+  @override
+  String get downloadsClearHistory => 'Clear history';
+
+  @override
+  String get downloadStatusFailed => 'Failed';
+
+  @override
+  String get downloadStatusCanceled => 'Canceled';
+
+  @override
+  String get downloadsOpenFailed =>
+      'Couldn\'t open the file. It may have been deleted.';
+
+  @override
   String get savedMessage => 'Saved';
 
   @override

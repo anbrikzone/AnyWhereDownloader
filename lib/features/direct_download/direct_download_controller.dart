@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/download/download_engine.dart';
 import '../../core/download/download_finalizer.dart';
+import '../../core/download/download_registry.dart';
 import '../../core/download/ytdlp_service_download.dart';
 import '../../core/extraction/media_extractor.dart';
 import '../../core/l10n/status_message.dart';
@@ -82,12 +83,14 @@ class DirectDownloadController extends StateNotifier<DirectDownloadState> {
     DownloadFinalizer? downloadFinalizer,
     NotificationPermissionService? notificationPermissionService,
     YtDlpServiceDownload? serviceDownload,
+    DownloadRegistry? registry,
   }) : _extractor = extractor ?? service.createExtractor(),
        _downloadEngine = downloadEngine ?? DownloadEngine(),
        _downloadFinalizer = downloadFinalizer ?? DownloadFinalizer.instance,
        _serviceDownload = serviceDownload ?? YtDlpServiceDownload(),
        _notificationPermissionService =
            notificationPermissionService ?? NotificationPermissionService(),
+       _downloads = registry,
        _galAlbum = relativePathForSource(service.librarySource),
        super(const DirectDownloadState());
 
@@ -98,6 +101,13 @@ class DirectDownloadController extends StateNotifier<DirectDownloadState> {
   final YtDlpServiceDownload _serviceDownload;
   final NotificationPermissionService _notificationPermissionService;
   final String _galAlbum;
+
+  /// Where downloads are reported for the Downloads screen; null in tests
+  /// that don't care.
+  final DownloadRegistry? _downloads;
+
+  /// The registry id of the download in flight, if any.
+  String? _trackedId;
 
   bool canHandle(String url) => _extractor.canHandle(url);
 
@@ -186,25 +196,40 @@ class DirectDownloadController extends StateNotifier<DirectDownloadState> {
       clearStatusMessage: true,
       currentTask: task,
     );
+    _track(
+      task.taskId,
+      filename,
+      variant.type == MediaVariantType.image
+          ? DownloadKind.image
+          : DownloadKind.video,
+      canPause: true,
+    );
 
     try {
       final result = await _downloadEngine.run(
         task,
         onStatus: (status) {
           state = state.copyWith(paused: status == TaskStatus.paused);
+          _downloads?.setPaused(task.taskId, status == TaskStatus.paused);
         },
         onProgress: (progress) {
           if (progress >= 0) {
             state = state.copyWith(progress: progress);
+            _downloads?.progress(task.taskId, progress);
           }
         },
       );
 
-      final StatusMessage message;
       if (result.status == TaskStatus.complete) {
-        await _downloadFinalizer.finalize(task);
-        message = const StatusMessage(StatusMessageKey.saved);
-      } else if (result.status == TaskStatus.canceled) {
+        final contentUri = await _downloadFinalizer.finalize(task);
+        _finishDownload(
+          const StatusMessage(StatusMessageKey.saved),
+          contentUri: contentUri,
+        );
+        return;
+      }
+      final StatusMessage message;
+      if (result.status == TaskStatus.canceled) {
         message = const StatusMessage(StatusMessageKey.downloadCanceled);
       } else {
         message = StatusMessage(
@@ -233,18 +258,40 @@ class DirectDownloadController extends StateNotifier<DirectDownloadState> {
       clearCurrentTask: true,
       mergeProcessId: processId,
     );
-    _finishDownload(
-      await _serviceDownload.merge(
-        variant: variant,
-        filename: filename,
-        album: _galAlbum,
-        processId: processId,
-        onProgress: (update) => state = state.copyWith(progress: update.progress),
+    _track(processId, filename, DownloadKind.video, canPause: false);
+    final outcome = await _serviceDownload.merge(
+      variant: variant,
+      filename: filename,
+      album: _galAlbum,
+      processId: processId,
+      onProgress: (update) {
+        state = state.copyWith(progress: update.progress);
+        _downloads?.progress(processId, update.progress);
+      },
+    );
+    _finishDownload(outcome.message, contentUri: outcome.contentUri);
+  }
+
+  void _track(
+    String id,
+    String title,
+    DownloadKind kind, {
+    required bool canPause,
+  }) {
+    _trackedId = id;
+    _downloads?.begin(
+      id: id,
+      source: service.title,
+      title: title,
+      kind: kind,
+      controls: DownloadControls(
+        cancel: cancelDownload,
+        togglePause: canPause ? togglePause : null,
       ),
     );
   }
 
-  void _finishDownload(StatusMessage message) {
+  void _finishDownload(StatusMessage message, {String? contentUri}) {
     state = state.copyWith(
       downloading: false,
       paused: false,
@@ -252,6 +299,9 @@ class DirectDownloadController extends StateNotifier<DirectDownloadState> {
       clearMergeProcessId: true,
       statusMessage: message,
     );
+    final id = _trackedId;
+    _trackedId = null;
+    if (id != null) _downloads?.finish(id, message, contentUri: contentUri);
   }
 
   Future<void> togglePause() async {
@@ -285,4 +335,9 @@ final directDownloadControllerProvider =
       DirectDownloadController,
       DirectDownloadState,
       ServiceType
-    >((ref, type) => DirectDownloadController(DirectDownloadService.of(type)!));
+    >(
+      (ref, type) => DirectDownloadController(
+        DirectDownloadService.of(type)!,
+        registry: ref.read(downloadRegistryProvider.notifier),
+      ),
+    );

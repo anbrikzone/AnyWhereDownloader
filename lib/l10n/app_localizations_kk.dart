@@ -420,6 +420,32 @@ class AppLocalizationsKk extends AppLocalizations {
   String get notPinterestLink => 'Бұл Pinterest сілтемесіне ұқсамайды';
 
   @override
+  String get downloadsTitle => 'Жүктеулер';
+
+  @override
+  String get downloadsActiveSection => 'Жүріп жатыр';
+
+  @override
+  String get downloadsHistorySection => 'Соңғылары';
+
+  @override
+  String get downloadsEmpty =>
+      'Әзірге жүктеулер жоқ. Бастау үшін басты экранға сілтеме қойыңыз.';
+
+  @override
+  String get downloadsClearHistory => 'Тарихты тазалау';
+
+  @override
+  String get downloadStatusFailed => 'Қате';
+
+  @override
+  String get downloadStatusCanceled => 'Тоқтатылды';
+
+  @override
+  String get downloadsOpenFailed =>
+      'Файлды ашу мүмкін болмады. Ол жойылған болуы мүмкін.';
+
+  @override
   String get savedMessage => 'Сақталды';
 
   @override

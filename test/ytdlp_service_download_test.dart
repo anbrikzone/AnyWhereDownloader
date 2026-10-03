@@ -96,14 +96,17 @@ void main() {
   );
 
   test('merge: per-download work dir, gallery root, saved on complete', () async {
-    final engine = _FakeEngine(result: MergeDownloadResult(status: 'complete'));
-    final message = await downloader(engine).merge(
+    final engine = _FakeEngine(
+      result: MergeDownloadResult(status: 'complete', contentUri: 'content://media/1'),
+    );
+    final outcome = await downloader(engine).merge(
       variant: _video,
       filename: 'clip.mp4',
       album: 'AnyWhereDownloader/YouTube',
       processId: '42',
     );
-    expect(message.key, StatusMessageKey.saved);
+    expect(outcome.message.key, StatusMessageKey.saved);
+    expect(outcome.contentUri, 'content://media/1');
     final call = engine.calls.single;
     expect(call['kind'], 'merge');
     expect(call['selector'], '137+ba/b');
@@ -114,13 +117,13 @@ void main() {
 
   test('audio: goes to the audio root with the variant spec', () async {
     final engine = _FakeEngine(result: MergeDownloadResult(status: 'canceled'));
-    final message = await downloader(engine).audio(
+    final outcome = await downloader(engine).audio(
       variant: _audio,
       filename: 'song.mp3',
       album: 'AnyWhereDownloader/YouTube',
       processId: '7',
     );
-    expect(message.key, StatusMessageKey.downloadCanceled);
+    expect(outcome.message.key, StatusMessageKey.downloadCanceled);
     expect(engine.calls.single, {
       'kind': 'audio',
       'format': 'mp3',
@@ -133,13 +136,13 @@ void main() {
     final failed = await downloader(
       _FakeEngine(result: MergeDownloadResult(status: 'error', error: 'ffmpeg died')),
     ).merge(variant: _video, filename: 'a.mp4', album: 'A', processId: '1');
-    expect(failed.key, StatusMessageKey.downloadFailed);
-    expect(failed.error, 'ffmpeg died');
+    expect(failed.message.key, StatusMessageKey.downloadFailed);
+    expect(failed.message.error, 'ffmpeg died');
 
     final thrown = await downloader(
       _FakeEngine(error: StateError('channel gone')),
     ).merge(variant: _video, filename: 'a.mp4', album: 'A', processId: '2');
-    expect(thrown.key, StatusMessageKey.downloadFailed);
-    expect(thrown.error, contains('channel gone'));
+    expect(thrown.message.key, StatusMessageKey.downloadFailed);
+    expect(thrown.message.error, contains('channel gone'));
   });
 }

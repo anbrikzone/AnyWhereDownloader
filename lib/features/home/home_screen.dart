@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/clipboard/clipboard_link_tracker.dart';
+import '../../core/download/download_registry.dart';
 import '../../core/extraction/extractor_registry.dart';
 import '../../core/extraction/media_extractor.dart';
 import '../../core/settings/settings_providers.dart';
@@ -17,6 +18,7 @@ import '../../services/youtube/youtube_extractor.dart';
 import '../../core/ui/app_toast.dart';
 import '../../l10n/app_localizations.dart';
 import '../direct_download/direct_download_screen.dart';
+import '../downloads/downloads_screen.dart';
 import '../settings/settings_screen.dart';
 import '../whatsapp/whatsapp_status_screen.dart';
 import '../youtube/youtube_screen.dart';
@@ -316,6 +318,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       appBar: AppBar(
         title: const Text('AnyWhere Downloader'),
         actions: [
+          _DownloadsButton(tooltip: l10n.downloadsTitle),
           IconButton(
             tooltip: l10n.settingsTooltip,
             icon: _updateAvailable(ref)
@@ -455,6 +458,32 @@ class _ServiceCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Home AppBar entry to the Downloads screen (backlog #19), badged with the
+/// number of downloads currently running.
+class _DownloadsButton extends ConsumerWidget {
+  const _DownloadsButton({required this.tooltip});
+
+  final String tooltip;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final active = ref.watch(
+      downloadRegistryProvider.select((s) => s.active.length),
+    );
+    return IconButton(
+      tooltip: tooltip,
+      icon: Badge(
+        isLabelVisible: active > 0,
+        label: Text('$active'),
+        child: const Icon(Icons.download_outlined),
+      ),
+      onPressed: () => Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const DownloadsScreen())),
     );
   }
 }

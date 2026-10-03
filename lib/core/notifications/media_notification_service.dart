@@ -31,6 +31,21 @@ class MediaNotificationService {
     });
   }
 
+  /// Opens a saved file ([contentUri]) in the system's default viewer — the
+  /// same action the completion notification's tap fires. The MIME type is
+  /// looked up from MediaStore. Returns false when nothing could open it
+  /// (e.g. the file was deleted since).
+  Future<bool> openFile(String contentUri) async {
+    try {
+      return await _channel.invokeMethod<bool>('openFile', {
+            'uri': contentUri,
+          }) ??
+          false;
+    } on PlatformException {
+      return false;
+    }
+  }
+
   /// Shows a plain summary notification with no tap-to-open action — used
   /// when a batch save (e.g. multiple WhatsApp statuses at once) has no
   /// single file to point at.

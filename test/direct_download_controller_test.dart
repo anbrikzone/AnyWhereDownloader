@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:anywhere_downloader/core/download/download_registry.dart';
 import 'package:anywhere_downloader/core/download/ytdlp_service_download.dart';
 import 'package:anywhere_downloader/core/extraction/media_extractor.dart';
 import 'package:anywhere_downloader/core/l10n/status_message.dart';
@@ -71,6 +72,14 @@ class _FakeMediaSaveService implements MediaSaveService {
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _MemoryHistoryStore implements DownloadHistoryStore {
+  @override
+  Future<List<DownloadEntry>> load() async => const [];
+
+  @override
+  Future<void> save(List<DownloadEntry> history) async {}
 }
 
 class _NoopNotificationPermission implements NotificationPermissionService {
@@ -158,6 +167,7 @@ void main() {
   test('a merge variant goes through yt-dlp: no pause, cancel reaches yt-dlp',
       () async {
     final engine = _FakeYtDlpEngine();
+    final registry = DownloadRegistry(store: _MemoryHistoryStore());
     final tmp = await Directory.systemTemp.createTemp('awd_test');
     addTearDown(() => tmp.delete(recursive: true));
     final controller = DirectDownloadController(
@@ -169,6 +179,7 @@ void main() {
         tempDirectory: () async => tmp,
       ),
       notificationPermissionService: _NoopNotificationPermission(),
+      registry: registry,
     );
     final variant = MediaVariant(
       type: MediaVariantType.video,
@@ -188,6 +199,12 @@ void main() {
     expect((engine.merges.single['outputPath']! as String), endsWith('/clip.mp4'));
     expect(controller.state.downloading, isTrue);
     expect(controller.state.canPause, isFalse);
+    // Reported to the Downloads screen, cancel-only.
+    final active = registry.state.active.single;
+    expect(active.id, engine.merges.single['processId']);
+    expect(active.source, 'Pinterest');
+    expect(active.title, 'clip.mp4');
+    expect(active.canPause, isFalse);
 
     await controller.cancelDownload();
     expect(engine.canceled.single, engine.merges.single['processId']);
@@ -197,5 +214,7 @@ void main() {
     expect(controller.state.downloading, isFalse);
     expect(controller.state.mergeProcessId, isNull);
     expect(controller.state.statusMessage?.key, StatusMessageKey.downloadCanceled);
+    expect(registry.state.active, isEmpty);
+    expect(registry.state.history.single.status, DownloadStatus.canceled);
   });
 }

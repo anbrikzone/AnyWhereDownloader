@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -44,6 +45,33 @@ class MediaNotificationBridge(private val appContext: Context) {
                     channelName,
                 )
                 result.success(null)
+            }
+
+            // The Downloads screen's "tap to open" — the same ACTION_VIEW the
+            // completion notification fires. Returns false when no installed
+            // app can show it (or the item is gone).
+            "openFile" -> {
+                val uri = call.argument<String>("uri")
+                if (uri == null) {
+                    result.error("bad_args", "Missing 'uri' argument", null)
+                    return
+                }
+                val parsed = Uri.parse(uri)
+                val mimeType = call.argument<String>("mimeType")
+                    ?: appContext.contentResolver.getType(parsed)
+                val intent = Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(parsed, mimeType)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                result.success(
+                    try {
+                        appContext.startActivity(intent)
+                        true
+                    } catch (e: Exception) {
+                        Log.w("MediaNotificationBridge", "openFile($uri) failed", e)
+                        false
+                    },
+                )
             }
 
             else -> result.notImplemented()
