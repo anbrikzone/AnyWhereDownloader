@@ -6,6 +6,43 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 
 ---
 
+## 0.3.13 — 2026-10-03
+
+### English
+
+**Changed**
+- Notifications and error messages are now shown in Russian and Kazakh too, not only in English.
+
+**Fixed**
+- A download that finishes after you've left or closed the app is still saved to your gallery.
+- TikTok photo posts now download as photos instead of just their background music.
+- Double-tap zoom in the photo viewer now uses the whole screen instead of a narrow frame.
+- Library now sorts by when you downloaded something, not by the original date stored in the video.
+
+### Русский
+
+**Изменено**
+- Уведомления и сообщения об ошибках теперь тоже на русском и казахском, а не только на английском.
+
+**Исправлено**
+- Загрузка, завершившаяся после того, как вы вышли из приложения или закрыли его, всё равно сохраняется в галерею.
+- Фото-посты TikTok теперь скачиваются как фото, а не только как фоновая музыка.
+- Увеличение двойным тапом в просмотре фото теперь использует весь экран, а не узкую рамку.
+- Медиатека теперь сортирует по дате скачивания, а не по исходной дате, записанной в видео.
+
+### Қазақша
+
+**Өзгертілді**
+- Хабарландырулар мен қате туралы хабарлар енді тек ағылшынша емес, орысша және қазақша да көрсетіледі.
+
+**Түзетілді**
+- Қолданбадан шыққаннан немесе оны жапқаннан кейін аяқталған жүктеу бәрібір галереяға сақталады.
+- TikTok фото-жазбалары енді тек фондық музыкасы емес, фото ретінде жүктеледі.
+- Фотоны көруде екі рет түрту арқылы үлкейту енді тар жақтау емес, бүкіл экранды пайдаланады.
+- Медиатека енді бейнеге жазылған бастапқы күн бойынша емес, жүктелген күн бойынша сұрыптайды.
+
+---
+
 ## 0.3.12 — 2026-09-12
 
 ### English

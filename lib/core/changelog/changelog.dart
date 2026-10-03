@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 /// changelog entry's version. Keep this in sync with `pubspec.yaml`'s
 /// `version:` field and the top entry of both [kChangelog] and the
 /// project-root `CHANGELOG.md`.
-const String kAppVersion = '0.3.12';
+const String kAppVersion = '0.3.13';
 
 /// The kind of change a changelog line describes. Rendered as a small
 /// section header ("Added" / "Changed" / "Fixed"); a kind with no lines is
@@ -40,6 +40,45 @@ class ChangelogEntry {
 /// new" screen renders; the project-root `CHANGELOG.md` mirrors it for
 /// people reading the repo. Update both together on every release.
 const List<ChangelogEntry> kChangelog = [
+  ChangelogEntry(
+    version: '0.3.13',
+    date: '2026-10-03',
+    notes: {
+      'en': {
+        ChangeKind.changed: [
+          'Notifications and error messages are now shown in Russian and Kazakh too, not only in English.',
+        ],
+        ChangeKind.fixed: [
+          "A download that finishes after you've left or closed the app is still saved to your gallery.",
+          'TikTok photo posts now download as photos instead of just their background music.',
+          'Double-tap zoom in the photo viewer now uses the whole screen instead of a narrow frame.',
+          'Library now sorts by when you downloaded something, not by the original date stored in the video.',
+        ],
+      },
+      'ru': {
+        ChangeKind.changed: [
+          'Уведомления и сообщения об ошибках теперь тоже на русском и казахском, а не только на английском.',
+        ],
+        ChangeKind.fixed: [
+          'Загрузка, завершившаяся после того, как вы вышли из приложения или закрыли его, всё равно сохраняется в галерею.',
+          'Фото-посты TikTok теперь скачиваются как фото, а не только как фоновая музыка.',
+          'Увеличение двойным тапом в просмотре фото теперь использует весь экран, а не узкую рамку.',
+          'Медиатека теперь сортирует по дате скачивания, а не по исходной дате, записанной в видео.',
+        ],
+      },
+      'kk': {
+        ChangeKind.changed: [
+          'Хабарландырулар мен қате туралы хабарлар енді тек ағылшынша емес, орысша және қазақша да көрсетіледі.',
+        ],
+        ChangeKind.fixed: [
+          'Қолданбадан шыққаннан немесе оны жапқаннан кейін аяқталған жүктеу бәрібір галереяға сақталады.',
+          'TikTok фото-жазбалары енді тек фондық музыкасы емес, фото ретінде жүктеледі.',
+          'Фотоны көруде екі рет түрту арқылы үлкейту енді тар жақтау емес, бүкіл экранды пайдаланады.',
+          'Медиатека енді бейнеге жазылған бастапқы күн бойынша емес, жүктелген күн бойынша сұрыптайды.',
+        ],
+      },
+    },
+  ),
   ChangelogEntry(
     version: '0.3.12',
     date: '2026-09-12',
