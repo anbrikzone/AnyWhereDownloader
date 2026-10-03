@@ -15,6 +15,7 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 
 **Fixed**
 - If preparing a high-quality YouTube or MP3 download fails, the app now shows an error instead of silently doing nothing.
+- Pinterest videos now show real download progress instead of sitting at 0%, and every download shows "Starting download…" until progress arrives.
 
 ### Русский
 
@@ -23,6 +24,7 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 
 **Исправлено**
 - Если подготовка загрузки YouTube в высоком качестве или MP3 не удалась, приложение теперь показывает ошибку, а не молча ничего не делает.
+- Видео Pinterest теперь показывают реальный прогресс загрузки, а не стоят на 0%, а пока прогресса ещё нет, любая загрузка показывает «Начинаем загрузку…».
 
 ### Қазақша
 
@@ -31,6 +33,7 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 
 **Түзетілді**
 - YouTube жоғары сапалы немесе MP3 жүктеуін дайындау сәтсіз болса, қолданба енді үнсіз қалмай, қате көрсетеді.
+- Pinterest бейнелері енді 0%-да тұрып қалмай, жүктеудің нақты барысын көрсетеді, ал барыс әлі жоқ кезде кез келген жүктеу «Жүктеу басталуда…» деп көрсетеді.
 
 ---
 
