@@ -13,6 +13,16 @@ int heightOf(RawFormat f) {
   return m == null ? 0 : int.parse(m.group(1)!);
 }
 
+/// `720p`-style label from the frame's *short* side when both sides are
+/// known — a vertical 576×1024 video is "576p", not "1024p", same convention
+/// as YouTube Shorts — else from [height].
+String? _qualityLabel(RawFormat f, int height) {
+  if (f.width > 0 && height > 0) {
+    return '${f.width < height ? f.width : height}p';
+  }
+  return height > 0 ? '${height}p' : null;
+}
+
 /// Progressive [formats] → one video variant per *distinguishable* quality,
 /// best first. Ranked by height, then bitrate, then yt-dlp's own order
 /// (it lists formats worst → best). Formats that nothing tells apart — same
@@ -45,7 +55,7 @@ List<MediaVariant> progressiveVideoVariants(
     variants.add(
       MediaVariant(
         type: MediaVariantType.video,
-        resolutionLabel: height > 0 ? '${height}p' : null,
+        resolutionLabel: _qualityLabel(f, height),
         container: container?.call(f) ?? f.ext ?? 'mp4',
         approxSizeBytes: size,
         sourceUrl: url,

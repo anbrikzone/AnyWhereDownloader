@@ -12,10 +12,17 @@ final _pinterestHost =
 
 const _imageExts = {'jpg', 'jpeg', 'png', 'webp', 'gif'};
 
+/// `ORIGIN/videos/iht/hls/PATH_WIDTHw.m3u8` → groups (ORIGIN, `PATH_WIDTHw`).
+final _hlsRendition = RegExp(r'^(https?://[^/]+)/videos/iht/hls/(.+_\d+w)\.m3u8$');
+
 /// Pinterest pins via yt-dlp's `pinterest` extractor (read from the bundled
 /// source, 2026-10-03):
 /// - **video pin** → progressive MP4s from the pin's `video_list` (with
 ///   width/height) plus `V_HLS*` m3u8 entries, which are skipped;
+///   **Current pins usually have *only* HLS** (`V_HLSV3_MOBILE-*`, video-only
+///   streams plus a separate audio stream — found on-device 2026-10-03), so
+///   [_mp4TwinsOfHls] maps each HLS rendition to the muxed MP4 Pinterest
+///   also serves for it;
 /// - **image pin** → no formats at all. yt-dlp would fail with "No video
 ///   formats found", so `YtDlpBridge` passes `--ignore-no-formats-error` for
 ///   Pinterest and the image comes from yt-dlp's best `thumbnail` (the
@@ -56,6 +63,7 @@ class PinterestExtractor implements MediaExtractor {
         .where((f) => !(f.formatId?.toLowerCase().contains('hls') ?? false))
         .where((f) => !f.url!.contains('.m3u8'))
         .toList();
+    if (progressive.isEmpty) progressive.addAll(await _mp4TwinsOfHls(info));
     final variants = progressiveVideoVariants(
       progressive,
       durationSeconds: info.durationSeconds,
@@ -75,6 +83,67 @@ class PinterestExtractor implements MediaExtractor {
       thumbnailUrl: info.thumbnailUrl,
       variants: variants,
     );
+  }
+
+  /// Pinterest serves every HLS rendition `…/videos/iht/hls/<path>_<w>w.m3u8`
+  /// as a muxed (video + audio) MP4 at `…/videos/iht/expMp4/<path>_<w>w.mp4`
+  /// too — not part of yt-dlp's output, found by probing (2026-10-03: a pin
+  /// with only HLS had 240w/360w/540w/720w MP4 twins, each with an `mp4a`
+  /// track). It's an undocumented URL scheme, so each twin is HEAD-checked
+  /// and only ones that really exist are offered (with their exact size).
+  Future<List<RawFormat>> _mp4TwinsOfHls(RawVideoInfo info) async {
+    final candidates = <RawFormat>[];
+    for (final f in info.formats) {
+      final url = f.url;
+      if (url == null || !f.hasVideo) continue;
+      final match = _hlsRendition.firstMatch(url);
+      if (match == null) continue;
+      candidates.add(
+        RawFormat(
+          formatId: f.formatId,
+          ext: 'mp4',
+          vcodec: f.vcodec,
+          acodec: null,
+          height: f.height,
+          width: f.width,
+          formatNote: f.formatNote,
+          url: '${match.group(1)}/videos/iht/expMp4/${match.group(2)}.mp4',
+          fileSizeBytes: 0,
+          httpHeaders: null,
+          tbrKbps: 0,
+        ),
+      );
+    }
+    final checked = await Future.wait(candidates.map(_withSizeIfExists));
+    return checked.whereType<RawFormat>().toList();
+  }
+
+  Future<RawFormat?> _withSizeIfExists(RawFormat f) async {
+    try {
+      final response = await _client
+          .head(Uri.parse(f.url!))
+          .timeout(const Duration(seconds: 10));
+      final type = response.headers['content-type'] ?? '';
+      if (response.statusCode != 200 || !type.startsWith('video/')) {
+        return null;
+      }
+      return RawFormat(
+        formatId: f.formatId,
+        ext: f.ext,
+        vcodec: f.vcodec,
+        acodec: f.acodec,
+        height: f.height,
+        width: f.width,
+        formatNote: f.formatNote,
+        url: f.url,
+        fileSizeBytes: int.tryParse(response.headers['content-length'] ?? '') ?? 0,
+        httpHeaders: null,
+        tbrKbps: 0,
+      );
+    } catch (e, st) {
+      logError('PinterestExtractor.probeMp4', e, st);
+      return null;
+    }
   }
 
   /// An image pin's picture: yt-dlp's top-level `url` if it's an image,

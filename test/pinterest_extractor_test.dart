@@ -21,10 +21,11 @@ class _FakeEngine implements YtDlpEngine {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-RawFormat _f(String id, String url, {int height = 0}) => RawFormat(
+RawFormat _f(String id, String url, {int height = 0, String? vcodec}) =>
+    RawFormat(
       formatId: id,
       ext: 'mp4',
-      vcodec: null,
+      vcodec: vcodec,
       acodec: null,
       height: height,
       width: 0,
@@ -96,5 +97,35 @@ void main() {
     await PinterestExtractor(engine: engine, client: client)
         .extract('https://pin.it/4AbCdEf');
     expect(engine.requested.single, 'https://www.pinterest.com/pin/987654321/sent/');
+  });
+
+  test('HLS-only pin: offers the existing MP4 twins with their real size',
+      () async {
+    const hls = 'https://v1.pinimg.com/videos/iht/hls/62/04/f5/abc';
+    const mp4 = 'https://v1.pinimg.com/videos/iht/expMp4/62/04/f5/abc';
+    final client = MockClient((request) async {
+      expect(request.method, 'HEAD');
+      if (request.url.toString() == '${mp4}_720w.mp4') {
+        return http.Response('', 200, headers: {
+          'content-type': 'video/mp4',
+          'content-length': '9888598',
+        });
+      }
+      return http.Response('', 403, headers: {'content-type': 'application/xml'});
+    });
+    final engine = _FakeEngine(_info(
+      thumb: 'https://i.pinimg.com/x.jpg',
+      formats: [
+        _f('V_HLSV3_MOBILE-audio1-1', '${hls}_audio.m3u8', vcodec: 'none'),
+        _f('V_HLSV3_MOBILE-1419', '${hls}_720w.m3u8', height: 1024, vcodec: 'avc1'),
+        _f('V_HLSV3_MOBILE-2000', '${hls}_1080w.m3u8', height: 1920, vcodec: 'avc1'),
+      ],
+    ));
+    final info = await PinterestExtractor(engine: engine, client: client)
+        .extract('https://www.pinterest.com/pin/1/');
+    final video = info.variants.single;
+    expect(video.type, MediaVariantType.video);
+    expect(video.sourceUrl, '${mp4}_720w.mp4');
+    expect(video.approxSizeBytes, 9888598);
   });
 }

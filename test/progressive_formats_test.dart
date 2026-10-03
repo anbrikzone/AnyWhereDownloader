@@ -2,14 +2,20 @@ import 'package:anywhere_downloader/core/extraction/progressive_formats.dart';
 import 'package:anywhere_downloader/core/yt_dlp_engine/yt_dlp_engine.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-RawFormat _f(String url, {int height = 0, double tbr = 0, String? id}) =>
+RawFormat _f(
+  String url, {
+  int height = 0,
+  int width = 0,
+  double tbr = 0,
+  String? id,
+}) =>
     RawFormat(
       formatId: id,
       ext: 'mp4',
       vcodec: null,
       acodec: null,
       height: height,
-      width: 0,
+      width: width,
       formatNote: null,
       url: url,
       fileSizeBytes: 0,
@@ -55,5 +61,13 @@ void main() {
     expect(variants.first.resolutionLabel, '640p');
     expect(variants[1].resolutionLabel, isNull);
     expect(variants[1].bitrateKbps, 1500);
+  });
+
+  test('labels a vertical video by its short side', () {
+    final variants = progressiveVideoVariants(
+      [_f('https://v/portrait.mp4', width: 576, height: 1024)],
+      durationSeconds: 0,
+    );
+    expect(variants.single.resolutionLabel, '576p');
   });
 }
