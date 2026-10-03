@@ -2,7 +2,6 @@ package com.anywheredownloader.anywhere_downloader
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -18,10 +17,9 @@ import java.util.concurrent.atomic.AtomicInteger
 /**
  * Posts the final "download complete" notification for a saved file —
  * separate from [YtDlpDownloadService]'s own in-progress notification.
- * The completion notification's tap action is a plain `ACTION_VIEW`
- * `PendingIntent` pointing directly at the saved MediaStore item, so
- * opening the file works even if the app process has since been killed —
- * no round-trip back into Dart is needed on tap.
+ * Tapping the completion notification opens the app on its Library tab
+ * ([AppRoutes]). The Downloads screen's "open" uses [handle]'s `openFile`,
+ * a plain `ACTION_VIEW` of the saved MediaStore item.
  */
 class MediaNotificationBridge(private val appContext: Context) {
     fun handle(call: MethodCall, result: MethodChannel.Result) {
@@ -87,7 +85,6 @@ class MediaNotificationBridge(private val appContext: Context) {
 object DownloadNotifications {
     private const val CHANNEL_ID = "download_complete"
     private val nextNotificationId = AtomicInteger(2000)
-    private val nextRequestCode = AtomicInteger(3000)
 
     fun showDownloadComplete(
         context: Context,
@@ -117,19 +114,10 @@ object DownloadNotifications {
             .setSmallIcon(android.R.drawable.stat_sys_download_done)
             .setAutoCancel(true)
 
-        if (uri != null && mimeType != null) {
-            val viewIntent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(Uri.parse(uri), mimeType)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-            val pendingIntent = PendingIntent.getActivity(
-                context,
-                nextRequestCode.getAndIncrement(),
-                viewIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-            )
-            builder.setContentIntent(pendingIntent)
-        }
+        // Tap → the app's Library tab (user request 2026-10-03) — for a
+        // single saved file and for a summary alike. The Downloads screen's
+        // "open" still hands a file to an external viewer.
+        builder.setContentIntent(AppRoutes.pendingIntent(context, AppRoutes.LIBRARY))
 
         try {
             NotificationManagerCompat.from(context)

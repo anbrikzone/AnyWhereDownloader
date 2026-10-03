@@ -12,6 +12,7 @@ class MainActivity : FlutterActivity() {
     private val updateInstallChannelName = "anywhere_downloader/update_install"
     private val mediaSaveChannelName = "anywhere_downloader/media_save"
     private val shareChannelName = "anywhere_downloader/share_intent"
+    private val routeChannelName = "anywhere_downloader/app_route"
 
     // Request code for the `MediaStore.createWriteRequest` consent dialog
     // `MediaSaveBridge.requestWriteAccess` triggers (see its bug #5 doc) —
@@ -27,6 +28,11 @@ class MainActivity : FlutterActivity() {
     // onNewIntent instead (see below).
     private var initialSharedText: String? = null
     private var shareChannel: MethodChannel? = null
+
+    // Notification-tap route (see [AppRoutes]) — same cold-start drain /
+    // running push split as the share text above.
+    private var initialRoute: String? = null
+    private var routeChannel: MethodChannel? = null
     private var ytDlpChannel: MethodChannel? = null
     private lateinit var mediaSaveBridge: MediaSaveBridge
 
@@ -78,6 +84,19 @@ class MainActivity : FlutterActivity() {
         // The intent that started this activity — may be an ACTION_SEND.
         initialSharedText = extractSharedText(intent)
 
+        val routeCh = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, routeChannelName)
+        routeCh.setMethodCallHandler { call, result ->
+            when (call.method) {
+                "getInitialRoute" -> {
+                    result.success(initialRoute)
+                    initialRoute = null
+                }
+                else -> result.notImplemented()
+            }
+        }
+        routeChannel = routeCh
+        initialRoute = AppRoutes.from(intent)
+
         // Unpack yt-dlp's runtime off the critical path (no network — the
         // self-update only runs from Settings).
         YtDlpCore.warmUp(applicationContext)
@@ -108,6 +127,11 @@ class MainActivity : FlutterActivity() {
         super.onNewIntent(intent)
         // Keep getIntent() current for anything that reads it later.
         setIntent(intent)
+        AppRoutes.from(intent)?.let { route ->
+            val ch = routeChannel
+            if (ch != null) ch.invokeMethod("route", route) else initialRoute = route
+            return
+        }
         val text = extractSharedText(intent) ?: return
         val ch = shareChannel
         if (ch != null) {

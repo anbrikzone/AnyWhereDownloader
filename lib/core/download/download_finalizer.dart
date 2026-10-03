@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:background_downloader/background_downloader.dart';
 import 'package:flutter/widgets.dart';
 
+import '../navigation/app_route_service.dart';
 import '../logging/app_log.dart';
 import '../notifications/media_notification_service.dart';
 import '../storage/media_save_service.dart';
@@ -150,6 +151,15 @@ class DownloadFinalizer {
       FileDownloader().registerCallbacks(
         group: kGallerySaveGroup,
         taskStatusCallback: _onOrphanStatus,
+        // The plugin's own notifications: tapping a finished one opens the
+        // Library tab, anything else (running/paused/failed) the Downloads
+        // screen — same as the native notifications (see AppRouteService).
+        taskNotificationTapCallback: (task, type) => AppRouteService.instance
+            .dispatch(
+              type == NotificationType.complete
+                  ? AppRoute.library
+                  : AppRoute.downloads,
+            ),
       );
       await FileDownloader().trackTasksInGroup(kGallerySaveGroup);
       // Replays status updates the plugin stored while no Dart side was

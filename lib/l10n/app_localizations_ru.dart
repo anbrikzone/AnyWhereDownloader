@@ -739,7 +739,8 @@ class AppLocalizationsRu extends AppLocalizations {
   String get notificationDownloadFailed => 'Ошибка загрузки';
 
   @override
-  String get notificationTapToOpen => 'Нажмите, чтобы открыть';
+  String get notificationTapToOpen =>
+      'Сохранено · нажмите, чтобы открыть Медиатеку';
 
   @override
   String get notificationStatusSaved => 'Статус сохранён';

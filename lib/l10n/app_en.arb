@@ -325,7 +325,7 @@
   "notificationPaused": "Paused",
   "notificationDownloadComplete": "Download complete",
   "notificationDownloadFailed": "Download failed",
-  "notificationTapToOpen": "Tap to open",
+  "notificationTapToOpen": "Saved · tap to view in Library",
   "notificationStatusSaved": "Status saved",
   "notificationSavedToGallery": "Saved {count} to gallery",
   "@notificationSavedToGallery": {

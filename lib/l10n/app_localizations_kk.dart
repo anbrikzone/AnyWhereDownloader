@@ -739,7 +739,8 @@ class AppLocalizationsKk extends AppLocalizations {
   String get notificationDownloadFailed => 'Жүктеу сәтсіз аяқталды';
 
   @override
-  String get notificationTapToOpen => 'Ашу үшін түртіңіз';
+  String get notificationTapToOpen =>
+      'Сақталды · Медиатеканы ашу үшін түртіңіз';
 
   @override
   String get notificationStatusSaved => 'Статус сақталды';

@@ -1381,7 +1381,7 @@ abstract class AppLocalizations {
   /// No description provided for @notificationTapToOpen.
   ///
   /// In en, this message translates to:
-  /// **'Tap to open'**
+  /// **'Saved · tap to view in Library'**
   String get notificationTapToOpen;
 
   /// No description provided for @notificationStatusSaved.

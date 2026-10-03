@@ -676,7 +676,7 @@ class YtDlpDownloadService : Service() {
         DownloadNotifications.showDownloadComplete(
             applicationContext,
             fileName,
-            label("tapToOpen", "Tap to open"),
+            label("tapToOpen", "Saved · tap to view in Library"),
             contentUri,
             if (kind == MediaStoreWriter.Kind.AUDIO) "audio/*" else "video/*",
             label("channelComplete", "Downloads complete"),
@@ -826,6 +826,8 @@ class YtDlpDownloadService : Service() {
             .setSmallIcon(android.R.drawable.stat_sys_download)
             .setProgress(100, progress, indeterminate)
             .setOngoing(true)
+            // Tap → the in-app Downloads screen (the download is still running).
+            .setContentIntent(AppRoutes.pendingIntent(this, AppRoutes.DOWNLOADS))
             .addAction(0, label("cancel", "Cancel"), cancelPendingIntent)
             .build()
     }

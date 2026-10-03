@@ -250,7 +250,7 @@
   "notificationPaused": "Кідіртілді",
   "notificationDownloadComplete": "Жүктеу аяқталды",
   "notificationDownloadFailed": "Жүктеу сәтсіз аяқталды",
-  "notificationTapToOpen": "Ашу үшін түртіңіз",
+  "notificationTapToOpen": "Сақталды · Медиатеканы ашу үшін түртіңіз",
   "notificationStatusSaved": "Статус сақталды",
   "notificationSavedToGallery": "Галереяға сақталды: {count}",
   "@notificationSavedToGallery": {

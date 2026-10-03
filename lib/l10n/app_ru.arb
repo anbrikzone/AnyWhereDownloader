@@ -250,7 +250,7 @@
   "notificationPaused": "Пауза",
   "notificationDownloadComplete": "Загрузка завершена",
   "notificationDownloadFailed": "Ошибка загрузки",
-  "notificationTapToOpen": "Нажмите, чтобы открыть",
+  "notificationTapToOpen": "Сохранено · нажмите, чтобы открыть Медиатеку",
   "notificationStatusSaved": "Статус сохранён",
   "notificationSavedToGallery": "Сохранено в галерею: {count}",
   "@notificationSavedToGallery": {

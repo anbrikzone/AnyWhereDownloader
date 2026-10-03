@@ -740,7 +740,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notificationDownloadFailed => 'Download failed';
 
   @override
-  String get notificationTapToOpen => 'Tap to open';
+  String get notificationTapToOpen => 'Saved · tap to view in Library';
 
   @override
   String get notificationStatusSaved => 'Status saved';

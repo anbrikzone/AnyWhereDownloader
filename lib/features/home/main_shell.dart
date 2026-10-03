@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/navigation/app_route_service.dart';
 import '../../core/update/update_providers.dart';
 import '../../l10n/app_localizations.dart';
+import '../downloads/downloads_screen.dart';
 import '../library/library_controller.dart';
 import '../library/library_screen.dart';
 import 'home_screen.dart';
@@ -38,7 +40,26 @@ class _MainShellState extends ConsumerState<MainShell> {
     // already runs on every cold start; never blocks the UI.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(updateControllerProvider.notifier).maybeCheckOnStartup();
+      AppRouteService.instance.init(_openRoute);
     });
+  }
+
+  /// A notification tap: a running download → the Downloads screen, a
+  /// saved one → the Library tab. Anything pushed on top (a service screen,
+  /// Settings, an older Downloads screen) is closed first, so the tap always
+  /// lands on a predictable screen.
+  void _openRoute(AppRoute route) {
+    if (!mounted) return;
+    final navigator = Navigator.of(context);
+    navigator.popUntil((r) => r.isFirst);
+    switch (route) {
+      case AppRoute.downloads:
+        navigator.push(
+          MaterialPageRoute(builder: (_) => const DownloadsScreen()),
+        );
+      case AppRoute.library:
+        _onDestinationSelected(1);
+    }
   }
 
   void _onDestinationSelected(int index) {
