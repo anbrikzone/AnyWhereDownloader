@@ -80,6 +80,7 @@
   "linkedinUrlHint": "Paste a LinkedIn post link.",
   "linkedinUrlLabel": "LinkedIn URL",
 
+  "downloadStarting": "Starting download…",
   "downloadingPercent": "Downloading… {percent}%",
   "@downloadingPercent": {
     "placeholders": { "percent": { "type": "String" } }

@@ -273,9 +273,10 @@ class _YouTubeScreenState extends ConsumerState<YouTubeScreen>
               const SizedBox(height: 24),
               LinearProgressIndicator(
                 value:
-                    (state.downloadPhase == 'merging' ||
-                            state.downloadPhase == 'converting') &&
-                        !state.mergeDurationKnown
+                    ((state.downloadPhase == 'merging' ||
+                                state.downloadPhase == 'converting') &&
+                            !state.mergeDurationKnown) ||
+                        (state.progress <= 0 && !state.paused)
                     ? null
                     : state.progress,
               ),
@@ -352,6 +353,8 @@ String _progressLabel(AppLocalizations l10n, YouTubeState state) {
           ? l10n.convertingAudioPercent(percent)
           : l10n.convertingAudioIndeterminate;
     default:
-      return l10n.downloadingPercent(percent);
+      return state.progress <= 0
+          ? l10n.downloadStarting
+          : l10n.downloadingPercent(percent);
   }
 }

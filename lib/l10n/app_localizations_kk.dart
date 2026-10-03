@@ -185,6 +185,9 @@ class AppLocalizationsKk extends AppLocalizations {
   String get linkedinUrlLabel => 'LinkedIn сілтемесі';
 
   @override
+  String get downloadStarting => 'Жүктеу басталуда…';
+
+  @override
   String downloadingPercent(String percent) {
     return 'Жүктелуде… $percent%';
   }

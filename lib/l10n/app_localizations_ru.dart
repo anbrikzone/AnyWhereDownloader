@@ -184,6 +184,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get linkedinUrlLabel => 'Ссылка LinkedIn';
 
   @override
+  String get downloadStarting => 'Начинаем загрузку…';
+
+  @override
   String downloadingPercent(String percent) {
     return 'Загрузка… $percent%';
   }

@@ -183,6 +183,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get linkedinUrlLabel => 'LinkedIn URL';
 
   @override
+  String get downloadStarting => 'Starting download…';
+
+  @override
   String downloadingPercent(String percent) {
     return 'Downloading… $percent%';
   }

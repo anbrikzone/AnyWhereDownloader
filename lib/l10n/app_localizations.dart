@@ -418,6 +418,12 @@ abstract class AppLocalizations {
   /// **'LinkedIn URL'**
   String get linkedinUrlLabel;
 
+  /// No description provided for @downloadStarting.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting download…'**
+  String get downloadStarting;
+
   /// No description provided for @downloadingPercent.
   ///
   /// In en, this message translates to:

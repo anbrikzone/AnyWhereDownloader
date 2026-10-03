@@ -92,7 +92,8 @@ class YtDlpDownloadService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_CANCEL) {
             intent.getStringExtra(EXTRA_PROCESS_ID)?.let {
-                YoutubeDL.getInstance().destroyProcessById(it)
+                val destroyed = YoutubeDL.getInstance().destroyProcessById(it)
+                Log.i(TAG, "cancel $it: process destroyed=$destroyed")
             }
             return START_NOT_STICKY
         }
@@ -102,6 +103,7 @@ class YtDlpDownloadService : Service() {
         val processId = intent?.getStringExtra(EXTRA_PROCESS_ID)
         val durationSeconds = intent?.getIntExtra(EXTRA_DURATION_SECONDS, 0) ?: 0
         val relativePath = intent?.getStringExtra(EXTRA_RELATIVE_PATH)
+        Log.i(TAG, "start $mode $processId url=$url relativePath=$relativePath")
         if (url == null || processId == null || relativePath == null) {
             stopSelf()
             return START_NOT_STICKY
@@ -177,8 +179,10 @@ class YtDlpDownloadService : Service() {
         durationSeconds: Int,
         save: SaveSpec,
     ) {
+        Log.i(TAG, "merge $processId queued, selector=$formatSelector")
         executor.execute {
             try {
+                Log.i(TAG, "merge $processId running")
                 YtDlpCore.ensureReady(applicationContext)
                 val request = YoutubeDLRequest(url)
                 YtDlpOptions.applyYouTube(request, url)
@@ -208,13 +212,30 @@ class YtDlpDownloadService : Service() {
                 // stalled-looking running stripe.
                 val mergeTimeRegex = Regex("time=(\\d+):(\\d{2}):(\\d{2}\\.\\d+)")
                 val totalParts = 2.0
+                // HLS (e.g. Pinterest) prints "ETA Unknown" on most progress
+                // lines, which youtubedl-android's progress regex never
+                // matches — so `progress` stays 0 for the whole part. Those
+                // lines still carry "(frag 3/24)"; use that instead, and
+                // never let a part's progress move backwards.
+                val fragRegex = Regex("\\(frag (\\d+)/(\\d+)\\)")
+                var partProgress = 0.0
 
-                YoutubeDL.getInstance().execute(request, processId) { progress, _, line ->
+                Log.i(TAG, "merge $processId: yt-dlp starting")
+                YoutubeDL.getInstance().execute(request, processId) { reported, _, line ->
+                    logYtDlpLine(processId, line)
                     destinationRegex.find(line)?.groupValues?.get(1)?.trim()?.let { dest ->
                         if (seenDestinations.add(dest)) {
                             currentPart = seenDestinations.size - 1
+                            partProgress = 0.0
                         }
                     }
+                    val fragPercent = fragRegex.find(line)?.let { m ->
+                        val (done, total) = m.destructured
+                        val t = total.toDouble()
+                        if (t > 0) done.toDouble() / t * 100.0 else null
+                    } ?: 0.0
+                    partProgress = maxOf(partProgress, reported.toDouble(), fragPercent)
+                    val progress = partProgress
                     val merging = mergingRegex.containsMatchIn(line)
                     val phase = when {
                         merging -> "merging"
@@ -261,11 +282,13 @@ class YtDlpDownloadService : Service() {
                     ),
                 )
             } catch (e: YoutubeDL.CanceledException) {
+                Log.i(TAG, "$processId canceled")
                 NativeToDartChannel.invoke(
                     "onDownloadStatus",
                     mapOf("processId" to processId, "status" to "canceled"),
                 )
             } catch (e: Exception) {
+                Log.e(TAG, "$processId failed", e)
                 NativeToDartChannel.invoke(
                     "onDownloadStatus",
                     mapOf("processId" to processId, "status" to "error", "error" to e.message),
@@ -356,11 +379,13 @@ class YtDlpDownloadService : Service() {
                     ),
                 )
             } catch (e: YoutubeDL.CanceledException) {
+                Log.i(TAG, "$processId canceled")
                 NativeToDartChannel.invoke(
                     "onDownloadStatus",
                     mapOf("processId" to processId, "status" to "canceled"),
                 )
             } catch (e: Exception) {
+                Log.e(TAG, "$processId failed", e)
                 NativeToDartChannel.invoke(
                     "onDownloadStatus",
                     mapOf("processId" to processId, "status" to "error", "error" to e.message),
@@ -726,6 +751,15 @@ class YtDlpDownloadService : Service() {
         } catch (e: Exception) {
             Log.w(TAG, "cleanupWorkDir($dir) failed", e)
         }
+    }
+
+    private val progressLine = Regex("""^\[download]\s+[\d.]+% of""")
+
+    /** yt-dlp's own output in logcat (tag `YtDlpDownloadService`), minus
+     *  the per-percent progress lines — enough to see where a download
+     *  stalls without flooding the log. */
+    private fun logYtDlpLine(processId: String, line: String) {
+        if (!progressLine.containsMatchIn(line)) Log.d(TAG, "$processId> $line")
     }
 
     /**

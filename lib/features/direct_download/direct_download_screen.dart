@@ -221,7 +221,12 @@ class _DirectDownloadScreenState extends ConsumerState<DirectDownloadScreen>
             ),
             if (state.downloading) ...[
               const SizedBox(height: 24),
-              LinearProgressIndicator(value: state.progress),
+              // Nothing reported yet (yt-dlp is still re-extracting, or an
+              // HLS stream hasn't produced a fragment count) — animate
+              // instead of showing a frozen-looking 0%.
+              LinearProgressIndicator(
+                value: state.progress > 0 || state.paused ? state.progress : null,
+              ),
               const SizedBox(height: 8),
               Text(_progressLabel(l10n, state)),
               const SizedBox(height: 12),
@@ -260,5 +265,7 @@ class _DirectDownloadScreenState extends ConsumerState<DirectDownloadScreen>
 
 String _progressLabel(AppLocalizations l10n, DirectDownloadState state) {
   final percent = (state.progress * 100).toStringAsFixed(0);
-  return state.paused ? l10n.pausedPercent(percent) : l10n.downloadingPercent(percent);
+  if (state.paused) return l10n.pausedPercent(percent);
+  if (state.progress <= 0) return l10n.downloadStarting;
+  return l10n.downloadingPercent(percent);
 }
