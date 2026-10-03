@@ -94,9 +94,9 @@ class LibraryState {
     filtered.sort((a, b) {
       switch (sortOption) {
         case LibrarySortOption.dateNewest:
-          return b.asset.createDateTime.compareTo(a.asset.createDateTime);
+          return b.downloadedAt.compareTo(a.downloadedAt);
         case LibrarySortOption.dateOldest:
-          return a.asset.createDateTime.compareTo(b.asset.createDateTime);
+          return a.downloadedAt.compareTo(b.downloadedAt);
         case LibrarySortOption.nameAZ:
           return (a.asset.title ?? '').compareTo(b.asset.title ?? '');
         case LibrarySortOption.nameZA:
@@ -121,7 +121,7 @@ class LibraryState {
     final folders = grouped.entries.map((entry) {
       final list = entry.value
         ..sort(
-          (a, b) => b.asset.createDateTime.compareTo(a.asset.createDateTime),
+          (a, b) => b.downloadedAt.compareTo(a.downloadedAt),
         );
       return LibraryFolder(
         source: entry.key.$1,
@@ -130,8 +130,8 @@ class LibraryState {
       );
     }).toList();
     folders.sort(
-      (a, b) => b.items.first.asset.createDateTime
-          .compareTo(a.items.first.asset.createDateTime),
+      (a, b) => b.items.first.downloadedAt
+          .compareTo(a.items.first.downloadedAt),
     );
     return folders;
   }

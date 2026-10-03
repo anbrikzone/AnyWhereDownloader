@@ -194,6 +194,16 @@ class LibraryItem {
   final AssetEntity asset;
   final String source;
 
+  /// When this file was downloaded — MediaStore's `DATE_MODIFIED` (the
+  /// mtime of the file we wrote), not [AssetEntity.createDateTime]: that one
+  /// is `DATE_TAKEN`, which MediaProvider overwrites on scan with the date
+  /// embedded in the media itself (a video's upload/recording date), so a
+  /// fresh download of an old video would sort as old.
+  DateTime get downloadedAt {
+    final modified = asset.modifiedDateSecond ?? 0;
+    return modified > 0 ? asset.modifiedDateTime : asset.createDateTime;
+  }
+
   /// Non-null for a playlist item — the folder label. Library groups items
   /// sharing a (source, playlistLabel) pair into one folder instead of
   /// listing them individually at the top level.
@@ -301,7 +311,7 @@ class MediaLibraryService {
     }
 
     items.sort(
-      (a, b) => b.asset.createDateTime.compareTo(a.asset.createDateTime),
+      (a, b) => b.downloadedAt.compareTo(a.downloadedAt),
     );
     return (items: items, pendingConsent: pendingConsent);
   }
