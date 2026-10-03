@@ -397,6 +397,16 @@ class AppLocalizationsRu extends AppLocalizations {
   String get extractionNotResolved => 'Не удалось получить этот пост TikTok.';
 
   @override
+  String get ytDlpOutdatedTitle => 'Возможно, устарел yt-dlp';
+
+  @override
+  String get ytDlpOutdatedBody =>
+      'Похоже, сайт изменился, и встроенному движку yt-dlp нужно обновление. Откройте Настройки → О приложении → «Проверить обновления» и попробуйте снова.';
+
+  @override
+  String get closeButton => 'Закрыть';
+
+  @override
   String get savedMessage => 'Сохранено';
 
   @override

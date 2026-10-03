@@ -204,6 +204,7 @@ class YouTubeController extends StateNotifier<YouTubeState> {
             : StatusMessage(
                 StatusMessageKey.couldNotFetchVideo,
                 error: error.toString(),
+                suggestYtDlpUpdate: looksLikeOutdatedYtDlp(error),
               ),
       );
       return null;
@@ -244,6 +245,7 @@ class YouTubeController extends StateNotifier<YouTubeState> {
         statusMessage: StatusMessage(
           StatusMessageKey.couldNotFetchPlaylist,
           error: error.toString(),
+          suggestYtDlpUpdate: looksLikeOutdatedYtDlp(error),
         ),
       );
       return null;

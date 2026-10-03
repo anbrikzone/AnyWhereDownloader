@@ -397,6 +397,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get extractionNotResolved => 'This TikTok post could not be resolved.';
 
   @override
+  String get ytDlpOutdatedTitle => 'yt-dlp may be out of date';
+
+  @override
+  String get ytDlpOutdatedBody =>
+      'The site may have changed, and the built-in yt-dlp engine needs an update. Open Settings → About → Check for updates, then try again.';
+
+  @override
+  String get closeButton => 'Close';
+
+  @override
   String get savedMessage => 'Saved';
 
   @override

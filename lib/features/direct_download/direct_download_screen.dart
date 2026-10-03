@@ -4,12 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/clipboard/clipboard_link_tracker.dart';
 import '../../core/extraction/media_extractor.dart';
-import '../../core/l10n/status_message.dart';
 import '../../core/settings/settings_providers.dart';
 import '../../core/ui/app_toast.dart';
 import '../../l10n/app_localizations.dart';
 import '../format_selection/format_selection_sheet.dart';
 import '../format_selection/rename_dialog.dart';
+import '../settings/status_message_presenter.dart';
 import 'direct_download_controller.dart';
 import 'direct_download_service.dart';
 
@@ -157,8 +157,7 @@ class _DirectDownloadScreenState extends ConsumerState<DirectDownloadScreen>
     ref.listen(_provider, (previous, next) {
       final message = next.statusMessage;
       if (message != null && message != previous?.statusMessage) {
-        final text = resolveStatusMessage(l10n, message);
-        showAppToast(context, text);
+        showStatusMessage(context, message);
       }
     });
 

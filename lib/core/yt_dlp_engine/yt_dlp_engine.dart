@@ -553,3 +553,19 @@ class YtDlpEngine {
     }
   }
 }
+
+/// Whether a yt-dlp failure hints that the bundled yt-dlp is out of date:
+/// yt-dlp tags *unexpected* errors (a site changed under it) with its
+/// bug-report suffix ("Confirm you are on the latest version using yt-dlp
+/// -U"), and a 403 on YouTube is the classic stale-client symptom. Expected
+/// errors (login wall, private post) carry neither, so they don't trigger
+/// the "update yt-dlp" prompt.
+bool looksLikeOutdatedYtDlp(Object error) {
+  if (error is! PlatformException || error.code != 'yt_dlp_error') {
+    return false;
+  }
+  final message = (error.message ?? '').toLowerCase();
+  return message.contains('yt-dlp -u') ||
+      message.contains('latest version') ||
+      message.contains('http error 403');
+}

@@ -179,7 +179,7 @@ class YtDlpDownloadService : Service() {
     ) {
         executor.execute {
             try {
-                YtDlpCore.ensureInitialized(applicationContext)
+                YtDlpCore.ensureReady(applicationContext)
                 val request = YoutubeDLRequest(url)
                 YtDlpOptions.applyYouTube(request, url)
                 request.addOption("-f", formatSelector)
@@ -289,7 +289,7 @@ class YtDlpDownloadService : Service() {
     ) {
         executor.execute {
             try {
-                YtDlpCore.ensureInitialized(applicationContext)
+                YtDlpCore.ensureReady(applicationContext)
                 // yt-dlp replaces %(ext)s with the post-processed audio ext,
                 // so name the output with the base only.
                 val base = outputPath.substringBeforeLast('.', outputPath)
@@ -399,7 +399,7 @@ class YtDlpDownloadService : Service() {
             val savedCount = AtomicInteger(0)
             var completed = 0
             val status: Map<String, Any?> = try {
-                YtDlpCore.ensureInitialized(applicationContext)
+                YtDlpCore.ensureReady(applicationContext)
                 val request = YoutubeDLRequest(url)
                 YtDlpOptions.applyYouTube(request, url)
                 if (audioFormat != null) {

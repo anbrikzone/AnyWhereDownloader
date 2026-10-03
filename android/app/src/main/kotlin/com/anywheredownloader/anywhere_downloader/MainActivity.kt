@@ -78,8 +78,8 @@ class MainActivity : FlutterActivity() {
         // The intent that started this activity — may be an ACTION_SEND.
         initialSharedText = extractSharedText(intent)
 
-        // Init + self-update the bundled yt-dlp off the critical path, so a
-        // fresh binary is usually in place before the user pastes a link.
+        // Unpack yt-dlp's runtime off the critical path (no network — the
+        // self-update only runs from Settings).
         YtDlpCore.warmUp(applicationContext)
     }
 

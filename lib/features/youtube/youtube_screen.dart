@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/clipboard/clipboard_link_tracker.dart';
-import '../../core/l10n/status_message.dart';
 import '../../core/settings/settings_providers.dart';
 import '../../core/ui/app_toast.dart';
 import '../../l10n/app_localizations.dart';
@@ -11,6 +10,7 @@ import '../../services/youtube/youtube_extractor.dart';
 import '../../services/youtube/youtube_playlist.dart';
 import '../format_selection/format_selection_sheet.dart';
 import '../format_selection/rename_dialog.dart';
+import '../settings/status_message_presenter.dart';
 import 'playlist_screen.dart';
 import 'youtube_controller.dart';
 
@@ -207,8 +207,7 @@ class _YouTubeScreenState extends ConsumerState<YouTubeScreen>
     ref.listen(youTubeControllerProvider, (previous, next) {
       final message = next.statusMessage;
       if (message != null && message != previous?.statusMessage) {
-        final text = resolveStatusMessage(l10n, message);
-        showAppToast(context, text);
+        showStatusMessage(context, message);
       }
     });
 

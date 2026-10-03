@@ -9,6 +9,7 @@ import '../../core/extraction/media_extractor.dart';
 import '../../core/l10n/status_message.dart';
 import '../../core/notifications/notification_permission_service.dart';
 import '../../core/storage/media_library_service.dart';
+import '../../core/yt_dlp_engine/yt_dlp_engine.dart';
 import 'direct_download_service.dart';
 
 class DirectDownloadState {
@@ -112,7 +113,11 @@ class DirectDownloadController extends StateNotifier<DirectDownloadState> {
         fetching: false,
         statusMessage: error is ExtractionException
             ? StatusMessage.extraction(error)
-            : StatusMessage(service.fetchFailedKey, error: error.toString()),
+            : StatusMessage(
+                service.fetchFailedKey,
+                error: error.toString(),
+                suggestYtDlpUpdate: looksLikeOutdatedYtDlp(error),
+              ),
       );
       return null;
     }

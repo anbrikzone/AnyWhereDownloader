@@ -8,7 +8,6 @@ import java.io.File
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
-import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
 /**
@@ -40,18 +39,12 @@ import java.util.concurrent.atomic.AtomicReference
 object YtDlpCore {
     private const val TAG = "YtDlpCore"
 
-    /** How long [ensureInitialized] will block an extraction waiting for an
-     *  update before letting it proceed on the current binary (the update
-     *  keeps running in the background if it hasn't finished). */
-    private const val INLINE_UPDATE_TIMEOUT_MS = 15_000L
 
     /** Budget for the user-triggered Settings button. Our own updater is a
      *  ~8 s API check plus, only when a newer release exists, a ~3 MB
      *  download — so this is a safety net, not the normal wait. */
     private const val FORCED_UPDATE_TIMEOUT_MS = 60_000L
 
-    /** After a failed attempt, don't hammer GitHub on every extraction. */
-    private const val RETRY_COOLDOWN_MS = 60_000L
 
     /** yt-dlp's own releases feed. We query this ourselves — with a
      *  User-Agent, an `Accept` header, an `If-None-Match` conditional and
@@ -103,7 +96,6 @@ object YtDlpCore {
     private const val SEED_MARKER = ".awd_bundled_version"
 
     @Volatile private var initialized = false
-    @Volatile private var updateSucceededThisProcess = false
 
     private val updateLock = Any()
 
@@ -209,50 +201,25 @@ object YtDlpCore {
     }
 
     /**
-     * Blocking init for an extraction call. Runs the fast native init once,
-     * then a best-effort, time-bounded self-update (skipped once one has
-     * succeeded this process, rate-limited after a failure).
+     * Native init only (unpacks Python/ffmpeg on first run), no network.
+     * The self-update never runs on its own (user decision 2026-10-03):
+     * only from Settings ([forceUpdate]) — a failure that smells like a
+     * stale yt-dlp prompts the user to go there (Dart side). Before this,
+     * every cold start checked GitHub and an extraction could block up to
+     * 15 s waiting on that check. An installed update persists on disk.
      */
-    fun ensureInitialized(appContext: Context) {
-        ensureInitOnly(appContext)
-        synchronized(updateLock) {
-            if (updateSucceededThisProcess) return
-            val sinceLast = System.currentTimeMillis() - lastUpdate.timestampMs
-            if (lastUpdate.status == "failed" && sinceLast < RETRY_COOLDOWN_MS) return
-            runUpdateLocked(appContext, INLINE_UPDATE_TIMEOUT_MS)
-        }
-    }
+    fun ensureReady(appContext: Context) = ensureInitOnly(appContext)
 
     /**
-     * Init for an interactive extraction (the user just tapped Go): the fast
-     * native init only, never the self-update — that runs (or is re-kicked,
-     * after a failure) in the background via [warmUp]. Blocking here cost up
-     * to [INLINE_UPDATE_TIMEOUT_MS] whenever the startup check was still in
-     * flight or had failed (2026-10-03 report: 10–15 s before the format
-     * list). A stale binary at worst fails this one extraction; the next one
-     * runs on whatever the background update fetched.
-     */
-    fun ensureReadyForExtraction(appContext: Context) {
-        ensureInitOnly(appContext)
-        if (!updateSucceededThisProcess) warmUp(appContext)
-    }
-
-    private val warmUpRunning = AtomicBoolean(false)
-
-    /**
-     * Fire-and-forget init + update on a background thread. Called at app
-     * startup so the update is off the first extraction's critical path.
-     * At most one runs at a time.
+     * Fire-and-forget native init on a background thread at app startup,
+     * so the first-run unpack is off the first extraction's critical path.
      */
     fun warmUp(appContext: Context) {
-        if (!warmUpRunning.compareAndSet(false, true)) return
         Thread {
             try {
-                ensureInitialized(appContext)
+                ensureInitOnly(appContext)
             } catch (e: Throwable) {
                 Log.w(TAG, "yt-dlp warm-up failed", e)
-            } finally {
-                warmUpRunning.set(false)
             }
         }.apply {
             isDaemon = true
@@ -261,9 +228,9 @@ object YtDlpCore {
     }
 
     /**
-     * User-triggered forced update (Settings → About). Always attempts,
-     * ignoring the per-process "already succeeded" short-circuit and the
-     * failure cooldown. Returns the outcome for display.
+     * User-triggered update (Settings → About). Re-uses a successful check
+     * from the last few minutes instead of hitting the network again.
+     * Returns the outcome for display.
      */
     fun forceUpdate(appContext: Context): UpdateOutcome {
         ensureInitOnly(appContext)
@@ -308,9 +275,6 @@ object YtDlpCore {
             holder.set(outcome)
             synchronized(updateLock) {
                 lastUpdate = outcome
-                if (outcome.status == "done" || outcome.status == "upToDate") {
-                    updateSucceededThisProcess = true
-                }
             }
         }.apply {
             isDaemon = true

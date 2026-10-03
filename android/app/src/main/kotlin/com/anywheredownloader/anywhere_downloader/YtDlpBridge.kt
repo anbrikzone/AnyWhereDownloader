@@ -205,44 +205,48 @@ class YtDlpBridge(private val appContext: Context) {
         }
     }
 
+    private fun fetchInfo(url: String): VideoInfo {
+        val request = YoutubeDLRequest(url)
+        // SABR / player-client workaround for YouTube (no-op for
+        // every other host) — see YtDlpOptions.
+        YtDlpOptions.applyYouTube(request, url)
+        return try {
+            YoutubeDL.getInstance().getInfo(request)
+        } catch (e: YoutubeDLException) {
+            if (isTwitterUrl(url) && e.message?.contains("No video could be found") == true) {
+                // X/Twitter's default GraphQL extraction path doesn't
+                // surface "Amplify" (promoted/ad) videos — confirmed
+                // by calling Twitter's public syndication endpoint
+                // directly (cdn.syndication.twimg.com/tweet-result)
+                // for a real tweet that hit exactly this error: it
+                // returned complete video_info/variants data GraphQL
+                // didn't. `--extractor-args "twitter:api=syndication"`
+                // is a real, intended yt-dlp option (confirmed by
+                // reading twitter.py directly, not guessed) that
+                // steers extraction to that same endpoint. Only
+                // retried as a fallback after the default path
+                // reports no video, rather than always forcing it,
+                // since syndication is yt-dlp's own known-reduced-
+                // fidelity path (its `_call_syndication_api` warns
+                // "Not all metadata or media is available") — no
+                // reason to downgrade the common case that already
+                // works via GraphQL.
+                val syndicationRequest = YoutubeDLRequest(url)
+                syndicationRequest.addOption("--extractor-args", "twitter:api=syndication")
+                YoutubeDL.getInstance().getInfo(syndicationRequest)
+            } else {
+                throw e
+            }
+        }
+    }
+
     private fun getInfo(url: String, result: MethodChannel.Result) {
         executor.execute {
             try {
                 val startMs = SystemClock.elapsedRealtime()
-                YtDlpCore.ensureReadyForExtraction(appContext)
+                YtDlpCore.ensureReady(appContext)
                 val initMs = SystemClock.elapsedRealtime() - startMs
-                val request = YoutubeDLRequest(url)
-                // SABR / player-client workaround for YouTube (no-op for
-                // every other host) — see YtDlpOptions.
-                YtDlpOptions.applyYouTube(request, url)
-                val info = try {
-                    YoutubeDL.getInstance().getInfo(request)
-                } catch (e: YoutubeDLException) {
-                    if (isTwitterUrl(url) && e.message?.contains("No video could be found") == true) {
-                        // X/Twitter's default GraphQL extraction path doesn't
-                        // surface "Amplify" (promoted/ad) videos — confirmed
-                        // by calling Twitter's public syndication endpoint
-                        // directly (cdn.syndication.twimg.com/tweet-result)
-                        // for a real tweet that hit exactly this error: it
-                        // returned complete video_info/variants data GraphQL
-                        // didn't. `--extractor-args "twitter:api=syndication"`
-                        // is a real, intended yt-dlp option (confirmed by
-                        // reading twitter.py directly, not guessed) that
-                        // steers extraction to that same endpoint. Only
-                        // retried as a fallback after the default path
-                        // reports no video, rather than always forcing it,
-                        // since syndication is yt-dlp's own known-reduced-
-                        // fidelity path (its `_call_syndication_api` warns
-                        // "Not all metadata or media is available") — no
-                        // reason to downgrade the common case that already
-                        // works via GraphQL.
-                        val syndicationRequest = YoutubeDLRequest(url)
-                        syndicationRequest.addOption("--extractor-args", "twitter:api=syndication")
-                        YoutubeDL.getInstance().getInfo(syndicationRequest)
-                    } else {
-                        throw e
-                    }
-                }
+                val info = fetchInfo(url)
                 val map = videoInfoToMap(info)
                 Log.i(
                     TAG,
@@ -271,7 +275,7 @@ class YtDlpBridge(private val appContext: Context) {
     private fun getPlaylistInfo(url: String, result: MethodChannel.Result) {
         executor.execute {
             try {
-                YtDlpCore.ensureReadyForExtraction(appContext)
+                YtDlpCore.ensureReady(appContext)
                 val request = YoutubeDLRequest(url)
                 request.addOption("--flat-playlist")
                 request.addOption("--dump-single-json")

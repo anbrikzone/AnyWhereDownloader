@@ -398,6 +398,16 @@ class AppLocalizationsKk extends AppLocalizations {
   String get extractionNotResolved => 'Бұл TikTok жазбасын алу мүмкін болмады.';
 
   @override
+  String get ytDlpOutdatedTitle => 'yt-dlp ескірген болуы мүмкін';
+
+  @override
+  String get ytDlpOutdatedBody =>
+      'Сайт өзгерген сияқты, кіріктірілген yt-dlp қозғалтқышын жаңарту керек. Параметрлер → Қолданба туралы → «Жаңартуларды тексеру» бөлімін ашып, қайталап көріңіз.';
+
+  @override
+  String get closeButton => 'Жабу';
+
+  @override
   String get savedMessage => 'Сақталды';
 
   @override

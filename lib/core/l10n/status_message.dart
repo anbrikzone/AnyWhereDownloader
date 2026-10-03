@@ -47,6 +47,7 @@ class StatusMessage {
     this.count,
     this.failedCount,
     this.extractionCode,
+    this.suggestYtDlpUpdate = false,
   });
 
   /// Convenience constructor for [StatusMessageKey.extractionFailed].
@@ -63,6 +64,11 @@ class StatusMessage {
   final int? failedCount;
   final ExtractionErrorCode? extractionCode;
 
+  /// The failure looks like a stale yt-dlp ([looksLikeOutdatedYtDlp]) —
+  /// screens show it as a dialog pointing at Settings' update check instead
+  /// of a toast.
+  final bool suggestYtDlpUpdate;
+
   @override
   bool operator ==(Object other) =>
       other is StatusMessage &&
@@ -70,10 +76,18 @@ class StatusMessage {
       other.error == error &&
       other.count == count &&
       other.failedCount == failedCount &&
-      other.extractionCode == extractionCode;
+      other.extractionCode == extractionCode &&
+      other.suggestYtDlpUpdate == suggestYtDlpUpdate;
 
   @override
-  int get hashCode => Object.hash(key, error, count, failedCount, extractionCode);
+  int get hashCode => Object.hash(
+        key,
+        error,
+        count,
+        failedCount,
+        extractionCode,
+        suggestYtDlpUpdate,
+      );
 }
 
 String resolveStatusMessage(AppLocalizations l10n, StatusMessage message) {

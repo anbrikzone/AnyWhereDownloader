@@ -772,6 +772,24 @@ abstract class AppLocalizations {
   /// **'This TikTok post could not be resolved.'**
   String get extractionNotResolved;
 
+  /// No description provided for @ytDlpOutdatedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'yt-dlp may be out of date'**
+  String get ytDlpOutdatedTitle;
+
+  /// No description provided for @ytDlpOutdatedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The site may have changed, and the built-in yt-dlp engine needs an update. Open Settings → About → Check for updates, then try again.'**
+  String get ytDlpOutdatedBody;
+
+  /// No description provided for @closeButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get closeButton;
+
   /// No description provided for @savedMessage.
   ///
   /// In en, this message translates to:
