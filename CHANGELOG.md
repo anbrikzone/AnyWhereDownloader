@@ -15,6 +15,7 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 
 **Changed**
 - High-quality YouTube, YouTube audio (MP3/M4A) and Pinterest video downloads now share one download path, so they behave the same way.
+- Tapping a download notification now opens the app: a download in progress opens the Downloads screen, a finished one opens Library.
 
 **Fixed**
 - If preparing a high-quality YouTube or MP3 download fails, the app now shows an error instead of silently doing nothing.
@@ -27,6 +28,7 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 
 **Изменено**
 - Загрузки YouTube в высоком качестве, аудио YouTube (MP3/M4A) и видео Pinterest теперь идут одним общим путём и ведут себя одинаково.
+- Нажатие на уведомление о загрузке теперь открывает приложение: идущая загрузка — экран «Загрузки», завершённая — Медиатеку.
 
 **Исправлено**
 - Если подготовка загрузки YouTube в высоком качестве или MP3 не удалась, приложение теперь показывает ошибку, а не молча ничего не делает.
@@ -39,6 +41,7 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 
 **Өзгертілді**
 - YouTube жоғары сапалы жүктеулері, YouTube аудиосы (MP3/M4A) және Pinterest бейнелері енді бір ортақ жолмен жүктеледі және бірдей жұмыс істейді.
+- Жүктеу хабарландыруын түрту енді қолданбаны ашады: жүріп жатқан жүктеу «Жүктеулер» экранын, аяқталғаны Медиатеканы ашады.
 
 **Түзетілді**
 - YouTube жоғары сапалы немесе MP3 жүктеуін дайындау сәтсіз болса, қолданба енді үнсіз қалмай, қате көрсетеді.
