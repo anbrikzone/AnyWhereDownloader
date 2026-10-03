@@ -85,11 +85,13 @@ class DirectDownloadController extends StateNotifier<DirectDownloadState> {
     NotificationPermissionService? notificationPermissionService,
     YtDlpEngine? ytDlpEngine,
     MediaSaveService? mediaSaveService,
+    Future<Directory> Function()? tempDirectory,
   }) : _extractor = extractor ?? service.createExtractor(),
        _downloadEngine = downloadEngine ?? DownloadEngine(),
        _downloadFinalizer = downloadFinalizer ?? DownloadFinalizer.instance,
        _injectedYtDlpEngine = ytDlpEngine,
        _mediaSaveService = mediaSaveService ?? MediaSaveService(),
+       _tempDirectory = tempDirectory ?? getTemporaryDirectory,
        _notificationPermissionService =
            notificationPermissionService ?? NotificationPermissionService(),
        _galAlbum = relativePathForSource(service.librarySource),
@@ -105,6 +107,7 @@ class DirectDownloadController extends StateNotifier<DirectDownloadState> {
   /// tests of the direct path never need.
   YtDlpEngine get _ytDlpEngine => _injectedYtDlpEngine ?? YtDlpEngine();
   final MediaSaveService _mediaSaveService;
+  final Future<Directory> Function() _tempDirectory;
   final NotificationPermissionService _notificationPermissionService;
   final String _galAlbum;
 
@@ -245,7 +248,7 @@ class DirectDownloadController extends StateNotifier<DirectDownloadState> {
       mergeProcessId: processId,
     );
     try {
-      final tempDir = await getTemporaryDirectory();
+      final tempDir = await _tempDirectory();
       final dir = Directory('${tempDir.path}/ytdlp_$processId');
       await dir.create(recursive: true);
       final relativePath = await _mediaSaveService.resolveRelativePath(

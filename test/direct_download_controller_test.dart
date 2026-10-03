@@ -1,5 +1,11 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:anywhere_downloader/core/extraction/media_extractor.dart';
 import 'package:anywhere_downloader/core/l10n/status_message.dart';
+import 'package:anywhere_downloader/core/notifications/notification_permission_service.dart';
+import 'package:anywhere_downloader/core/storage/media_save_service.dart';
+import 'package:anywhere_downloader/core/yt_dlp_engine/yt_dlp_engine.dart';
 import 'package:anywhere_downloader/features/direct_download/direct_download_controller.dart';
 import 'package:anywhere_downloader/features/direct_download/direct_download_service.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -21,6 +27,57 @@ class _FakeExtractor implements MediaExtractor {
     if (error != null) throw error!;
     return MediaInfo(title: 't', thumbnailUrl: null, variants: const []);
   }
+}
+
+class _FakeYtDlpEngine implements YtDlpEngine {
+  final merges = <Map<String, Object?>>[];
+  final canceled = <String>[];
+  final finish = Completer<MergeDownloadResult>();
+  final started = Completer<void>();
+
+  @override
+  Future<MergeDownloadResult> downloadMerge({
+    required String url,
+    required String formatSelector,
+    required String outputPath,
+    required String processId,
+    required String relativePath,
+    int? durationSeconds,
+    void Function(MergeProgress progress)? onProgress,
+  }) {
+    merges.add({
+      'url': url,
+      'formatSelector': formatSelector,
+      'outputPath': outputPath,
+      'processId': processId,
+      'relativePath': relativePath,
+    });
+    started.complete();
+    return finish.future;
+  }
+
+  @override
+  Future<void> cancelDownload(String processId) async => canceled.add(processId);
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _FakeMediaSaveService implements MediaSaveService {
+  @override
+  Future<String> resolveRelativePath(String album, {required bool isAudio}) async =>
+      'Pictures/$album';
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _NoopNotificationPermission implements NotificationPermissionService {
+  @override
+  Future<void> ensureRequested() async {}
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 const _directTypes = [
@@ -95,5 +152,47 @@ void main() {
     expect(message?.key, StatusMessageKey.extractionFailed);
     expect(message?.extractionCode, ExtractionErrorCode.lookupHttpError);
     expect(message?.error, 'HTTP 503');
+  });
+
+  test('a merge variant goes through yt-dlp: no pause, cancel reaches yt-dlp',
+      () async {
+    final engine = _FakeYtDlpEngine();
+    final tmp = await Directory.systemTemp.createTemp('awd_test');
+    addTearDown(() => tmp.delete(recursive: true));
+    final controller = DirectDownloadController(
+      DirectDownloadService.pinterest,
+      extractor: _FakeExtractor(),
+      ytDlpEngine: engine,
+      mediaSaveService: _FakeMediaSaveService(),
+      notificationPermissionService: _NoopNotificationPermission(),
+      tempDirectory: () async => tmp,
+    );
+    final variant = MediaVariant(
+      type: MediaVariantType.video,
+      resolutionLabel: '720p',
+      container: 'mp4',
+      approxSizeBytes: null,
+      sourceUrl: 'https://www.pinterest.com/pin/1/',
+      mergeFormatSelector: 'v+a/bv*+ba/b',
+    );
+
+    final done = controller.downloadVariant(variant, 'clip');
+    await engine.started.future;
+
+    expect(engine.merges.single['url'], 'https://www.pinterest.com/pin/1/');
+    expect(engine.merges.single['formatSelector'], 'v+a/bv*+ba/b');
+    expect(engine.merges.single['relativePath'], 'Pictures/AnyWhereDownloader/Pinterest');
+    expect((engine.merges.single['outputPath']! as String), endsWith('/clip.mp4'));
+    expect(controller.state.downloading, isTrue);
+    expect(controller.state.canPause, isFalse);
+
+    await controller.cancelDownload();
+    expect(engine.canceled.single, engine.merges.single['processId']);
+
+    engine.finish.complete(MergeDownloadResult(status: 'canceled'));
+    await done;
+    expect(controller.state.downloading, isFalse);
+    expect(controller.state.mergeProcessId, isNull);
+    expect(controller.state.statusMessage?.key, StatusMessageKey.downloadCanceled);
   });
 }

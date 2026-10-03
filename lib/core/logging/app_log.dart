@@ -11,10 +11,3 @@ void logError(String tag, Object error, [StackTrace? stack]) {
     debugPrint(stack.toString().split('\n').take(6).join('\n'));
   }
 }
-
-/// A one-line diagnostic for on-device debugging (same `AWD` logcat tag as
-/// [logError]) — for flows that silently decide *not* to act, such as the
-/// clipboard auto-paste check.
-void logInfo(String tag, String message) {
-  debugPrint('[AWD][$tag] $message');
-}
