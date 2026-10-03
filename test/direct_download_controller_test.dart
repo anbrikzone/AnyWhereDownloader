@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:anywhere_downloader/core/download/ytdlp_service_download.dart';
 import 'package:anywhere_downloader/core/extraction/media_extractor.dart';
 import 'package:anywhere_downloader/core/l10n/status_message.dart';
 import 'package:anywhere_downloader/core/notifications/notification_permission_service.dart';
@@ -162,10 +163,12 @@ void main() {
     final controller = DirectDownloadController(
       DirectDownloadService.pinterest,
       extractor: _FakeExtractor(),
-      ytDlpEngine: engine,
-      mediaSaveService: _FakeMediaSaveService(),
+      serviceDownload: YtDlpServiceDownload(
+        engine: engine,
+        mediaSaveService: _FakeMediaSaveService(),
+        tempDirectory: () async => tmp,
+      ),
       notificationPermissionService: _NoopNotificationPermission(),
-      tempDirectory: () async => tmp,
     );
     final variant = MediaVariant(
       type: MediaVariantType.video,

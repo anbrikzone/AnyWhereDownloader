@@ -1,17 +1,15 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:background_downloader/background_downloader.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../../core/download/download_engine.dart';
 import '../../core/download/download_finalizer.dart';
+import '../../core/download/ytdlp_service_download.dart';
 import '../../core/extraction/media_extractor.dart';
 import '../../core/l10n/status_message.dart';
 import '../../core/notifications/notification_permission_service.dart';
 import '../../core/storage/media_library_service.dart';
-import '../../core/storage/media_save_service.dart';
 import '../../core/yt_dlp_engine/yt_dlp_engine.dart';
 import 'direct_download_service.dart';
 
@@ -83,15 +81,11 @@ class DirectDownloadController extends StateNotifier<DirectDownloadState> {
     DownloadEngine? downloadEngine,
     DownloadFinalizer? downloadFinalizer,
     NotificationPermissionService? notificationPermissionService,
-    YtDlpEngine? ytDlpEngine,
-    MediaSaveService? mediaSaveService,
-    Future<Directory> Function()? tempDirectory,
+    YtDlpServiceDownload? serviceDownload,
   }) : _extractor = extractor ?? service.createExtractor(),
        _downloadEngine = downloadEngine ?? DownloadEngine(),
        _downloadFinalizer = downloadFinalizer ?? DownloadFinalizer.instance,
-       _injectedYtDlpEngine = ytDlpEngine,
-       _mediaSaveService = mediaSaveService ?? MediaSaveService(),
-       _tempDirectory = tempDirectory ?? getTemporaryDirectory,
+       _serviceDownload = serviceDownload ?? YtDlpServiceDownload(),
        _notificationPermissionService =
            notificationPermissionService ?? NotificationPermissionService(),
        _galAlbum = relativePathForSource(service.librarySource),
@@ -101,13 +95,7 @@ class DirectDownloadController extends StateNotifier<DirectDownloadState> {
   final MediaExtractor _extractor;
   final DownloadEngine _downloadEngine;
   final DownloadFinalizer _downloadFinalizer;
-  final YtDlpEngine? _injectedYtDlpEngine;
-
-  /// Lazy: constructing the real engine binds its platform channel, which
-  /// tests of the direct path never need.
-  YtDlpEngine get _ytDlpEngine => _injectedYtDlpEngine ?? YtDlpEngine();
-  final MediaSaveService _mediaSaveService;
-  final Future<Directory> Function() _tempDirectory;
+  final YtDlpServiceDownload _serviceDownload;
   final NotificationPermissionService _notificationPermissionService;
   final String _galAlbum;
 
@@ -233,12 +221,10 @@ class DirectDownloadController extends StateNotifier<DirectDownloadState> {
   }
 
   /// yt-dlp downloads + muxes the streams itself inside the foreground
-  /// service (`YtDlpDownloadService`), which also saves the result to the
-  /// gallery and posts the tap-to-open notification — same path as
-  /// YouTube's high-res downloads. No pause, only cancel.
+  /// service — same path as YouTube's high-res downloads (see
+  /// [YtDlpServiceDownload]). No pause, only cancel.
   Future<void> _downloadViaMerge(MediaVariant variant, String filename) async {
-    final engine = _ytDlpEngine;
-    final processId = DateTime.now().microsecondsSinceEpoch.toString();
+    final processId = YtDlpServiceDownload.newProcessId();
     state = state.copyWith(
       downloading: true,
       paused: false,
@@ -247,36 +233,15 @@ class DirectDownloadController extends StateNotifier<DirectDownloadState> {
       clearCurrentTask: true,
       mergeProcessId: processId,
     );
-    try {
-      final tempDir = await _tempDirectory();
-      final dir = Directory('${tempDir.path}/ytdlp_$processId');
-      await dir.create(recursive: true);
-      final relativePath = await _mediaSaveService.resolveRelativePath(
-        _galAlbum,
-        isAudio: false,
-      );
-      final result = await engine.downloadMerge(
-        url: variant.sourceUrl,
-        formatSelector: variant.mergeFormatSelector!,
-        outputPath: '${dir.path}/$filename',
+    _finishDownload(
+      await _serviceDownload.merge(
+        variant: variant,
+        filename: filename,
+        album: _galAlbum,
         processId: processId,
-        relativePath: relativePath,
-        durationSeconds: variant.durationSeconds,
         onProgress: (update) => state = state.copyWith(progress: update.progress),
-      );
-      _finishDownload(switch (result.status) {
-        'complete' => const StatusMessage(StatusMessageKey.saved),
-        'canceled' => const StatusMessage(StatusMessageKey.downloadCanceled),
-        _ => StatusMessage(
-          StatusMessageKey.downloadFailed,
-          error: result.error ?? result.status,
-        ),
-      });
-    } catch (error) {
-      _finishDownload(
-        StatusMessage(StatusMessageKey.downloadFailed, error: error.toString()),
-      );
-    }
+      ),
+    );
   }
 
   void _finishDownload(StatusMessage message) {
@@ -307,7 +272,7 @@ class DirectDownloadController extends StateNotifier<DirectDownloadState> {
     }
     final processId = state.mergeProcessId;
     if (processId != null) {
-      await _ytDlpEngine.cancelDownload(processId);
+      await _serviceDownload.cancel(processId);
     }
   }
 }

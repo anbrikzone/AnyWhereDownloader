@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../core/download/download_engine.dart';
 import '../../core/download/download_finalizer.dart';
+import '../../core/download/ytdlp_service_download.dart';
 import '../../core/extraction/media_extractor.dart';
 import '../../core/l10n/current_l10n.dart';
 import '../../core/l10n/status_message.dart';
@@ -159,6 +160,10 @@ class YouTubeController extends StateNotifier<YouTubeState> {
        _ytDlpEngine = ytDlpEngine ?? YtDlpEngine(),
        _mediaSaveService = mediaSaveService ?? MediaSaveService(),
        _downloadFinalizer = downloadFinalizer ?? DownloadFinalizer.instance,
+       _serviceDownload = YtDlpServiceDownload(
+         engine: ytDlpEngine,
+         mediaSaveService: mediaSaveService,
+       ),
        _notificationPermissionService =
            notificationPermissionService ?? NotificationPermissionService(),
        super(const YouTubeState());
@@ -169,6 +174,7 @@ class YouTubeController extends StateNotifier<YouTubeState> {
   final MediaSaveService _mediaSaveService;
   final DownloadFinalizer _downloadFinalizer;
   final NotificationPermissionService _notificationPermissionService;
+  final YtDlpServiceDownload _serviceDownload;
 
   /// Fetches format info for [url]. Returns null (and sets an error status
   /// message) on failure. Guards against running while a download from
@@ -528,89 +534,41 @@ class YouTubeController extends StateNotifier<YouTubeState> {
   /// foreground service (`YtDlpDownloadService.kt`) — no pause/resume, only
   /// cancel.
   Future<void> _downloadViaMerge(MediaVariant variant, String filename) async {
-    final processId = DateTime.now().microsecondsSinceEpoch.toString();
-    final outputPath = await _workFilePath(processId, filename);
-    final relativePath = await _mediaSaveService.resolveRelativePath(
-      _galAlbum,
-      isAudio: false,
-    );
-
-    state = state.copyWith(
-      downloading: true,
-      paused: false,
-      canPause: false,
-      progress: 0,
-      clearStatusMessage: true,
-      mergeProcessId: processId,
-      mergeDurationKnown: (variant.durationSeconds ?? 0) > 0,
-    );
-
-    try {
-      final result = await _ytDlpEngine.downloadMerge(
-        url: variant.sourceUrl,
-        formatSelector: variant.mergeFormatSelector!,
-        outputPath: outputPath,
+    final processId = YtDlpServiceDownload.newProcessId();
+    _startServiceDownload(variant, processId);
+    _finishServiceDownload(
+      await _serviceDownload.merge(
+        variant: variant,
+        filename: filename,
+        album: _galAlbum,
         processId: processId,
-        relativePath: relativePath,
-        durationSeconds: variant.durationSeconds,
-        onProgress: (update) => state = state.copyWith(
-          progress: update.progress,
-          downloadPhase: update.phase,
-        ),
-      );
-
-      switch (result.status) {
-        case 'complete':
-          // Already saved + notified by the native service.
-          state = state.copyWith(
-            downloading: false,
-            clearMergeProcessId: true,
-            clearDownloadPhase: true,
-            statusMessage: const StatusMessage(StatusMessageKey.saved),
-          );
-        case 'canceled':
-          state = state.copyWith(
-            downloading: false,
-            clearMergeProcessId: true,
-            clearDownloadPhase: true,
-            statusMessage: const StatusMessage(StatusMessageKey.downloadCanceled),
-          );
-        default:
-          state = state.copyWith(
-            downloading: false,
-            clearMergeProcessId: true,
-            clearDownloadPhase: true,
-            statusMessage: StatusMessage(
-              StatusMessageKey.downloadFailed,
-              error: result.error ?? result.status,
-            ),
-          );
-      }
-    } catch (error) {
-      state = state.copyWith(
-        downloading: false,
-        clearMergeProcessId: true,
-        clearDownloadPhase: true,
-        statusMessage: StatusMessage(
-          StatusMessageKey.downloadFailed,
-          error: error.toString(),
-        ),
-      );
-    }
+        onProgress: _onServiceProgress,
+      ),
+    );
   }
 
   /// Downloads an audio-only track (yt-dlp `-x --audio-format …`) via the
   /// same Android foreground service as the merge path — no pause/resume,
   /// only cancel. Saves the result into `Music/<album>/` (not the gallery).
   Future<void> _downloadViaAudio(MediaVariant variant, String filename) async {
-    final spec = variant.audioSpec!;
-    final processId = DateTime.now().microsecondsSinceEpoch.toString();
-    final outputPath = await _workFilePath(processId, filename);
-    final relativePath = await _mediaSaveService.resolveRelativePath(
-      _galAlbum,
-      isAudio: true,
+    final processId = YtDlpServiceDownload.newProcessId();
+    _startServiceDownload(variant, processId, phase: 'audio');
+    _finishServiceDownload(
+      await _serviceDownload.audio(
+        variant: variant,
+        filename: filename,
+        album: _galAlbum,
+        processId: processId,
+        onProgress: _onServiceProgress,
+      ),
     );
+  }
 
+  void _startServiceDownload(
+    MediaVariant variant,
+    String processId, {
+    String? phase,
+  }) {
     state = state.copyWith(
       downloading: true,
       paused: false,
@@ -618,73 +576,25 @@ class YouTubeController extends StateNotifier<YouTubeState> {
       progress: 0,
       clearStatusMessage: true,
       mergeProcessId: processId,
-      downloadPhase: 'audio',
+      downloadPhase: phase,
       mergeDurationKnown: (variant.durationSeconds ?? 0) > 0,
     );
-
-    try {
-      final result = await _ytDlpEngine.downloadAudio(
-        url: variant.sourceUrl,
-        audioFormat: spec.format,
-        audioQualityKbps: spec.qualityKbps ?? 0,
-        outputPath: outputPath,
-        processId: processId,
-        relativePath: relativePath,
-        durationSeconds: variant.durationSeconds,
-        onProgress: (update) => state = state.copyWith(
-          progress: update.progress,
-          downloadPhase: update.phase,
-        ),
-      );
-
-      switch (result.status) {
-        case 'complete':
-          // Already saved + notified by the native service.
-          state = state.copyWith(
-            downloading: false,
-            clearMergeProcessId: true,
-            clearDownloadPhase: true,
-            statusMessage: const StatusMessage(StatusMessageKey.saved),
-          );
-        case 'canceled':
-          state = state.copyWith(
-            downloading: false,
-            clearMergeProcessId: true,
-            clearDownloadPhase: true,
-            statusMessage: const StatusMessage(StatusMessageKey.downloadCanceled),
-          );
-        default:
-          state = state.copyWith(
-            downloading: false,
-            clearMergeProcessId: true,
-            clearDownloadPhase: true,
-            statusMessage: StatusMessage(
-              StatusMessageKey.downloadFailed,
-              error: result.error ?? result.status,
-            ),
-          );
-      }
-    } catch (error) {
-      state = state.copyWith(
-        downloading: false,
-        clearMergeProcessId: true,
-        clearDownloadPhase: true,
-        statusMessage: StatusMessage(
-          StatusMessageKey.downloadFailed,
-          error: error.toString(),
-        ),
-      );
-    }
   }
 
-  /// `<cacheDir>/ytdlp_<processId>/<filename>` — a per-download work dir the
-  /// native service deletes wholesale when it finishes (including yt-dlp's
-  /// `.part`/`.fNNN` leftovers after a cancel or error).
-  Future<String> _workFilePath(String processId, String filename) async {
-    final tempDir = await getTemporaryDirectory();
-    final dir = Directory('${tempDir.path}/ytdlp_$processId');
-    await dir.create(recursive: true);
-    return '${dir.path}/$filename';
+  void _onServiceProgress(MergeProgress update) {
+    state = state.copyWith(
+      progress: update.progress,
+      downloadPhase: update.phase,
+    );
+  }
+
+  void _finishServiceDownload(StatusMessage message) {
+    state = state.copyWith(
+      downloading: false,
+      clearMergeProcessId: true,
+      clearDownloadPhase: true,
+      statusMessage: message,
+    );
   }
 
   Future<void> togglePause() async {
@@ -705,7 +615,7 @@ class YouTubeController extends StateNotifier<YouTubeState> {
     }
     final processId = state.mergeProcessId;
     if (processId != null) {
-      await _ytDlpEngine.cancelDownload(processId);
+      await _serviceDownload.cancel(processId);
     }
   }
 }
