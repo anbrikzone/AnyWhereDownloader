@@ -45,6 +45,9 @@ const List<ChangelogEntry> kChangelog = [
     date: '2026-10-03',
     notes: {
       'en': {
+        ChangeKind.added: [
+          "Downloads screen: tap the download icon on Home to see every download in progress, from any service, with pause (where supported) and cancel, plus your recent downloads. Tap a saved one to open it.",
+        ],
         ChangeKind.changed: [
           "High-quality YouTube, YouTube audio (MP3/M4A) and Pinterest video downloads now share one download path, so they behave the same way.",
         ],
@@ -54,6 +57,9 @@ const List<ChangelogEntry> kChangelog = [
         ],
       },
       'ru': {
+        ChangeKind.added: [
+          "Экран «Загрузки»: иконка загрузки на главном экране показывает все текущие загрузки из любого сервиса, с паузой (где она поддерживается) и отменой, а также недавние загрузки. Нажмите на сохранённую, чтобы открыть её.",
+        ],
         ChangeKind.changed: [
           "Загрузки YouTube в высоком качестве, аудио YouTube (MP3/M4A) и видео Pinterest теперь идут одним общим путём и ведут себя одинаково.",
         ],
@@ -63,6 +69,9 @@ const List<ChangelogEntry> kChangelog = [
         ],
       },
       'kk': {
+        ChangeKind.added: [
+          "«Жүктеулер» экраны: басты экрандағы жүктеу белгішесі кез келген қызметтегі барлық ағымдағы жүктеулерді кідірту (қолдау бар жерде) және тоқтату мүмкіндігімен, сондай-ақ соңғы жүктеулерді көрсетеді. Сақталғанын ашу үшін оны түртіңіз.",
+        ],
         ChangeKind.changed: [
           "YouTube жоғары сапалы жүктеулері, YouTube аудиосы (MP3/M4A) және Pinterest бейнелері енді бір ортақ жолмен жүктеледі және бірдей жұмыс істейді.",
         ],
