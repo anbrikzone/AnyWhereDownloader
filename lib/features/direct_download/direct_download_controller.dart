@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:background_downloader/background_downloader.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../../core/download/download_engine.dart';
 import '../../core/download/download_finalizer.dart';
@@ -9,6 +11,7 @@ import '../../core/extraction/media_extractor.dart';
 import '../../core/l10n/status_message.dart';
 import '../../core/notifications/notification_permission_service.dart';
 import '../../core/storage/media_library_service.dart';
+import '../../core/storage/media_save_service.dart';
 import '../../core/yt_dlp_engine/yt_dlp_engine.dart';
 import 'direct_download_service.dart';
 
@@ -20,6 +23,7 @@ class DirectDownloadState {
     this.progress = 0,
     this.statusMessage,
     this.currentTask,
+    this.mergeProcessId,
   });
 
   final bool fetching;
@@ -30,13 +34,18 @@ class DirectDownloadState {
   final double progress;
   final StatusMessage? statusMessage;
 
-  /// Set while a download is running; used for pause/resume/cancel. These
-  /// services' formats are always muxed (or a single photo), so every
-  /// download goes through the `background_downloader` path — pause/resume
-  /// always works, no merge-path state needed (unlike YouTube).
+  /// Set while a direct (`background_downloader`) download runs — used for
+  /// pause/resume/cancel.
   final DownloadTask? currentTask;
 
+  /// Set instead while a yt-dlp *merge* download runs (a variant with
+  /// `mergeFormatSelector`, e.g. an HLS-only Pinterest video) — cancel only.
+  final String? mergeProcessId;
+
   bool get busy => fetching || downloading;
+
+  /// Only the direct path can pause; the yt-dlp merge path can only cancel.
+  bool get canPause => currentTask != null;
 
   DirectDownloadState copyWith({
     bool? fetching,
@@ -47,6 +56,8 @@ class DirectDownloadState {
     bool clearStatusMessage = false,
     DownloadTask? currentTask,
     bool clearCurrentTask = false,
+    String? mergeProcessId,
+    bool clearMergeProcessId = false,
   }) {
     return DirectDownloadState(
       fetching: fetching ?? this.fetching,
@@ -57,6 +68,9 @@ class DirectDownloadState {
           ? null
           : (statusMessage ?? this.statusMessage),
       currentTask: clearCurrentTask ? null : (currentTask ?? this.currentTask),
+      mergeProcessId: clearMergeProcessId
+          ? null
+          : (mergeProcessId ?? this.mergeProcessId),
     );
   }
 }
@@ -69,9 +83,13 @@ class DirectDownloadController extends StateNotifier<DirectDownloadState> {
     DownloadEngine? downloadEngine,
     DownloadFinalizer? downloadFinalizer,
     NotificationPermissionService? notificationPermissionService,
+    YtDlpEngine? ytDlpEngine,
+    MediaSaveService? mediaSaveService,
   }) : _extractor = extractor ?? service.createExtractor(),
        _downloadEngine = downloadEngine ?? DownloadEngine(),
        _downloadFinalizer = downloadFinalizer ?? DownloadFinalizer.instance,
+       _injectedYtDlpEngine = ytDlpEngine,
+       _mediaSaveService = mediaSaveService ?? MediaSaveService(),
        _notificationPermissionService =
            notificationPermissionService ?? NotificationPermissionService(),
        _galAlbum = relativePathForSource(service.librarySource),
@@ -81,6 +99,12 @@ class DirectDownloadController extends StateNotifier<DirectDownloadState> {
   final MediaExtractor _extractor;
   final DownloadEngine _downloadEngine;
   final DownloadFinalizer _downloadFinalizer;
+  final YtDlpEngine? _injectedYtDlpEngine;
+
+  /// Lazy: constructing the real engine binds its platform channel, which
+  /// tests of the direct path never need.
+  YtDlpEngine get _ytDlpEngine => _injectedYtDlpEngine ?? YtDlpEngine();
+  final MediaSaveService _mediaSaveService;
   final NotificationPermissionService _notificationPermissionService;
   final String _galAlbum;
 
@@ -148,6 +172,9 @@ class DirectDownloadController extends StateNotifier<DirectDownloadState> {
     unawaited(_notificationPermissionService.ensureRequested());
 
     final filename = '$baseFileName.${variant.container}';
+    if (variant.mergeFormatSelector != null) {
+      return _downloadViaMerge(variant, filename);
+    }
     final task = _downloadEngine.buildTask(
       url: variant.sourceUrl,
       filename: filename,
@@ -202,11 +229,59 @@ class DirectDownloadController extends StateNotifier<DirectDownloadState> {
     }
   }
 
+  /// yt-dlp downloads + muxes the streams itself inside the foreground
+  /// service (`YtDlpDownloadService`), which also saves the result to the
+  /// gallery and posts the tap-to-open notification — same path as
+  /// YouTube's high-res downloads. No pause, only cancel.
+  Future<void> _downloadViaMerge(MediaVariant variant, String filename) async {
+    final engine = _ytDlpEngine;
+    final processId = DateTime.now().microsecondsSinceEpoch.toString();
+    state = state.copyWith(
+      downloading: true,
+      paused: false,
+      progress: 0,
+      clearStatusMessage: true,
+      clearCurrentTask: true,
+      mergeProcessId: processId,
+    );
+    try {
+      final tempDir = await getTemporaryDirectory();
+      final dir = Directory('${tempDir.path}/ytdlp_$processId');
+      await dir.create(recursive: true);
+      final relativePath = await _mediaSaveService.resolveRelativePath(
+        _galAlbum,
+        isAudio: false,
+      );
+      final result = await engine.downloadMerge(
+        url: variant.sourceUrl,
+        formatSelector: variant.mergeFormatSelector!,
+        outputPath: '${dir.path}/$filename',
+        processId: processId,
+        relativePath: relativePath,
+        durationSeconds: variant.durationSeconds,
+        onProgress: (update) => state = state.copyWith(progress: update.progress),
+      );
+      _finishDownload(switch (result.status) {
+        'complete' => const StatusMessage(StatusMessageKey.saved),
+        'canceled' => const StatusMessage(StatusMessageKey.downloadCanceled),
+        _ => StatusMessage(
+          StatusMessageKey.downloadFailed,
+          error: result.error ?? result.status,
+        ),
+      });
+    } catch (error) {
+      _finishDownload(
+        StatusMessage(StatusMessageKey.downloadFailed, error: error.toString()),
+      );
+    }
+  }
+
   void _finishDownload(StatusMessage message) {
     state = state.copyWith(
       downloading: false,
       paused: false,
       clearCurrentTask: true,
+      clearMergeProcessId: true,
       statusMessage: message,
     );
   }
@@ -223,8 +298,14 @@ class DirectDownloadController extends StateNotifier<DirectDownloadState> {
 
   Future<void> cancelDownload() async {
     final task = state.currentTask;
-    if (task == null) return;
-    await _downloadEngine.cancel(task);
+    if (task != null) {
+      await _downloadEngine.cancel(task);
+      return;
+    }
+    final processId = state.mergeProcessId;
+    if (processId != null) {
+      await _ytDlpEngine.cancelDownload(processId);
+    }
   }
 }
 

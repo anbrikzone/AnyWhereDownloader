@@ -15,8 +15,9 @@ int heightOf(RawFormat f) {
 
 /// `720p`-style label from the frame's *short* side when both sides are
 /// known — a vertical 576×1024 video is "576p", not "1024p", same convention
-/// as YouTube Shorts — else from [height].
-String? _qualityLabel(RawFormat f, int height) {
+/// as YouTube Shorts — else from [heightOf]. Null when nothing is known.
+String? qualityLabelOf(RawFormat f) {
+  final height = heightOf(f);
   if (f.width > 0 && height > 0) {
     return '${f.width < height ? f.width : height}p';
   }
@@ -55,7 +56,7 @@ List<MediaVariant> progressiveVideoVariants(
     variants.add(
       MediaVariant(
         type: MediaVariantType.video,
-        resolutionLabel: _qualityLabel(f, height),
+        resolutionLabel: qualityLabelOf(f),
         container: container?.call(f) ?? f.ext ?? 'mp4',
         approxSizeBytes: size,
         sourceUrl: url,

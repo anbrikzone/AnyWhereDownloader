@@ -21,14 +21,20 @@ class _FakeEngine implements YtDlpEngine {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-RawFormat _f(String id, String url, {int height = 0, String? vcodec}) =>
+RawFormat _f(
+  String id,
+  String url, {
+  int height = 0,
+  int width = 0,
+  String? vcodec,
+}) =>
     RawFormat(
       formatId: id,
       ext: 'mp4',
       vcodec: vcodec,
       acodec: null,
       height: height,
-      width: 0,
+      width: width,
       formatNote: null,
       url: url,
       fileSizeBytes: 0,
@@ -99,58 +105,27 @@ void main() {
     expect(engine.requested.single, 'https://www.pinterest.com/pin/987654321/sent/');
   });
 
-  test('HLS-only pin: offers the existing MP4 twins with their real size',
-      () async {
-    const hls = 'https://v1.pinimg.com/videos/iht/hls/62/04/f5/abc';
-    const mp4 = 'https://v1.pinimg.com/videos/iht/expMp4/62/04/f5/abc';
-    final client = MockClient((request) async {
-      expect(request.method, 'HEAD');
-      if (request.url.toString() == '${mp4}_720w.mp4') {
-        return http.Response('', 200, headers: {
-          'content-type': 'video/mp4',
-          'content-length': '9888598',
-        });
-      }
-      return http.Response('', 403, headers: {'content-type': 'application/xml'});
-    });
+  test('HLS-only pin: one merge variant per rendition, best first', () async {
+    const hls = 'https://v1.pinimg.com/videos/iht/hls/e7/7a/8f/abc';
     final engine = _FakeEngine(_info(
       thumb: 'https://i.pinimg.com/x.jpg',
       formats: [
         _f('V_HLSV3_MOBILE-audio1-1', '${hls}_audio.m3u8', vcodec: 'none'),
-        _f('V_HLSV3_MOBILE-1419', '${hls}_720w.m3u8', height: 1024, vcodec: 'avc1'),
-        _f('V_HLSV3_MOBILE-2000', '${hls}_1080w.m3u8', height: 1920, vcodec: 'avc1'),
+        _f('V_HLSV3_MOBILE-266', '${hls}_240w.m3u8', height: 416, width: 234, vcodec: 'avc1'),
+        _f('V_HLSV3_MOBILE-1036', '${hls}_720w.m3u8', height: 1280, width: 720, vcodec: 'avc1'),
       ],
     ));
-    final info = await PinterestExtractor(engine: engine, client: client)
-        .extract('https://www.pinterest.com/pin/1/');
-    final video = info.variants.single;
-    expect(video.type, MediaVariantType.video);
-    expect(video.sourceUrl, '${mp4}_720w.mp4');
-    expect(video.approxSizeBytes, 9888598);
-  });
-
-  test('v2 HLS names: tries the MP4 without the _v2 suffix first', () async {
-    const hls = 'https://v1.pinimg.com/videos/iht/hls/v2/c7/be/56/'
-        'c7be564dd014302c1fc415fd1c5a81e6_v2';
-    const mp4 = 'https://v1.pinimg.com/videos/iht/expMp4/c7/be/56/'
-        'c7be564dd014302c1fc415fd1c5a81e6_720w.mp4';
-    final probed = <String>[];
-    final client = MockClient((request) async {
-      probed.add(request.url.toString());
-      if (request.url.toString() == mp4) {
-        return http.Response('', 200, headers: {
-          'content-type': 'video/mp4',
-          'content-length': '1740174',
-        });
-      }
-      return http.Response('', 403);
-    });
-    final engine = _FakeEngine(_info(formats: [
-      _f('V_HLSV3_MOBILE-755', '${hls}_720w.m3u8', height: 1280, vcodec: 'avc1'),
-    ]));
-    final info = await PinterestExtractor(engine: engine, client: client)
-        .extract('https://www.pinterest.com/pin/676736281544330210/');
-    expect(info.variants.single.sourceUrl, mp4);
-    expect(probed, [mp4]);
+    final info = await PinterestExtractor(engine: engine)
+        .extract('https://www.pinterest.com/pin/959689001842163459/');
+    expect(info.variants.map((v) => v.resolutionLabel), ['720p', '234p']);
+    final best = info.variants.first;
+    expect(best.type, MediaVariantType.video);
+    expect(best.sourceUrl, 'https://www.pinterest.com/pin/959689001842163459/');
+    expect(
+      best.mergeFormatSelector,
+      'V_HLSV3_MOBILE-1036+V_HLSV3_MOBILE-audio1-1/'
+      'bv*[height<=1280]+ba/b[height<=1280]/b',
+    );
+    expect(best.durationSeconds, 57);
   });
 }

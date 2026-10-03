@@ -238,14 +238,20 @@ class _DirectDownloadScreenState extends ConsumerState<DirectDownloadScreen>
               const SizedBox(height: 12),
               Row(
                 children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: controller.togglePause,
-                      icon: Icon(state.paused ? Icons.play_arrow : Icons.pause),
-                      label: Text(state.paused ? l10n.resumeButton : l10n.pauseButton),
+                  // A yt-dlp merge download (HLS-only Pinterest video) can
+                  // only be canceled, like YouTube's high-res path.
+                  if (state.canPause) ...[
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: controller.togglePause,
+                        icon: Icon(state.paused ? Icons.play_arrow : Icons.pause),
+                        label: Text(
+                          state.paused ? l10n.resumeButton : l10n.pauseButton,
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
+                    const SizedBox(width: 8),
+                  ],
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: controller.cancelDownload,

@@ -13,20 +13,16 @@ final _pinterestHost = RegExp(
 
 const _imageExts = {'jpg', 'jpeg', 'png', 'webp', 'gif'};
 
-/// `ORIGIN/videos/iht/hls/[vN/]aa/bb/cc/HASH[_vN]_WIDTHw.m3u8` → groups
-/// (ORIGIN, `aa/bb/cc/HASH`, `_vN` or null, `WIDTHw`).
-final _hlsRendition = RegExp(
-  r'^(https?://[^/]+)/videos/iht/hls/(?:v\d+/)?([0-9a-f]{2}/[0-9a-f]{2}/[0-9a-f]{2}/[0-9a-f]+)(_v\d+)?_(\d+w)\.m3u8$',
-);
-
-/// Pinterest pins via yt-dlp's `pinterest` extractor (read from the bundled
-/// source, 2026-10-03):
-/// - **video pin** → progressive MP4s from the pin's `video_list` (with
-///   width/height) plus `V_HLS*` m3u8 entries, which are skipped;
-///   **Current pins usually have *only* HLS** (`V_HLSV3_MOBILE-*`, video-only
-///   streams plus a separate audio stream — found on-device 2026-10-03), so
-///   [_mp4TwinsOfHls] maps each HLS rendition to the muxed MP4 Pinterest
-///   also serves for it;
+/// Pinterest pins via yt-dlp's `pinterest` extractor:
+/// - **video pin with progressive MP4s** (older pins, `V_720P`-style ids) →
+///   direct, pausable downloads;
+/// - **video pin with only HLS** (most current pins, `V_HLSV3_MOBILE-*`:
+///   video-only renditions + a separate audio stream — seen on every pin the
+///   user tried, 2026-10-03) → one *merge* variant per rendition: yt-dlp
+///   itself fetches the HLS video + audio and muxes them with the bundled
+///   ffmpeg (the same foreground-service path as YouTube's high-res
+///   downloads; cancel only, no pause). An earlier attempt guessed muxed
+///   `expMp4` URLs instead — they exist for some pins and not others;
 /// - **image pin** → no formats at all. yt-dlp would fail with "No video
 ///   formats found", so `YtDlpBridge` passes `--ignore-no-formats-error` for
 ///   Pinterest and the image comes from yt-dlp's best `thumbnail` (the
@@ -62,17 +58,17 @@ class PinterestExtractor implements MediaExtractor {
     final pinUrl = await _expandShortLink(url.trim());
     final info = await _engine.getInfo(pinUrl);
 
-    final progressive = info.formats
-        .where((f) => f.url != null)
-        .where((f) => !(f.formatId?.toLowerCase().contains('hls') ?? false))
-        .where((f) => !f.url!.contains('.m3u8'))
-        .toList();
-    if (progressive.isEmpty) progressive.addAll(await _mp4TwinsOfHls(info));
+    bool isHls(RawFormat f) =>
+        (f.formatId?.toLowerCase().contains('hls') ?? false) ||
+        (f.url?.contains('.m3u8') ?? false);
+
     final variants = progressiveVideoVariants(
-      progressive,
+      info.formats.where((f) => f.url != null && !isHls(f)).toList(),
       durationSeconds: info.durationSeconds,
     );
-
+    if (variants.isEmpty) {
+      variants.addAll(_hlsMergeVariants(info, pinUrl, isHls));
+    }
     if (variants.isEmpty) {
       final image = _imageVariant(info);
       if (image != null) variants.add(image);
@@ -89,85 +85,46 @@ class PinterestExtractor implements MediaExtractor {
     );
   }
 
-  /// Pinterest serves every HLS rendition `…/videos/iht/hls/…/HASH_Ww.m3u8`
-  /// as a muxed (video + audio) MP4 at `…/videos/iht/expMp4/aa/bb/cc/HASH_Ww.mp4`
-  /// too — not part of yt-dlp's output, found by probing (2026-10-03, two
-  /// pins, 240w–720w, each MP4 with an `mp4a` track). Newer pins put a `v2/`
-  /// directory and a `_v2` suffix into the HLS name; the MP4 has neither
-  /// (`…_v2_720w.mp4` is 403, `…_720w.mp4` is 200), so that form is tried
-  /// first and the literal one only as a fallback. It's an undocumented
-  /// scheme, so every candidate is HEAD-checked and only ones that really
-  /// exist are offered (with their exact size).
-  Future<List<RawFormat>> _mp4TwinsOfHls(RawVideoInfo info) async {
-    final candidates = <List<RawFormat>>[];
-    for (final f in info.formats) {
-      final url = f.url;
-      if (url == null || !f.hasVideo) continue;
-      final match = _hlsRendition.firstMatch(url);
-      if (match == null) continue;
-      final base = '${match.group(1)}/videos/iht/expMp4/${match.group(2)}';
-      final width = match.group(4);
-      final suffix = match.group(3);
-      candidates.add(
-        ['${base}_$width.mp4', if (suffix != null) '$base${suffix}_$width.mp4']
-            .map(
-              (mp4) => RawFormat(
-                formatId: f.formatId,
-                ext: 'mp4',
-                vcodec: f.vcodec,
-                acodec: null,
-                height: f.height,
-                width: f.width,
-                formatNote: f.formatNote,
-                url: mp4,
-                fileSizeBytes: 0,
-                httpHeaders: null,
-                tbrKbps: 0,
-              ),
-            )
-            .toList(),
+  /// One merge variant per HLS video rendition, best first. The selector
+  /// names the exact video + audio format ids from this extraction, with a
+  /// height-capped generic fallback in case the ids differ when the
+  /// download re-extracts.
+  List<MediaVariant> _hlsMergeVariants(
+    RawVideoInfo info,
+    String pinUrl,
+    bool Function(RawFormat) isHls,
+  ) {
+    final hls = info.formats.where(isHls).where((f) => f.formatId != null);
+    // Pinterest's audio rendition reports vcodec "none" and no acodec at
+    // all, so "the HLS stream without video" is the audio.
+    final audio = hls.where((f) => !f.hasVideo).firstOrNull;
+    final videos = hls.where((f) => f.hasVideo).toList()
+      ..sort((a, b) => b.height.compareTo(a.height));
+
+    final seen = <String>{};
+    final variants = <MediaVariant>[];
+    for (final video in videos) {
+      final label = qualityLabelOf(video);
+      if (!seen.add(label ?? video.formatId!)) continue;
+      final exact = audio == null
+          ? video.formatId!
+          : '${video.formatId}+${audio.formatId}';
+      final capped = video.height > 0 ? '[height<=${video.height}]' : '';
+      variants.add(
+        MediaVariant(
+          type: MediaVariantType.video,
+          resolutionLabel: label,
+          container: 'mp4',
+          approxSizeBytes: null,
+          sourceUrl: pinUrl,
+          mergeFormatSelector: '$exact/bv*$capped+ba/b$capped/b',
+          durationSeconds: info.durationSeconds > 0
+              ? info.durationSeconds
+              : null,
+        ),
       );
     }
-    final checked = await Future.wait(candidates.map(_firstExisting));
-    return checked.whereType<RawFormat>().toList();
-  }
-
-  /// The first of [options] (alternative URLs for one rendition) that exists.
-  Future<RawFormat?> _firstExisting(List<RawFormat> options) async {
-    for (final option in options) {
-      final found = await _withSizeIfExists(option);
-      if (found != null) return found;
-    }
-    return null;
-  }
-
-  Future<RawFormat?> _withSizeIfExists(RawFormat f) async {
-    try {
-      final response = await _client
-          .head(Uri.parse(f.url!))
-          .timeout(const Duration(seconds: 10));
-      final type = response.headers['content-type'] ?? '';
-      if (response.statusCode != 200 || !type.startsWith('video/')) {
-        return null;
-      }
-      return RawFormat(
-        formatId: f.formatId,
-        ext: f.ext,
-        vcodec: f.vcodec,
-        acodec: f.acodec,
-        height: f.height,
-        width: f.width,
-        formatNote: f.formatNote,
-        url: f.url,
-        fileSizeBytes:
-            int.tryParse(response.headers['content-length'] ?? '') ?? 0,
-        httpHeaders: null,
-        tbrKbps: 0,
-      );
-    } catch (e, st) {
-      logError('PinterestExtractor.probeMp4', e, st);
-      return null;
-    }
+    return variants;
   }
 
   /// An image pin's picture: yt-dlp's top-level `url` if it's an image,
