@@ -6,6 +6,34 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 
 ---
 
+## 0.3.14 — 2026-10-03
+
+### English
+
+**Changed**
+- High-quality YouTube, YouTube audio (MP3/M4A) and Pinterest video downloads now share one download path, so they behave the same way.
+
+**Fixed**
+- If preparing a high-quality YouTube or MP3 download fails, the app now shows an error instead of silently doing nothing.
+
+### Русский
+
+**Изменено**
+- Загрузки YouTube в высоком качестве, аудио YouTube (MP3/M4A) и видео Pinterest теперь идут одним общим путём и ведут себя одинаково.
+
+**Исправлено**
+- Если подготовка загрузки YouTube в высоком качестве или MP3 не удалась, приложение теперь показывает ошибку, а не молча ничего не делает.
+
+### Қазақша
+
+**Өзгертілді**
+- YouTube жоғары сапалы жүктеулері, YouTube аудиосы (MP3/M4A) және Pinterest бейнелері енді бір ортақ жолмен жүктеледі және бірдей жұмыс істейді.
+
+**Түзетілді**
+- YouTube жоғары сапалы немесе MP3 жүктеуін дайындау сәтсіз болса, қолданба енді үнсіз қалмай, қате көрсетеді.
+
+---
+
 ## 0.3.13 — 2026-10-03
 
 ### English

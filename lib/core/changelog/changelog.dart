@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 /// changelog entry's version. Keep this in sync with `pubspec.yaml`'s
 /// `version:` field and the top entry of both [kChangelog] and the
 /// project-root `CHANGELOG.md`.
-const String kAppVersion = '0.3.13';
+const String kAppVersion = '0.3.14';
 
 /// The kind of change a changelog line describes. Rendered as a small
 /// section header ("Added" / "Changed" / "Fixed"); a kind with no lines is
@@ -40,6 +40,36 @@ class ChangelogEntry {
 /// new" screen renders; the project-root `CHANGELOG.md` mirrors it for
 /// people reading the repo. Update both together on every release.
 const List<ChangelogEntry> kChangelog = [
+  ChangelogEntry(
+    version: '0.3.14',
+    date: '2026-10-03',
+    notes: {
+      'en': {
+        ChangeKind.changed: [
+          "High-quality YouTube, YouTube audio (MP3/M4A) and Pinterest video downloads now share one download path, so they behave the same way.",
+        ],
+        ChangeKind.fixed: [
+          "If preparing a high-quality YouTube or MP3 download fails, the app now shows an error instead of silently doing nothing.",
+        ],
+      },
+      'ru': {
+        ChangeKind.changed: [
+          "Загрузки YouTube в высоком качестве, аудио YouTube (MP3/M4A) и видео Pinterest теперь идут одним общим путём и ведут себя одинаково.",
+        ],
+        ChangeKind.fixed: [
+          "Если подготовка загрузки YouTube в высоком качестве или MP3 не удалась, приложение теперь показывает ошибку, а не молча ничего не делает.",
+        ],
+      },
+      'kk': {
+        ChangeKind.changed: [
+          "YouTube жоғары сапалы жүктеулері, YouTube аудиосы (MP3/M4A) және Pinterest бейнелері енді бір ортақ жолмен жүктеледі және бірдей жұмыс істейді.",
+        ],
+        ChangeKind.fixed: [
+          "YouTube жоғары сапалы немесе MP3 жүктеуін дайындау сәтсіз болса, қолданба енді үнсіз қалмай, қате көрсетеді.",
+        ],
+      },
+    },
+  ),
   ChangelogEntry(
     version: '0.3.13',
     date: '2026-10-03',
