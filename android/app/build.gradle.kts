@@ -94,22 +94,13 @@ android {
                 output.outputFileName =
                     "AnyWhereDownloader-${variant.versionName}" +
                     (if (abi != null) "-$abi" else "") + ".apk"
-                // The Flutter Gradle plugin itself (registered earlier, via
-                // the `dev.flutter.flutter-gradle-plugin` id above) already
-                // set versionCodeOverride here to `abiCode * 1000 +
-                // versionCode` — its per-ABI multiplier so Play Store can
-                // tell same-version split APKs apart. This callback runs
-                // after that one (later applicationVariants.all
-                // registration wins for the same output), so it's safe to
-                // reassign it back. We only ever distribute one APK per
-                // device via direct download/self-update (matched by ABI
-                // substring in the filename, not versionCode — see
-                // UpdateService), so that offset only made Settings -> About
-                // show a confusing build number that didn't match the debug
-                // build (e.g. "2039" vs. "39").
-                @Suppress("DEPRECATION")
-                (output as com.android.build.gradle.api.ApkVariantOutput).versionCodeOverride =
-                    variant.versionCode
+                // versionCode is deliberately left as the Flutter plugin sets
+                // it for split APKs: `abiCode * 1000 + buildNumber` (e.g.
+                // arm64 0.3.14+74 -> 2074). Never override it back to the
+                // bare build number: 0.3.0–0.3.10 shipped with the offset
+                // (0.3.10 arm64 = 2033), and 0.3.11–0.3.13 dropping it
+                // (39..64) made them downgrades Android refused to install
+                // over 0.3.10. Settings -> About strips the offset for display.
             }
         }
     }

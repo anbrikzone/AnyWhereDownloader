@@ -185,8 +185,12 @@ final updateControllerProvider =
 /// `"<version> (<build>)"` for Settings → About — e.g. `0.3.11 (36)` — read
 /// live from the installed package so it's always the build actually on the
 /// device. Falls back to just [kAppVersion] if the native read fails.
+///
+/// Release split APKs carry an `abiCode * 1000` offset in their versionCode
+/// (see `android/app/build.gradle.kts`); `% 1000` shows the plain build number
+/// so it matches the debug build and `pubspec.yaml`.
 final appVersionLabelProvider = FutureProvider<String>((ref) async {
   final v = await UpdateInstaller().appVersion();
   if (v == null || v.name.isEmpty) return kAppVersion;
-  return v.code > 0 ? '${v.name} (${v.code})' : v.name;
+  return v.code > 0 ? '${v.name} (${v.code % 1000})' : v.name;
 });
