@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:anywhere_downloader/core/extraction/image_fallback.dart';
 import 'package:anywhere_downloader/core/extraction/media_extractor.dart';
 import 'package:anywhere_downloader/services/tiktok/tiktok_extractor.dart';
 import 'package:flutter_test/flutter_test.dart';

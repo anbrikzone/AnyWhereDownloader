@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../../core/extraction/image_fallback.dart';
 import '../../core/extraction/media_extractor.dart';
 import '../../core/logging/app_log.dart';
 
@@ -10,16 +11,6 @@ import '../../core/logging/app_log.dart';
 /// or return CDN URLs that 403 without a session cookie). Calls tikwm.com's
 /// public API instead — a third-party service we don't control, accepted
 /// knowingly as the price of TikTok working. See CLAUDE.md "TikTok".
-/// File extension for a TikTok CDN image URL — its path usually ends in
-/// `.jpeg`/`.webp` before the query string; `jpg` when it can't tell.
-String imageContainerFor(String url) {
-  final path = (Uri.tryParse(url)?.path ?? '').toLowerCase();
-  for (final ext in const ['jpeg', 'jpg', 'webp', 'png', 'heic']) {
-    if (path.endsWith('.$ext')) return ext;
-  }
-  return 'jpg';
-}
-
 class TikTokExtractor implements MediaExtractor {
   TikTokExtractor({http.Client? client}) : _client = client ?? http.Client();
 

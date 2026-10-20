@@ -27,19 +27,67 @@ class InstagramExtractor implements MediaExtractor {
         host == 'instagram.com' ||
         host.endsWith('.instagram.com');
     if (!isInstagramHost) return false;
-    final path = uri.path.toLowerCase();
-    return path.startsWith('/p/') ||
-        path.startsWith('/reel/') ||
-        path.startsWith('/reels/') ||
-        path.startsWith('/tv/') ||
-        path.startsWith('/stories/');
+    final segments = [
+      for (final s in uri.pathSegments)
+        if (s.isNotEmpty) s.toLowerCase(),
+    ];
+    if (segments.length < 2) return false;
+    if (segments.first == 'stories') return true;
+    // `/p/<id>`, or the same with the account in front —
+    // `/<username>/p/<id>` (what Instagram's web share gives).
+    const postTypes = {'p', 'reel', 'reels', 'tv'};
+    if (postTypes.contains(segments[0])) return true;
+    return segments.length >= 3 && postTypes.contains(segments[1]);
   }
 
   @override
   Future<MediaInfo> extract(String url) async {
-    final info = await _engine.getInfo(url);
-    final duration = info.durationSeconds;
+    // getPostItems, not getInfo: a carousel is a playlist whose entries the
+    // getInfo mapper drops, and a photo item has no formats at all.
+    final post = await _engine.getPostItems(url);
+    final title = post.title ?? 'Instagram';
 
+    if (post.items.length <= 1) {
+      final info = post.items.isEmpty ? null : post.items.single;
+      final variants = info == null ? <MediaVariant>[] : _variantsOf(info);
+      if (variants.isEmpty) {
+        throw ExtractionException(ExtractionErrorCode.noDownloadableMedia);
+      }
+      return MediaInfo(
+        title: title,
+        thumbnailUrl: info!.thumbnailUrl,
+        variants: variants,
+      );
+    }
+
+    // A carousel: each item downloads as its single best variant. An item
+    // with nothing downloadable is skipped rather than failing the post.
+    final requested = carouselIndexOf(url);
+    final items = <MediaItem>[];
+    int? current;
+    for (final (index, info) in post.items.indexed) {
+      final variants = _variantsOf(info);
+      if (variants.isEmpty) continue;
+      if (index == requested) current = items.length;
+      items.add(
+        MediaItem(thumbnailUrl: info.thumbnailUrl, variant: variants.first),
+      );
+    }
+    if (items.isEmpty) {
+      throw ExtractionException(ExtractionErrorCode.noDownloadableMedia);
+    }
+    final focused = items[current ?? 0];
+    return MediaInfo(
+      title: title,
+      thumbnailUrl: focused.thumbnailUrl,
+      variants: [focused.variant],
+      items: items.length > 1 ? items : const [],
+      currentItemIndex: items.length > 1 ? current : null,
+    );
+  }
+
+  /// One item's choices: its progressive video qualities, else its photo.
+  List<MediaVariant> _variantsOf(RawVideoInfo info) {
     // Progressive only: drop `dash-` (adaptive, needs muxing) and any
     // manifest URL. See the class doc for why not `hasVideo && hasAudio`.
     final progressive = info.formats
@@ -51,23 +99,35 @@ class InstagramExtractor implements MediaExtractor {
 
     final variants = progressiveVideoVariants(
       progressive,
-      durationSeconds: duration,
+      durationSeconds: info.durationSeconds,
     );
+    if (variants.isNotEmpty) return variants;
 
-    if (variants.isEmpty) {
-      // No video — offer the image if this is a (single-image) photo post.
-      final image = imageVariantFor(info);
-      if (image != null) variants.add(image);
+    // No video — a photo. Instagram's photo item has no formats and no
+    // image `ext`; its `thumbnail` is the full-size original (yt-dlp sorts
+    // the uncropped, unscaled candidate last and picks it).
+    final image = imageVariantFor(info);
+    if (image != null) return [image];
+    final thumb = info.thumbnailUrl;
+    if (info.formats.isEmpty && thumb != null && thumb.isNotEmpty) {
+      return [
+        MediaVariant(
+          type: MediaVariantType.image,
+          resolutionLabel: null,
+          container: imageContainerFor(thumb),
+          approxSizeBytes: null,
+          sourceUrl: thumb,
+        ),
+      ];
     }
-
-    if (variants.isEmpty) {
-      throw ExtractionException(ExtractionErrorCode.noDownloadableMedia);
-    }
-
-    return MediaInfo(
-      title: info.title ?? 'Instagram',
-      thumbnailUrl: info.thumbnailUrl,
-      variants: variants,
-    );
+    return const [];
   }
+}
+
+/// 0-based carousel position a post link points at — Instagram's share links
+/// carry it as a 1-based `img_index` query parameter. Null when absent.
+int? carouselIndexOf(String url) {
+  final raw = Uri.tryParse(url.trim())?.queryParameters['img_index'];
+  final n = raw == null ? null : int.tryParse(raw);
+  return n == null || n < 1 ? null : n - 1;
 }

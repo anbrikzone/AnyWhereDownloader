@@ -127,6 +127,26 @@ class RawVideoInfo {
   final String? directUrl;
 }
 
+/// [YtDlpEngine.getPostItems]'s result: the post's own title and its items.
+class PostItemsResult {
+  PostItemsResult({required this.title, required this.items});
+
+  factory PostItemsResult.fromMap(Map<Object?, Object?> map) {
+    final raw = map['items'];
+    return PostItemsResult(
+      title: map['title'] as String?,
+      items: [
+        if (raw is List)
+          for (final entry in raw)
+            if (entry is Map) RawVideoInfo.fromMap(entry.cast<Object?, Object?>()),
+      ],
+    );
+  }
+
+  final String? title;
+  final List<RawVideoInfo> items;
+}
+
 /// Outcome of a foreground-service yt-dlp `execute()` download — the merge
 /// path ([YtDlpEngine.downloadMerge]) and the audio-extract path
 /// ([YtDlpEngine.downloadAudio]) share this shape.
@@ -338,6 +358,20 @@ class YtDlpEngine {
       throw StateError('yt-dlp returned no data for $url');
     }
     return RawVideoInfo.fromMap(result);
+  }
+
+  /// Every media item of a post that may hold several (an Instagram
+  /// carousel) — a single-item post is a one-element list. A photo item has
+  /// no formats; its full-size image is [RawVideoInfo.thumbnailUrl].
+  Future<PostItemsResult> getPostItems(String url) async {
+    final result = await _channel.invokeMethod<Map<Object?, Object?>>(
+      'getPostItems',
+      {'url': url},
+    );
+    if (result == null) {
+      throw StateError('yt-dlp returned no data for $url');
+    }
+    return PostItemsResult.fromMap(result);
   }
 
   /// Enumerates a playlist's entries (`--flat-playlist`, no per-video

@@ -109,6 +109,9 @@ class DirectDownloadController extends StateNotifier<DirectDownloadState> {
   /// The registry id of the download in flight, if any.
   String? _trackedId;
 
+  /// Set by [cancelDownload] to stop [downloadItems] before its next item.
+  bool _batchCanceled = false;
+
   bool canHandle(String url) => _extractor.canHandle(url);
 
   /// Fetches format info for [url]. Returns null (and sets an error status
@@ -176,35 +179,117 @@ class DirectDownloadController extends StateNotifier<DirectDownloadState> {
     if (variant.mergeFormatSelector != null) {
       return _downloadViaMerge(variant, filename);
     }
-    final task = _downloadEngine.buildTask(
-      url: variant.sourceUrl,
-      filename: filename,
-      headers: variant.requestHeaders,
-      saveTo: GallerySaveSpec(
-        kind: variant.type == MediaVariantType.image
-            ? SavedMediaKind.image
-            : SavedMediaKind.video,
-        album: _galAlbum,
-        notifyTitle: filename,
-      ),
-    );
-
     state = state.copyWith(
       downloading: true,
       paused: false,
       progress: 0,
       clearStatusMessage: true,
-      currentTask: task,
     );
+    final outcome = await _runDirect(
+      variant,
+      filename,
+      onProgress: (p) => state = state.copyWith(progress: p),
+    );
+    _finishDownload(outcome.message, contentUri: outcome.contentUri);
+  }
+
+  /// Downloads several items of one post (an Instagram carousel) one after
+  /// another, as `<base>_01.jpg`, `<base>_02.jpg`, … — each its own entry on
+  /// the Downloads screen, but only the last one posts a "saved"
+  /// notification. Cancel stops the whole batch; a failed item doesn't.
+  Future<void> downloadItems(List<MediaItem> items, String baseFileName) async {
+    if (items.length == 1) {
+      return downloadVariant(items.single.variant, baseFileName);
+    }
+    if (state.busy) {
+      state = state.copyWith(
+        statusMessage: const StatusMessage(StatusMessageKey.downloadAlreadyInProgress),
+      );
+      return;
+    }
+    if (items.isEmpty) return;
+    unawaited(_notificationPermissionService.ensureRequested());
+
+    _batchCanceled = false;
+    state = state.copyWith(
+      downloading: true,
+      paused: false,
+      progress: 0,
+      clearStatusMessage: true,
+    );
+    final width = items.length.toString().length.clamp(2, 9);
+    var saved = 0;
+    var failed = 0;
+    for (final (i, item) in items.indexed) {
+      if (_batchCanceled) break;
+      final variant = item.variant;
+      final number = (i + 1).toString().padLeft(width, '0');
+      final outcome = await _runDirect(
+        variant,
+        '${baseFileName}_$number.${variant.container}',
+        notify: i == items.length - 1,
+        onProgress: (p) =>
+            state = state.copyWith(progress: (i + p) / items.length),
+      );
+      if (outcome.message.key == StatusMessageKey.saved) {
+        saved++;
+      } else if (outcome.message.key == StatusMessageKey.downloadCanceled) {
+        _batchCanceled = true;
+      } else {
+        failed++;
+      }
+    }
+
+    final StatusMessage message;
+    if (_batchCanceled && saved == 0) {
+      message = const StatusMessage(StatusMessageKey.downloadCanceled);
+    } else {
+      message = StatusMessage(
+        StatusMessageKey.postItemsSaved,
+        count: saved,
+        failedCount: failed,
+      );
+    }
+    _batchCanceled = false;
+    state = state.copyWith(
+      downloading: false,
+      paused: false,
+      clearCurrentTask: true,
+      statusMessage: message,
+    );
+  }
+
+  /// One direct (`background_downloader`) download → gallery save, tracked
+  /// on the Downloads screen. Leaves `downloading` to the caller.
+  Future<({StatusMessage message, String? contentUri})> _runDirect(
+    MediaVariant variant,
+    String filename, {
+    bool notify = true,
+    required void Function(double progress) onProgress,
+  }) async {
+    final isImage = variant.type == MediaVariantType.image;
+    final task = _downloadEngine.buildTask(
+      url: variant.sourceUrl,
+      filename: filename,
+      headers: variant.requestHeaders,
+      saveTo: GallerySaveSpec(
+        kind: isImage ? SavedMediaKind.image : SavedMediaKind.video,
+        album: _galAlbum,
+        notifyTitle: filename,
+        notify: notify,
+      ),
+    );
+
+    state = state.copyWith(paused: false, currentTask: task);
     _track(
       task.taskId,
       filename,
-      variant.type == MediaVariantType.image
-          ? DownloadKind.image
-          : DownloadKind.video,
+      isImage ? DownloadKind.image : DownloadKind.video,
       canPause: true,
     );
 
+    StatusMessage message;
+    String? contentUri;
     try {
       final result = await _downloadEngine.run(
         task,
@@ -214,22 +299,16 @@ class DirectDownloadController extends StateNotifier<DirectDownloadState> {
         },
         onProgress: (progress) {
           if (progress >= 0) {
-            state = state.copyWith(progress: progress);
+            onProgress(progress);
             _downloads?.progress(task.taskId, progress);
           }
         },
       );
 
       if (result.status == TaskStatus.complete) {
-        final contentUri = await _downloadFinalizer.finalize(task);
-        _finishDownload(
-          const StatusMessage(StatusMessageKey.saved),
-          contentUri: contentUri,
-        );
-        return;
-      }
-      final StatusMessage message;
-      if (result.status == TaskStatus.canceled) {
+        contentUri = await _downloadFinalizer.finalize(task);
+        message = const StatusMessage(StatusMessageKey.saved);
+      } else if (result.status == TaskStatus.canceled) {
         message = const StatusMessage(StatusMessageKey.downloadCanceled);
       } else {
         message = StatusMessage(
@@ -237,12 +316,15 @@ class DirectDownloadController extends StateNotifier<DirectDownloadState> {
           error: '${result.exception ?? result.status}',
         );
       }
-      _finishDownload(message);
     } catch (error) {
-      _finishDownload(
-        StatusMessage(StatusMessageKey.downloadFailed, error: error.toString()),
+      message = StatusMessage(
+        StatusMessageKey.downloadFailed,
+        error: error.toString(),
       );
     }
+    state = state.copyWith(paused: false, clearCurrentTask: true);
+    _untrack(message, contentUri: contentUri);
+    return (message: message, contentUri: contentUri);
   }
 
   /// yt-dlp downloads + muxes the streams itself inside the foreground
@@ -299,6 +381,11 @@ class DirectDownloadController extends StateNotifier<DirectDownloadState> {
       clearMergeProcessId: true,
       statusMessage: message,
     );
+    _untrack(message, contentUri: contentUri);
+  }
+
+  /// Reports the tracked download's outcome to the Downloads screen.
+  void _untrack(StatusMessage message, {String? contentUri}) {
     final id = _trackedId;
     _trackedId = null;
     if (id != null) _downloads?.finish(id, message, contentUri: contentUri);
@@ -315,6 +402,7 @@ class DirectDownloadController extends StateNotifier<DirectDownloadState> {
   }
 
   Future<void> cancelDownload() async {
+    if (state.downloading) _batchCanceled = true;
     final task = state.currentTask;
     if (task != null) {
       await _downloadEngine.cancel(task);

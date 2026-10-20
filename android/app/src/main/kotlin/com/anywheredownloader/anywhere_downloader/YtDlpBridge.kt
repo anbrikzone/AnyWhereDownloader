@@ -78,6 +78,15 @@ class YtDlpBridge(private val appContext: Context) {
                 getPlaylistInfo(url, result)
             }
 
+            "getPostItems" -> {
+                val url = call.argument<String>("url")
+                if (url == null) {
+                    result.error("bad_args", "Missing 'url' argument", null)
+                    return
+                }
+                getPostItems(url, result)
+            }
+
             "startPlaylistDownload" -> {
                 val url = call.argument<String>("url")
                 val formatSelector = call.argument<String>("formatSelector")
@@ -329,6 +338,95 @@ class YtDlpBridge(private val appContext: Context) {
                 mainHandler.post { result.error("unknown_error", e.message, null) }
             }
         }
+    }
+
+    /**
+     * Every media item of a post that may hold several (an Instagram
+     * carousel), each in [videoInfoToMap]'s shape. yt-dlp answers a carousel
+     * with a `playlist` whose `entries` are the items — which the
+     * `VideoInfo` mapper drops — so this parses `--dump-single-json` itself.
+     * `--ignore-no-formats-error` because a photo item has no formats, only
+     * `thumbnail` (the full-size original); without it the whole dump fails.
+     * A single-item post comes back as a one-element list.
+     */
+    private fun getPostItems(url: String, result: MethodChannel.Result) {
+        executor.execute {
+            try {
+                YtDlpCore.ensureReady(appContext)
+                val request = YoutubeDLRequest(url)
+                request.addOption("--dump-single-json")
+                request.addOption("--ignore-no-formats-error")
+                val response = YoutubeDL.getInstance().execute(request)
+                val json = org.json.JSONObject(response.out)
+                val entries = json.optJSONArray("entries")
+                val items = ArrayList<Map<String, Any?>>()
+                if (entries == null) {
+                    items.add(jsonInfoToMap(json))
+                } else {
+                    for (i in 0 until entries.length()) {
+                        entries.optJSONObject(i)?.let { items.add(jsonInfoToMap(it)) }
+                    }
+                }
+                Log.i(TAG, "getPostItems: ${items.size} item(s)")
+                val map = mapOf(
+                    "title" to json.optStringOrNull("title"),
+                    "items" to items,
+                )
+                mainHandler.post { result.success(map) }
+            } catch (e: YoutubeDLException) {
+                Log.e(TAG, "getPostItems failed for $url", e)
+                mainHandler.post { result.error("yt_dlp_error", e.message, null) }
+            } catch (e: Exception) {
+                Log.e(TAG, "getPostItems failed for $url", e)
+                mainHandler.post { result.error("unknown_error", e.message, null) }
+            }
+        }
+    }
+
+    private fun org.json.JSONObject.optStringOrNull(key: String): String? =
+        if (isNull(key)) null else optString(key)
+
+    private fun org.json.JSONObject.optIntOrNull(key: String): Int? =
+        if (isNull(key)) null else optDouble(key).takeUnless { it.isNaN() }?.toInt()
+
+    private fun org.json.JSONObject.optLongOrNull(key: String): Long? =
+        if (isNull(key)) null else optDouble(key).takeUnless { it.isNaN() }?.toLong()
+
+    /** yt-dlp's raw JSON for one video → the same map [videoInfoToMap] builds. */
+    private fun jsonInfoToMap(json: org.json.JSONObject): Map<String, Any?> {
+        val formats = ArrayList<Map<String, Any?>>()
+        json.optJSONArray("formats")?.let { arr ->
+            for (i in 0 until arr.length()) {
+                val f = arr.optJSONObject(i) ?: continue
+                val headers = f.optJSONObject("http_headers")?.let { h ->
+                    h.keys().asSequence().associateWith { h.optString(it) }
+                }
+                formats.add(
+                    mapOf(
+                        "formatId" to f.optStringOrNull("format_id"),
+                        "ext" to f.optStringOrNull("ext"),
+                        "vcodec" to f.optStringOrNull("vcodec"),
+                        "acodec" to f.optStringOrNull("acodec"),
+                        "height" to (f.optIntOrNull("height") ?: 0),
+                        "width" to (f.optIntOrNull("width") ?: 0),
+                        "formatNote" to f.optStringOrNull("format_note"),
+                        "tbr" to (if (f.isNull("tbr")) 0.0 else f.optDouble("tbr", 0.0)),
+                        "url" to f.optStringOrNull("url"),
+                        "fileSize" to (f.optLongOrNull("filesize") ?: 0L),
+                        "fileSizeApproximate" to (f.optLongOrNull("filesize_approx") ?: 0L),
+                        "httpHeaders" to headers,
+                    ),
+                )
+            }
+        }
+        return mapOf(
+            "title" to json.optStringOrNull("title"),
+            "thumbnail" to json.optStringOrNull("thumbnail"),
+            "duration" to (json.optIntOrNull("duration") ?: 0),
+            "ext" to json.optStringOrNull("ext"),
+            "url" to json.optStringOrNull("url"),
+            "formats" to formats,
+        )
     }
 
     private fun isPinterestUrl(url: String): Boolean {

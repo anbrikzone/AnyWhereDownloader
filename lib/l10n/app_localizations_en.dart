@@ -141,6 +141,24 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String postItemsSavedResult(int saved, int failed) {
+    return 'Post: saved $saved, $failed failed';
+  }
+
+  @override
+  String carouselSheetTitle(int count) {
+    return 'Items in this post: $count';
+  }
+
+  @override
+  String carouselDownloadSelected(int count) {
+    return 'Download ($count)';
+  }
+
+  @override
+  String get carouselCurrentItem => 'Current';
+
+  @override
   String couldNotFetchPlaylist(String error) {
     return 'Could not load this playlist: $error';
   }

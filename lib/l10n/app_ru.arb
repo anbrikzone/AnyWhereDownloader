@@ -60,6 +60,10 @@
   "@playlistSavedResult": {
     "placeholders": { "saved": { "type": "int" }, "failed": { "type": "int" } }
   },
+  "postItemsSavedResult": "Пост: сохранено {saved}, ошибок {failed}",
+  "carouselSheetTitle": "Элементов в посте: {count}",
+  "carouselDownloadSelected": "Скачать ({count})",
+  "carouselCurrentItem": "Текущее",
   "couldNotFetchPlaylist": "Не удалось загрузить плейлист: {error}",
   "@couldNotFetchPlaylist": {
     "placeholders": { "error": { "type": "String" } }

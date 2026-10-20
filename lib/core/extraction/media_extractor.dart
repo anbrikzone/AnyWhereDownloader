@@ -84,16 +84,41 @@ class MediaVariant {
   final int? bitrateKbps;
 }
 
+/// One item of a multi-item post (an Instagram carousel): its preview and
+/// the single variant it downloads as — the full-size photo, or the best
+/// progressive video.
+class MediaItem {
+  MediaItem({required this.thumbnailUrl, required this.variant});
+
+  final String? thumbnailUrl;
+  final MediaVariant variant;
+}
+
 class MediaInfo {
   MediaInfo({
     required this.title,
     required this.thumbnailUrl,
     required this.variants,
+    this.items = const [],
+    this.currentItemIndex,
   });
 
   final String title;
   final String? thumbnailUrl;
+
+  /// The choices for one download. For a multi-item post: those of the
+  /// item the link points at ([currentItemIndex], else the first).
   final List<MediaVariant> variants;
+
+  /// Every item of a multi-item post, in post order; empty for a
+  /// single-item one.
+  final List<MediaItem> items;
+
+  /// 0-based index into [items] of the item the link itself points at
+  /// (Instagram's `img_index`), when it names one.
+  final int? currentItemIndex;
+
+  bool get isMultiItem => items.length > 1;
 }
 
 /// Common contract every URL-based service implements (TZ §4.1). WhatsApp

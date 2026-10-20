@@ -340,6 +340,30 @@ abstract class AppLocalizations {
   /// **'Playlist: saved {saved}, {failed} failed'**
   String playlistSavedResult(int saved, int failed);
 
+  /// No description provided for @postItemsSavedResult.
+  ///
+  /// In en, this message translates to:
+  /// **'Post: saved {saved}, {failed} failed'**
+  String postItemsSavedResult(int saved, int failed);
+
+  /// No description provided for @carouselSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Items in this post: {count}'**
+  String carouselSheetTitle(int count);
+
+  /// No description provided for @carouselDownloadSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Download ({count})'**
+  String carouselDownloadSelected(int count);
+
+  /// No description provided for @carouselCurrentItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Current'**
+  String get carouselCurrentItem;
+
   /// No description provided for @couldNotFetchPlaylist.
   ///
   /// In en, this message translates to:

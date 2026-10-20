@@ -143,6 +143,24 @@ class AppLocalizationsKk extends AppLocalizations {
   }
 
   @override
+  String postItemsSavedResult(int saved, int failed) {
+    return 'Жазба: $saved сақталды, $failed қате';
+  }
+
+  @override
+  String carouselSheetTitle(int count) {
+    return 'Жазбадағы элементтер: $count';
+  }
+
+  @override
+  String carouselDownloadSelected(int count) {
+    return 'Жүктеу ($count)';
+  }
+
+  @override
+  String get carouselCurrentItem => 'Ағымдағы';
+
+  @override
   String couldNotFetchPlaylist(String error) {
     return 'Ойнату тізімін жүктеу мүмкін болмады: $error';
   }

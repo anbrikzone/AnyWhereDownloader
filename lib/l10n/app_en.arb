@@ -63,6 +63,19 @@
   "@playlistSavedResult": {
     "placeholders": { "saved": { "type": "int" }, "failed": { "type": "int" } }
   },
+  "postItemsSavedResult": "Post: saved {saved}, {failed} failed",
+  "@postItemsSavedResult": {
+    "placeholders": { "saved": { "type": "int" }, "failed": { "type": "int" } }
+  },
+  "carouselSheetTitle": "Items in this post: {count}",
+  "@carouselSheetTitle": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "carouselDownloadSelected": "Download ({count})",
+  "@carouselDownloadSelected": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "carouselCurrentItem": "Current",
   "couldNotFetchPlaylist": "Could not load this playlist: {error}",
   "@couldNotFetchPlaylist": {
     "placeholders": { "error": { "type": "String" } }

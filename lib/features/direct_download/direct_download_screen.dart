@@ -7,6 +7,7 @@ import '../../core/extraction/media_extractor.dart';
 import '../../core/settings/settings_providers.dart';
 import '../../core/ui/app_toast.dart';
 import '../../l10n/app_localizations.dart';
+import '../format_selection/carousel_selection_sheet.dart';
 import '../format_selection/format_selection_sheet.dart';
 import '../format_selection/rename_dialog.dart';
 import '../settings/status_message_presenter.dart';
@@ -121,6 +122,19 @@ class _DirectDownloadScreenState extends ConsumerState<DirectDownloadScreen>
     if (info == null || !mounted) return;
 
     final suggestedName = controller.suggestedFileName(info.title);
+
+    // A multi-item post (an Instagram carousel): pick which items, then
+    // download them one after another — no per-item format choice.
+    if (info.isMultiItem) {
+      final picked = await showCarouselSelectionSheet(
+        context: context,
+        info: info,
+      );
+      if (picked == null || !mounted) return;
+      _consumeUrl();
+      await controller.downloadItems(picked, suggestedName);
+      return;
+    }
 
     // A single image variant (a photo post) is not a choice — download it
     // straight away instead of showing a one-row format sheet.

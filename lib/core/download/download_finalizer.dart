@@ -25,6 +25,7 @@ class GallerySaveSpec {
     required this.kind,
     required this.album,
     required this.notifyTitle,
+    this.notify = true,
   });
 
   final SavedMediaKind kind;
@@ -36,11 +37,16 @@ class GallerySaveSpec {
   /// Title of the "download complete" notification (the file name).
   final String notifyTitle;
 
+  /// False for all but the last item of a batch (a carousel), so one post
+  /// doesn't post a "saved" notification per photo.
+  final bool notify;
+
   String toMetaData() => jsonEncode({
     'v': 1,
     'kind': kind.name,
     'album': album,
     'title': notifyTitle,
+    if (!notify) 'notify': false,
   });
 
   /// Null for anything that isn't a spec this app wrote.
@@ -55,6 +61,7 @@ class GallerySaveSpec {
         kind: kind,
         album: album,
         notifyTitle: map['title'] as String? ?? '',
+        notify: map['notify'] as bool? ?? true,
       );
     } catch (_) {
       return null;
@@ -266,16 +273,18 @@ class DownloadFinalizer {
       final contentUri = isImage
           ? await _mediaSaveService.saveImage(path, album: spec.album)
           : await _mediaSaveService.saveVideo(path, album: spec.album);
-      try {
-        await _mediaNotificationService.notifyFileSaved(
-          title: spec.notifyTitle,
-          contentUri: contentUri,
-          mimeType: isImage ? 'image/*' : 'video/*',
-        );
-      } catch (e, st) {
-        // A notification failure must never turn a successful save into a
-        // reported download failure.
-        logError('DownloadFinalizer.save', e, st);
+      if (spec.notify) {
+        try {
+          await _mediaNotificationService.notifyFileSaved(
+            title: spec.notifyTitle,
+            contentUri: contentUri,
+            mimeType: isImage ? 'image/*' : 'video/*',
+          );
+        } catch (e, st) {
+          // A notification failure must never turn a successful save into a
+          // reported download failure.
+          logError('DownloadFinalizer.save', e, st);
+        }
       }
       return contentUri;
     } finally {

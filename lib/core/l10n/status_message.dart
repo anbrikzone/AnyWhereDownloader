@@ -32,6 +32,7 @@ enum StatusMessageKey {
   whatsappSavedFailed,
   statusesArchived,
   playlistSaved,
+  postItemsSaved,
   deletedCount,
   deleteFailed,
   migrationIncomplete,
@@ -136,6 +137,11 @@ String resolveStatusMessage(AppLocalizations l10n, StatusMessage message) {
       return l10n.statusesArchivedCount(message.count ?? 0);
     case StatusMessageKey.playlistSaved:
       return l10n.playlistSavedResult(
+        message.count ?? 0,
+        message.failedCount ?? 0,
+      );
+    case StatusMessageKey.postItemsSaved:
+      return l10n.postItemsSavedResult(
         message.count ?? 0,
         message.failedCount ?? 0,
       );

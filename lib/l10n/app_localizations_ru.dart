@@ -142,6 +142,24 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String postItemsSavedResult(int saved, int failed) {
+    return 'Пост: сохранено $saved, ошибок $failed';
+  }
+
+  @override
+  String carouselSheetTitle(int count) {
+    return 'Элементов в посте: $count';
+  }
+
+  @override
+  String carouselDownloadSelected(int count) {
+    return 'Скачать ($count)';
+  }
+
+  @override
+  String get carouselCurrentItem => 'Текущее';
+
+  @override
   String couldNotFetchPlaylist(String error) {
     return 'Не удалось загрузить плейлист: $error';
   }

@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:anywhere_downloader/core/download/download_engine.dart';
+import 'package:anywhere_downloader/core/download/download_finalizer.dart';
 import 'package:anywhere_downloader/core/download/download_registry.dart';
 import 'package:anywhere_downloader/core/download/ytdlp_service_download.dart';
 import 'package:anywhere_downloader/core/extraction/media_extractor.dart';
@@ -10,6 +12,7 @@ import 'package:anywhere_downloader/core/storage/media_save_service.dart';
 import 'package:anywhere_downloader/core/yt_dlp_engine/yt_dlp_engine.dart';
 import 'package:anywhere_downloader/features/direct_download/direct_download_controller.dart';
 import 'package:anywhere_downloader/features/direct_download/direct_download_service.dart';
+import 'package:background_downloader/background_downloader.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _FakeExtractor implements MediaExtractor {
@@ -89,6 +92,44 @@ class _NoopNotificationPermission implements NotificationPermissionService {
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
+
+/// Real [DownloadEngine.buildTask]; [run] answers from [outcomes] in turn.
+class _ScriptedDownloadEngine extends DownloadEngine {
+  _ScriptedDownloadEngine(this.outcomes);
+
+  final List<TaskStatus> outcomes;
+  final tasks = <DownloadTask>[];
+
+  @override
+  Future<TaskStatusUpdate> run(
+    DownloadTask task, {
+    void Function(TaskStatus status)? onStatus,
+    void Function(double progress)? onProgress,
+  }) async {
+    tasks.add(task);
+    onProgress?.call(1);
+    return TaskStatusUpdate(task, outcomes[tasks.length - 1]);
+  }
+}
+
+class _FakeFinalizer implements DownloadFinalizer {
+  @override
+  Future<String?> finalize(Task task) async => 'content://media/${task.filename}';
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+MediaItem _photoItem(String name) => MediaItem(
+  thumbnailUrl: null,
+  variant: MediaVariant(
+    type: MediaVariantType.image,
+    resolutionLabel: null,
+    container: 'jpg',
+    approxSizeBytes: null,
+    sourceUrl: 'https://cdn.example/$name.jpg',
+  ),
+);
 
 const _directTypes = [
   ServiceType.tiktok,
@@ -216,5 +257,78 @@ void main() {
     expect(controller.state.statusMessage?.key, StatusMessageKey.downloadCanceled);
     expect(registry.state.active, isEmpty);
     expect(registry.state.history.single.status, DownloadStatus.canceled);
+  });
+
+  test('a carousel downloads item by item; only the last one notifies',
+      () async {
+    final engine = _ScriptedDownloadEngine([
+      TaskStatus.complete,
+      TaskStatus.failed,
+      TaskStatus.complete,
+    ]);
+    final registry = DownloadRegistry(store: _MemoryHistoryStore());
+    final controller = DirectDownloadController(
+      DirectDownloadService.instagram,
+      extractor: _FakeExtractor(),
+      downloadEngine: engine,
+      downloadFinalizer: _FakeFinalizer(),
+      notificationPermissionService: _NoopNotificationPermission(),
+      registry: registry,
+    );
+
+    await controller.downloadItems(
+      [_photoItem('a'), _photoItem('b'), _photoItem('c')],
+      'Post',
+    );
+
+    expect(engine.tasks.map((t) => t.filename), [
+      'Post_01.jpg',
+      'Post_02.jpg',
+      'Post_03.jpg',
+    ]);
+    expect(engine.tasks.map((t) => t.url), [
+      'https://cdn.example/a.jpg',
+      'https://cdn.example/b.jpg',
+      'https://cdn.example/c.jpg',
+    ]);
+    final specs = engine.tasks
+        .map((t) => GallerySaveSpec.fromMetaData(t.metaData)!)
+        .toList();
+    expect(specs.map((s) => s.notify), [false, false, true]);
+    expect(specs.every((s) => s.kind == SavedMediaKind.image), isTrue);
+    expect(specs.first.album, 'AnyWhereDownloader/Instagram');
+
+    // A failed item doesn't stop the batch; the summary counts both.
+    expect(controller.state.downloading, isFalse);
+    expect(controller.state.statusMessage?.key, StatusMessageKey.postItemsSaved);
+    expect(controller.state.statusMessage?.count, 2);
+    expect(controller.state.statusMessage?.failedCount, 1);
+    expect(registry.state.active, isEmpty);
+    expect(registry.state.history, hasLength(3));
+  });
+
+  test('canceling one carousel item stops the rest of the batch', () async {
+    final engine = _ScriptedDownloadEngine([
+      TaskStatus.complete,
+      TaskStatus.canceled,
+      TaskStatus.complete,
+    ]);
+    final controller = DirectDownloadController(
+      DirectDownloadService.instagram,
+      extractor: _FakeExtractor(),
+      downloadEngine: engine,
+      downloadFinalizer: _FakeFinalizer(),
+      notificationPermissionService: _NoopNotificationPermission(),
+    );
+
+    await controller.downloadItems(
+      [_photoItem('a'), _photoItem('b'), _photoItem('c')],
+      'Post',
+    );
+
+    expect(engine.tasks, hasLength(2));
+    expect(controller.state.statusMessage?.key, StatusMessageKey.postItemsSaved);
+    expect(controller.state.statusMessage?.count, 1);
+    expect(controller.state.statusMessage?.failedCount, 0);
   });
 }
