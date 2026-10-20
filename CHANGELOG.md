@@ -6,6 +6,37 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 
 ---
 
+## 0.3.15 — 2026-10-20
+
+### English
+
+**Added**
+- Instagram carousels: when a post has several photos or videos, choose which ones to download. The one your link points to is preselected, or tap "Select all" to get the whole post.
+
+**Fixed**
+- Instagram photo posts now download reliably, in full size.
+- Instagram links that include the account name (instagram.com/<account>/p/…) are now recognized.
+
+### Русский
+
+**Добавлено**
+- Карусели Instagram: если в посте несколько фото или видео, выберите, какие скачать. То, на которое указывает ссылка, уже отмечено, а «Выбрать всё» скачает весь пост.
+
+**Исправлено**
+- Фото-посты Instagram теперь стабильно скачиваются в полном размере.
+- Ссылки Instagram с именем аккаунта (instagram.com/<аккаунт>/p/…) теперь распознаются.
+
+### Қазақша
+
+**Қосылды**
+- Instagram карусельдері: жазбада бірнеше фото не бейне болса, қайсысын жүктеу керегін таңдаңыз. Сілтеме көрсеткені алдын ала белгіленген, ал «Барлығын таңдау» бүкіл жазбаны жүктейді.
+
+**Түзетілді**
+- Instagram фото жазбалары енді толық өлшемде сенімді жүктеледі.
+- Аккаунт аты бар Instagram сілтемелері (instagram.com/<аккаунт>/p/…) енді танылады.
+
+---
+
 ## 0.3.14 — 2026-10-03
 
 ### English
