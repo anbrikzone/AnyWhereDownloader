@@ -11,7 +11,7 @@ paste, share into it from another app, or that it picks up from the clipboard.
 <p>
   <img src="docs/screenshots/home.png" width="240" alt="Home screen with the paste-a-link bar and the source tiles" />
   <img src="docs/screenshots/youtube-formats.png" width="240" alt="YouTube screen showing the quality picker for a video" />
-  <img src="docs/screenshots/settings.png" width="240" alt="Settings screen with theme, services, language and update options" />
+  <img src="docs/screenshots/settings.png" width="240" alt="Settings screen with save location, language and update options" />
 </p>
 
 ## Supported sources
