@@ -1,7 +1,7 @@
 # AnyWhere Downloader
 
 An Android app for saving videos, photos and audio to your device from a link you
-paste (or one it picks up from the clipboard).
+paste, share into it from another app, or that it picks up from the clipboard.
 
 > **Beta.** This app is under active development. Some features may be unstable or
 > change between updates.
@@ -9,7 +9,7 @@ paste (or one it picks up from the clipboard).
 ## Screenshots
 
 <p>
-  <img src="docs/screenshots/home.png" width="240" alt="Home screen with the paste-a-link bar and the six source tiles" />
+  <img src="docs/screenshots/home.png" width="240" alt="Home screen with the paste-a-link bar and the source tiles" />
   <img src="docs/screenshots/youtube-formats.png" width="240" alt="YouTube screen showing the quality picker for a video" />
   <img src="docs/screenshots/settings.png" width="240" alt="Settings screen with theme, services, language and update options" />
 </p>
@@ -20,11 +20,13 @@ paste (or one it picks up from the clipboard).
   or **audio only** as MP3 (320 / 192 / 128 kbps) or the original M4A. Whole
   **playlists** (or a selection from one) at a shared quality. Pause/resume and a
   progress notification on the video path.
-- **TikTok** — video (HD / SD).
+- **TikTok** — video (HD / SD) and photo posts.
 - **X (Twitter)** — post video, and single photos.
-- **Instagram** — reels and posts (video), and single photos. Stories are not
-  supported (they require a login).
+- **Instagram** — reels, video and photo posts, and **carousels** (pick which
+  items to download, or the whole post). Stories are not supported (they require
+  a login).
 - **LinkedIn** — public post / feed video, and single photos.
+- **Pinterest** — video and image pins, including `pin.it` short links.
 - **WhatsApp** — statuses you have already viewed, read from the local status cache
   via the Storage Access Framework (no network, no login). Works with WhatsApp and
   WhatsApp Business. An optional archive keeps a private in-app copy of viewed
@@ -32,20 +34,31 @@ paste (or one it picks up from the clipboard).
   save them after WhatsApp clears its cache — nothing reaches the gallery or the
   Library until you save it yourself.
 
-Videos and photos are saved to the gallery; audio to your **Music** folder.
-Everything downloaded is collected in the **Library** tab — grouped by source, with
-sorting, multi-select, share and delete, a full-screen viewer (swipe between items,
-scrub, zoom photos, landscape fullscreen) and long-press peek.
+Links can be pasted into the bar on Home, or shared straight from YouTube, TikTok,
+X, Instagram, LinkedIn, Pinterest and other apps via the system **Share** menu.
+
+Videos and photos are saved to the gallery (Pictures by default), audio to your
+**Music** folder — organized into folders per source and, for YouTube, per
+playlist. Everything downloaded is collected in the **Library** tab — grouped into
+folders, sorted by download date, with multi-select, share and delete, a
+full-screen viewer (swipe between items, scrub, zoom photos, landscape fullscreen)
+and long-press peek.
+
+The **Downloads** screen (download icon on Home) shows every download in progress
+from any source, with pause (where supported) and cancel, plus recent downloads.
+Tapping a download notification opens it there, or in Library once it's saved.
 
 ## Other features
 
 - **Settings** — light / dark / system theme, per-service on/off, clipboard
-  auto-paste toggle, WhatsApp status archive retention, and app language
-  (English, Russian, Kazakh).
+  auto-paste toggle, save location (which standard folder photos/videos and audio
+  go to, optionally moving existing downloads), repeat video, WhatsApp status
+  archive retention, and app language (English, Russian, Kazakh).
 - **In-app updates** — Settings → About → *Check for updates* looks for a newer
-  APK on GitHub Releases *and* keeps the YouTube engine (yt-dlp) current in the
-  same tap; a newer engine is fetched and swapped in silently. The check also runs
-  quietly in the background and never blocks the screen.
+  APK on GitHub Releases and, in the same tap, updates the download engine
+  (yt-dlp). The app also checks for a new APK quietly in the background, but the
+  engine is only updated when you ask — if an error looks like an outdated engine,
+  the app suggests running the check.
 - **What's new** — a per-version changelog in Settings → About.
 
 ## Notes
@@ -55,8 +68,8 @@ scrub, zoom photos, landscape fullscreen) and long-press peek.
 - No accounts or authentication anywhere in the app.
 - Extraction runs on-device via a bundled [yt-dlp](https://github.com/yt-dlp/yt-dlp)
   engine for every source except TikTok, which uses a third-party public API
-  (tikwm.com). A recent yt-dlp is shipped inside the APK and the app keeps it
-  updated from yt-dlp's own releases.
+  (tikwm.com). A recent yt-dlp is shipped inside the APK and can be updated from
+  yt-dlp's own releases via *Check for updates*.
 
 ## Legal
 
