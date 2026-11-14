@@ -602,10 +602,10 @@ class AppLocalizationsKk extends AppLocalizations {
   String get statusArchiveOff => 'Өшірулі';
 
   @override
-  String get statusArchiveWeek => 'Бір апта сақтау';
+  String get statusArchiveWeek => 'Бір апта';
 
   @override
-  String get statusArchiveMonth => 'Бір ай сақтау';
+  String get statusArchiveMonth => 'Бір ай';
 
   @override
   String get saveLocationSection => 'Сақтау орны';

@@ -602,10 +602,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get statusArchiveOff => 'Выкл';
 
   @override
-  String get statusArchiveWeek => 'Хранить неделю';
+  String get statusArchiveWeek => 'Неделя';
 
   @override
-  String get statusArchiveMonth => 'Хранить месяц';
+  String get statusArchiveMonth => 'Месяц';
 
   @override
   String get saveLocationSection => 'Папка сохранения';

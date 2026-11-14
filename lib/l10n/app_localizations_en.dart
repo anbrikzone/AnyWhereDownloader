@@ -603,10 +603,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statusArchiveOff => 'Off';
 
   @override
-  String get statusArchiveWeek => 'Keep for 1 week';
+  String get statusArchiveWeek => '1 week';
 
   @override
-  String get statusArchiveMonth => 'Keep for 1 month';
+  String get statusArchiveMonth => '1 month';
 
   @override
   String get saveLocationSection => 'Save location';

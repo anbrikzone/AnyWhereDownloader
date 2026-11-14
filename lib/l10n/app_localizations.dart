@@ -1123,13 +1123,13 @@ abstract class AppLocalizations {
   /// No description provided for @statusArchiveWeek.
   ///
   /// In en, this message translates to:
-  /// **'Keep for 1 week'**
+  /// **'1 week'**
   String get statusArchiveWeek;
 
   /// No description provided for @statusArchiveMonth.
   ///
   /// In en, this message translates to:
-  /// **'Keep for 1 month'**
+  /// **'1 month'**
   String get statusArchiveMonth;
 
   /// No description provided for @saveLocationSection.
