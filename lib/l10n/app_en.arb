@@ -358,5 +358,12 @@
   "notificationPhaseConverting": "Converting audio",
   "notificationPhasePlaylist": "Downloading playlist",
   "notificationChannelDownloads": "Downloads",
-  "notificationChannelComplete": "Downloads complete"
+  "notificationChannelComplete": "Downloads complete",
+  "longPressTitle": "Long press on media",
+  "longPressSubtitle": "Preview while held, or start selecting",
+  "longPressPreview": "Preview",
+  "longPressSelect": "Select",
+  "serviceDownloadsHeader": "Downloaded",
+  "serviceDownloadsEmpty": "Nothing downloaded from here yet",
+  "serviceDownloadsNoAccess": "Allow gallery access to see your downloads here"
 }

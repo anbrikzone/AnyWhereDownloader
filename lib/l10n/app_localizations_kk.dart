@@ -798,4 +798,27 @@ class AppLocalizationsKk extends AppLocalizations {
 
   @override
   String get notificationChannelComplete => 'Аяқталған жүктеулер';
+
+  @override
+  String get longPressTitle => 'Медиаға ұзақ басу';
+
+  @override
+  String get longPressSubtitle =>
+      'Ұстап тұрғанда алдын ала қарау немесе белгілеу';
+
+  @override
+  String get longPressPreview => 'Қарау';
+
+  @override
+  String get longPressSelect => 'Белгілеу';
+
+  @override
+  String get serviceDownloadsHeader => 'Жүктелгендер';
+
+  @override
+  String get serviceDownloadsEmpty => 'Мұнда әзірге ештеңе жүктелмеген';
+
+  @override
+  String get serviceDownloadsNoAccess =>
+      'Жүктелгендерді осында көру үшін галереяға рұқсат беріңіз';
 }

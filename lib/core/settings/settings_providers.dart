@@ -119,6 +119,32 @@ final repeatVideoEnabledProvider =
       (ref) => RepeatVideoController(),
     );
 
+/// Persisted long-press behavior for media grids. Starts [preview] (the
+/// previous hardcoded behavior) and loads the persisted value asynchronously.
+class LongPressActionController extends StateNotifier<LongPressAction> {
+  LongPressActionController({AppSettingsService? settingsService})
+    : _settingsService = settingsService ?? AppSettingsService(),
+      super(LongPressAction.preview) {
+    _init();
+  }
+
+  final AppSettingsService _settingsService;
+
+  Future<void> _init() async {
+    state = await _settingsService.getLongPressAction();
+  }
+
+  Future<void> setAction(LongPressAction value) async {
+    state = value;
+    await _settingsService.setLongPressAction(value);
+  }
+}
+
+final longPressActionProvider =
+    StateNotifierProvider<LongPressActionController, LongPressAction>(
+      (ref) => LongPressActionController(),
+    );
+
 /// Persisted UI language choice. Null means "System default" — `main.dart`
 /// passes this straight through as `MaterialApp.locale`, so null lets
 /// Flutter's own locale resolution pick the best match from

@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:photo_manager/photo_manager.dart';
 
 import '../../core/l10n/status_message.dart';
+import '../../core/settings/app_settings_service.dart';
+import '../../core/settings/settings_providers.dart';
 import '../../core/storage/media_library_service.dart';
 import '../../core/ui/app_toast.dart';
 import '../../l10n/app_localizations.dart';
@@ -165,6 +167,12 @@ class LibraryScreen extends ConsumerWidget {
                       items: visible,
                       selectedIds: state.selectedIds,
                       selectionMode: state.selectionMode,
+                      onLongPressSelect: (index) {
+                        if (!state.selectionMode) {
+                          controller.enterSelectionMode();
+                        }
+                        controller.toggleSelected(visible[index].asset.id);
+                      },
                       onTap: (index) {
                         final asset = visible[index].asset;
                         if (state.selectionMode) {
@@ -363,10 +371,8 @@ class _FolderCard extends StatelessWidget {
         onTap: () async {
           await Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => PlaylistFolderPage(
-                title: folder.label,
-                items: folder.items,
-              ),
+              builder: (_) =>
+                  PlaylistFolderPage(title: folder.label, items: folder.items),
             ),
           );
           onReturn();
@@ -499,7 +505,9 @@ class _PermissionPrompt extends StatelessWidget {
                 FilledButton.icon(
                   onPressed: onRequest,
                   icon: const Icon(Icons.lock_open),
-                  label: Text(deniedBefore ? l10n.tryAgainButton : l10n.allowAccessButton),
+                  label: Text(
+                    deniedBefore ? l10n.tryAgainButton : l10n.allowAccessButton,
+                  ),
                 ),
                 if (deniedBefore)
                   OutlinedButton.icon(
@@ -631,13 +639,14 @@ class LibraryActionBar extends StatelessWidget {
 /// "video freezes, play/pause stop responding" reports during scrolling —
 /// rapid, overlapping controller creation/disposal is a known way to
 /// exhaust the platform's video decoder/texture resources on Android.
-class LibraryGrid extends StatefulWidget {
+class LibraryGrid extends ConsumerStatefulWidget {
   const LibraryGrid({
     super.key,
     required this.items,
     required this.selectedIds,
     required this.selectionMode,
     required this.onTap,
+    this.onLongPressSelect,
   });
 
   final List<LibraryItem> items;
@@ -645,11 +654,15 @@ class LibraryGrid extends StatefulWidget {
   final bool selectionMode;
   final ValueChanged<int> onTap;
 
+  /// Called on long-press instead of opening the peek when Settings →
+  /// "Long press on media" is [LongPressAction.select]. Null = always peek.
+  final ValueChanged<int>? onLongPressSelect;
+
   @override
-  State<LibraryGrid> createState() => LibraryGridState();
+  ConsumerState<LibraryGrid> createState() => LibraryGridState();
 }
 
-class LibraryGridState extends State<LibraryGrid> {
+class LibraryGridState extends ConsumerState<LibraryGrid> {
   final ScrollController _scrollController = ScrollController();
   VoidCallback? _closeActivePeek;
 
@@ -674,6 +687,35 @@ class LibraryGridState extends State<LibraryGrid> {
 
   @override
   Widget build(BuildContext context) {
+    final onSelect = widget.onLongPressSelect;
+    final longPressSelects =
+        onSelect != null &&
+        ref.watch(longPressActionProvider) == LongPressAction.select;
+    final grid = GridView.builder(
+      controller: _scrollController,
+      padding: const EdgeInsets.all(8),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 4,
+        mainAxisSpacing: 4,
+      ),
+      itemCount: widget.items.length,
+      itemBuilder: (context, index) {
+        final item = widget.items[index];
+        final asset = item.asset;
+        final selected = widget.selectedIds.contains(asset.id);
+        return _LibraryTile(
+          key: ValueKey(asset.id),
+          asset: asset,
+          selected: selected,
+          selectionActive: widget.selectionMode,
+          onTap: () => widget.onTap(index),
+          onLongPressSelect: longPressSelects ? () => onSelect(index) : null,
+          onPeekOpened: _registerPeek,
+          onPeekClosed: _unregisterPeek,
+        );
+      },
+    );
     return NotificationListener<ScrollStartNotification>(
       onNotification: (_) {
         _closeActivePeek?.call();
@@ -684,30 +726,7 @@ class LibraryGridState extends State<LibraryGrid> {
         thumbVisibility: true,
         thickness: 10,
         radius: const Radius.circular(6),
-        child: GridView.builder(
-          controller: _scrollController,
-          padding: const EdgeInsets.all(8),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            crossAxisSpacing: 4,
-            mainAxisSpacing: 4,
-          ),
-          itemCount: widget.items.length,
-          itemBuilder: (context, index) {
-            final item = widget.items[index];
-            final asset = item.asset;
-            final selected = widget.selectedIds.contains(asset.id);
-            return _LibraryTile(
-              key: ValueKey(asset.id),
-              asset: asset,
-              selected: selected,
-              selectionActive: widget.selectionMode,
-              onTap: () => widget.onTap(index),
-              onPeekOpened: _registerPeek,
-              onPeekClosed: _unregisterPeek,
-            );
-          },
-        ),
+        child: grid,
       ),
     );
   }
@@ -720,6 +739,7 @@ class _LibraryTile extends StatefulWidget {
     required this.selected,
     required this.selectionActive,
     required this.onTap,
+    this.onLongPressSelect,
     required this.onPeekOpened,
     required this.onPeekClosed,
   });
@@ -728,6 +748,7 @@ class _LibraryTile extends StatefulWidget {
   final bool selected;
   final bool selectionActive;
   final VoidCallback onTap;
+  final VoidCallback? onLongPressSelect;
   final ValueChanged<VoidCallback> onPeekOpened;
   final ValueChanged<VoidCallback> onPeekClosed;
 
@@ -755,8 +776,9 @@ class _LibraryTileState extends State<_LibraryTile> {
         ? Future<Uint8List?>.value(null)
         : _thumbnailCache.putIfAbsent(
             '${widget.asset.id}_240',
-            () => widget.asset
-                .thumbnailDataWithSize(const ThumbnailSize(240, 240)),
+            () => widget.asset.thumbnailDataWithSize(
+              const ThumbnailSize(240, 240),
+            ),
           );
   }
 
@@ -793,9 +815,14 @@ class _LibraryTileState extends State<_LibraryTile> {
       // hit-testable child happens to be painted.
       behavior: HitTestBehavior.opaque,
       onTap: widget.onTap,
-      onLongPressStart: (_) => _openPeek(),
-      onLongPressEnd: (_) => _closePeek(),
-      onLongPressCancel: _closePeek,
+      onLongPress: widget.onLongPressSelect,
+      onLongPressStart: widget.onLongPressSelect == null
+          ? (_) => _openPeek()
+          : null,
+      onLongPressEnd: widget.onLongPressSelect == null
+          ? (_) => _closePeek()
+          : null,
+      onLongPressCancel: widget.onLongPressSelect == null ? _closePeek : null,
       child: Stack(
         fit: StackFit.expand,
         children: [

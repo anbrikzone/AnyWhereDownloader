@@ -92,6 +92,8 @@ class _MainShellState extends ConsumerState<MainShell> {
         ],
       ),
       bottomNavigationBar: NavigationBar(
+        // Material 3 default is 80 — trimmed ~10% per user request.
+        height: 72,
         selectedIndex: _index,
         onDestinationSelected: _onDestinationSelected,
         destinations: [

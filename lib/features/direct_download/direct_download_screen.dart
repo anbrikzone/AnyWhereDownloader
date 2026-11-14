@@ -7,6 +7,7 @@ import '../../core/extraction/media_extractor.dart';
 import '../../core/settings/settings_providers.dart';
 import '../../core/ui/app_toast.dart';
 import '../../l10n/app_localizations.dart';
+import '../library/service_downloads_section.dart';
 import '../format_selection/carousel_selection_sheet.dart';
 import '../format_selection/format_selection_sheet.dart';
 import '../format_selection/rename_dialog.dart';
@@ -239,7 +240,9 @@ class _DirectDownloadScreenState extends ConsumerState<DirectDownloadScreen>
               // HLS stream hasn't produced a fragment count) — animate
               // instead of showing a frozen-looking 0%.
               LinearProgressIndicator(
-                value: state.progress > 0 || state.paused ? state.progress : null,
+                value: state.progress > 0 || state.paused
+                    ? state.progress
+                    : null,
               ),
               const SizedBox(height: 8),
               Text(_progressLabel(l10n, state)),
@@ -252,7 +255,9 @@ class _DirectDownloadScreenState extends ConsumerState<DirectDownloadScreen>
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: controller.togglePause,
-                        icon: Icon(state.paused ? Icons.play_arrow : Icons.pause),
+                        icon: Icon(
+                          state.paused ? Icons.play_arrow : Icons.pause,
+                        ),
                         label: Text(
                           state.paused ? l10n.resumeButton : l10n.pauseButton,
                         ),
@@ -270,6 +275,12 @@ class _DirectDownloadScreenState extends ConsumerState<DirectDownloadScreen>
                 ],
               ),
             ],
+            Expanded(
+              child: ServiceDownloadsSection(
+                source: _service.librarySource,
+                downloading: state.downloading,
+              ),
+            ),
           ],
         ),
       ),

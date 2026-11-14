@@ -798,4 +798,26 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notificationChannelComplete => 'Downloads complete';
+
+  @override
+  String get longPressTitle => 'Long press on media';
+
+  @override
+  String get longPressSubtitle => 'Preview while held, or start selecting';
+
+  @override
+  String get longPressPreview => 'Preview';
+
+  @override
+  String get longPressSelect => 'Select';
+
+  @override
+  String get serviceDownloadsHeader => 'Downloaded';
+
+  @override
+  String get serviceDownloadsEmpty => 'Nothing downloaded from here yet';
+
+  @override
+  String get serviceDownloadsNoAccess =>
+      'Allow gallery access to see your downloads here';
 }

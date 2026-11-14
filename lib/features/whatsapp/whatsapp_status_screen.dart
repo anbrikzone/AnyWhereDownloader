@@ -6,6 +6,8 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../core/l10n/status_message.dart';
 import '../../core/logging/app_log.dart';
+import '../../core/settings/app_settings_service.dart';
+import '../../core/settings/settings_providers.dart';
 import '../../core/storage/media_save_service.dart';
 import '../../core/storage/saf_service.dart';
 import '../../core/ui/app_toast.dart';
@@ -33,8 +35,7 @@ class WhatsAppStatusScreen extends ConsumerWidget {
 
     // Only split into tabs once there's actually something in the archive —
     // otherwise it's just the single fresh grid, exactly as before.
-    final showTabs =
-        state.treeUri != null && state.archivedItems.isNotEmpty;
+    final showTabs = state.treeUri != null && state.archivedItems.isNotEmpty;
 
     return DefaultTabController(
       length: showTabs ? 2 : 1,
@@ -155,10 +156,7 @@ class WhatsAppStatusScreen extends ConsumerWidget {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Text(
-            l10n.whatsappArchiveEmpty,
-            textAlign: TextAlign.center,
-          ),
+          child: Text(l10n.whatsappArchiveEmpty, textAlign: TextAlign.center),
         ),
       );
     }
@@ -175,6 +173,10 @@ class WhatsAppStatusScreen extends ConsumerWidget {
       items: statuses,
       selectedUris: state.selectedUris,
       selectionMode: state.selectionMode,
+      onLongPressSelect: (index) {
+        if (!state.selectionMode) controller.enterSelectionMode();
+        controller.toggleSelected(statuses[index].uri);
+      },
       onTap: (index) {
         final item = statuses[index];
         if (state.selectionMode) {
@@ -182,10 +184,8 @@ class WhatsAppStatusScreen extends ConsumerWidget {
         } else {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => StatusPreviewPage(
-                items: statuses,
-                initialIndex: index,
-              ),
+              builder: (_) =>
+                  StatusPreviewPage(items: statuses, initialIndex: index),
             ),
           );
         }
@@ -370,7 +370,9 @@ class _ActionBar extends StatelessWidget {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.download),
-                label: Text(saving ? l10n.savingButton : l10n.saveCountButton(count)),
+                label: Text(
+                  saving ? l10n.savingButton : l10n.saveCountButton(count),
+                ),
               ),
             ),
           ],
@@ -385,12 +387,13 @@ class _ActionBar extends StatelessWidget {
 /// visible scrollbar, and forcing whatever long-press peek video is
 /// currently playing to close the instant a real scroll starts, since only
 /// one peek/video controller should ever be alive at a time.
-class _StatusGrid extends StatefulWidget {
+class _StatusGrid extends ConsumerStatefulWidget {
   const _StatusGrid({
     required this.items,
     required this.selectedUris,
     required this.selectionMode,
     required this.onTap,
+    required this.onLongPressSelect,
   });
 
   final List<StatusItem> items;
@@ -398,11 +401,15 @@ class _StatusGrid extends StatefulWidget {
   final bool selectionMode;
   final ValueChanged<int> onTap;
 
+  /// Called on long-press instead of the peek when Settings → "Long press
+  /// on media" is [LongPressAction.select].
+  final ValueChanged<int> onLongPressSelect;
+
   @override
-  State<_StatusGrid> createState() => _StatusGridState();
+  ConsumerState<_StatusGrid> createState() => _StatusGridState();
 }
 
-class _StatusGridState extends State<_StatusGrid> {
+class _StatusGridState extends ConsumerState<_StatusGrid> {
   final ScrollController _scrollController = ScrollController();
   VoidCallback? _closeActivePeek;
 
@@ -427,6 +434,8 @@ class _StatusGridState extends State<_StatusGrid> {
 
   @override
   Widget build(BuildContext context) {
+    final longPressSelects =
+        ref.watch(longPressActionProvider) == LongPressAction.select;
     return NotificationListener<ScrollStartNotification>(
       onNotification: (_) {
         _closeActivePeek?.call();
@@ -455,6 +464,9 @@ class _StatusGridState extends State<_StatusGrid> {
               selected: selected,
               selectionActive: widget.selectionMode,
               onTap: () => widget.onTap(index),
+              onLongPressSelect: longPressSelects
+                  ? () => widget.onLongPressSelect(index)
+                  : null,
               onPeekOpened: _registerPeek,
               onPeekClosed: _unregisterPeek,
             );
@@ -472,6 +484,7 @@ class _StatusTile extends StatefulWidget {
     required this.selected,
     required this.selectionActive,
     required this.onTap,
+    this.onLongPressSelect,
     required this.onPeekOpened,
     required this.onPeekClosed,
   });
@@ -480,6 +493,7 @@ class _StatusTile extends StatefulWidget {
   final bool selected;
   final bool selectionActive;
   final VoidCallback onTap;
+  final VoidCallback? onLongPressSelect;
   final ValueChanged<VoidCallback> onPeekOpened;
   final ValueChanged<VoidCallback> onPeekClosed;
 
@@ -518,8 +532,7 @@ class _StatusTileState extends State<_StatusTile> {
         final path = item.localPath;
         if (path == null) return null;
         if (item.mediaType == StatusMediaType.image) return path;
-        final destPath =
-            '${tempDir.path}/wa_arch_thumb_${path.hashCode}.jpg';
+        final destPath = '${tempDir.path}/wa_arch_thumb_${path.hashCode}.jpg';
         final ok = await MediaSaveService().saveVideoThumbnail(
           sourcePath: path,
           destPath: destPath,
@@ -529,8 +542,7 @@ class _StatusTileState extends State<_StatusTile> {
         return ok ? destPath : null;
       }
 
-      final destPath =
-          '${tempDir.path}/wa_thumb_${item.uri.hashCode}.jpg';
+      final destPath = '${tempDir.path}/wa_thumb_${item.uri.hashCode}.jpg';
       final ok = await SafService().saveThumbnailToFile(
         uri: item.uri,
         width: 240,
@@ -574,9 +586,14 @@ class _StatusTileState extends State<_StatusTile> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: widget.onTap,
-      onLongPressStart: (_) => _openPeek(),
-      onLongPressEnd: (_) => _closePeek(),
-      onLongPressCancel: _closePeek,
+      onLongPress: widget.onLongPressSelect,
+      onLongPressStart: widget.onLongPressSelect == null
+          ? (_) => _openPeek()
+          : null,
+      onLongPressEnd: widget.onLongPressSelect == null
+          ? (_) => _closePeek()
+          : null,
+      onLongPressCancel: widget.onLongPressSelect == null ? _closePeek : null,
       child: Stack(
         fit: StackFit.expand,
         children: [

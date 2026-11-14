@@ -798,4 +798,27 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get notificationChannelComplete => 'Завершённые загрузки';
+
+  @override
+  String get longPressTitle => 'Долгое нажатие на медиа';
+
+  @override
+  String get longPressSubtitle =>
+      'Предпросмотр, пока удерживаете, или выделение';
+
+  @override
+  String get longPressPreview => 'Просмотр';
+
+  @override
+  String get longPressSelect => 'Выделение';
+
+  @override
+  String get serviceDownloadsHeader => 'Скачано';
+
+  @override
+  String get serviceDownloadsEmpty => 'Отсюда пока ничего не скачано';
+
+  @override
+  String get serviceDownloadsNoAccess =>
+      'Разрешите доступ к галерее, чтобы видеть скачанное здесь';
 }

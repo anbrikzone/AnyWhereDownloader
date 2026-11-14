@@ -35,6 +35,7 @@ class SettingsScreen extends ConsumerWidget {
     final enabledServices = ref.watch(enabledServicesProvider);
     final clipboardAutoPaste = ref.watch(clipboardAutoPasteEnabledProvider);
     final repeatVideo = ref.watch(repeatVideoEnabledProvider);
+    final longPressAction = ref.watch(longPressActionProvider);
     final locale = ref.watch(localeProvider);
     final statusArchive = ref.watch(statusArchiveRetentionProvider);
     final mediaSaveRoot = ref.watch(mediaSaveRootProvider);
@@ -61,14 +62,18 @@ class SettingsScreen extends ConsumerWidget {
           const Divider(),
           ListTile(
             title: Text(l10n.servicesSection),
-            subtitle: Text(l10n.servicesEnabledSubtitle(
-              ServiceType.values.where((s) => enabledServices[s] ?? true).length,
-              ServiceType.values.length,
-            )),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const ServicesScreen()),
+            subtitle: Text(
+              l10n.servicesEnabledSubtitle(
+                ServiceType.values
+                    .where((s) => enabledServices[s] ?? true)
+                    .length,
+                ServiceType.values.length,
+              ),
             ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const ServicesScreen())),
           ),
           const Divider(),
           _SectionHeader(l10n.clipboardSection),
@@ -89,6 +94,20 @@ class SettingsScreen extends ConsumerWidget {
             onChanged: (enabled) => ref
                 .read(repeatVideoEnabledProvider.notifier)
                 .setEnabled(enabled),
+          ),
+          ListTile(
+            title: Text(l10n.longPressTitle),
+            subtitle: Text(l10n.longPressSubtitle),
+            trailing: _Dropdown<LongPressAction>(
+              value: longPressAction,
+              items: {
+                LongPressAction.preview: l10n.longPressPreview,
+                LongPressAction.select: l10n.longPressSelect,
+              },
+              onChanged: (value) =>
+                  ref.read(longPressActionProvider.notifier).setAction(value),
+              width: _dropdownAlignedWidth,
+            ),
           ),
           const Divider(),
           _SectionHeader(l10n.whatsappSection),
@@ -119,7 +138,8 @@ class SettingsScreen extends ConsumerWidget {
                 for (final root in MediaSaveRoot.values)
                   root: root.androidDirectoryName,
               },
-              onChanged: (value) => _onMediaSaveRootChanged(context, ref, l10n, value),
+              onChanged: (value) =>
+                  _onMediaSaveRootChanged(context, ref, l10n, value),
               // Fixed so this row's arrow lines up with the audio row's
               // below regardless of which option is selected — see the
               // width param's doc on `_Dropdown`. Wide enough for the
@@ -136,7 +156,8 @@ class SettingsScreen extends ConsumerWidget {
                 for (final root in AudioSaveRoot.values)
                   root: root.androidDirectoryName,
               },
-              onChanged: (value) => _onAudioSaveRootChanged(context, ref, l10n, value),
+              onChanged: (value) =>
+                  _onAudioSaveRootChanged(context, ref, l10n, value),
               width: _dropdownAlignedWidth,
             ),
           ),
@@ -167,16 +188,17 @@ class SettingsScreen extends ConsumerWidget {
             title: Text(l10n.sourceCodeTitle),
             subtitle: const Text(kRepoDisplayUrl),
             trailing: const Icon(Icons.open_in_new, size: 18),
-            onTap: () =>
-                ref.read(updateControllerProvider.notifier).openRepositoryPage(),
+            onTap: () => ref
+                .read(updateControllerProvider.notifier)
+                .openRepositoryPage(),
           ),
           ListTile(
             title: Text(l10n.whatsNewTitle),
             subtitle: Text(l10n.versionLabel(versionLabel)),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const ChangelogScreen()),
-            ),
+            onTap: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const ChangelogScreen())),
           ),
           const _UpdateRow(),
           const _YtDlpRow(),
@@ -292,12 +314,16 @@ Future<void> _offerToMoveExisting({
 
   final service = MediaLibraryService();
   final pending = await attempt();
-  final fullyMoved =
-      pending == null ? true : await service.completeMigrationAfterConsent(pending);
+  final fullyMoved = pending == null
+      ? true
+      : await service.completeMigrationAfterConsent(pending);
 
   if (!context.mounted) return;
   Navigator.of(context, rootNavigator: true).pop(); // dismiss the busy dialog
-  showAppToast(context, fullyMoved ? l10n.rootMoveDone : l10n.rootMoveIncomplete);
+  showAppToast(
+    context,
+    fullyMoved ? l10n.rootMoveDone : l10n.rootMoveIncomplete,
+  );
 }
 
 /// Compact dropdown for a settings row — takes far less vertical space than
@@ -390,18 +416,19 @@ class _UpdateRowState extends ConsumerState<_UpdateRow> {
     final appState = ref.watch(updateControllerProvider);
     final ytState = ref.watch(ytDlpStatusProvider);
 
-    final hasAppUpdate = appState is UpdateAvailable ||
+    final hasAppUpdate =
+        appState is UpdateAvailable ||
         appState is UpdateDownloading ||
         appState is UpdateReadyToInstall ||
         appState is UpdateError;
 
     // Short yt-dlp clause appended to the "no app update" line.
     String ytClause() => switch (ytState.info?.lastUpdateStatus) {
-          'done' => l10n.ytDlpUpdatedToShort(ytState.info?.version ?? ''),
-          'upToDate' => l10n.ytDlpCurrentShort,
-          'failed' => l10n.ytDlpFailedShort,
-          _ => '',
-        };
+      'done' => l10n.ytDlpUpdatedToShort(ytState.info?.version ?? ''),
+      'upToDate' => l10n.ytDlpCurrentShort,
+      'failed' => l10n.ytDlpFailedShort,
+      _ => '',
+    };
 
     String? subtitle;
     if (appState is UpdateAvailable) {
@@ -496,9 +523,9 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
       child: Text(
         title,
-        style: Theme.of(
-          context,
-        ).textTheme.labelLarge?.copyWith(color: Theme.of(context).colorScheme.primary),
+        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+          color: Theme.of(context).colorScheme.primary,
+        ),
       ),
     );
   }

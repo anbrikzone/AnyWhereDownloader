@@ -13,7 +13,11 @@ enum LibrarySortOption { dateNewest, dateOldest, nameAZ, nameZA }
 /// One drill-in folder in Library — every item sharing a (source,
 /// playlistLabel) pair (see `LibraryItem.playlistLabel`), newest-first.
 class LibraryFolder {
-  LibraryFolder({required this.source, required this.label, required this.items});
+  LibraryFolder({
+    required this.source,
+    required this.label,
+    required this.items,
+  });
 
   final String source;
   final String label;
@@ -54,9 +58,9 @@ class LibraryState {
   final LibrarySortOption sortOption;
 
   /// Whether tapping a tile toggles selection instead of opening the full
-  /// preview. Entered/exited explicitly via a toolbar button — never a
-  /// side effect of long-press, so long-press is reliably "peek" and tap
-  /// is reliably "open" outside of this mode.
+  /// preview. Entered via the toolbar button, or by a long-press when
+  /// Settings → "Long press on media" is set to Select (otherwise
+  /// long-press peeks).
   final bool selectionMode;
   final Set<String> selectedIds;
   final bool busy;
@@ -69,7 +73,8 @@ class LibraryState {
   /// the system dialog right now).
   final PendingMigrationConsent? pendingMigrationConsent;
 
-  bool get hasAccess => permission?.isAuth == true || permission?.hasAccess == true;
+  bool get hasAccess =>
+      permission?.isAuth == true || permission?.hasAccess == true;
 
   /// Distinct sources present in the unfiltered list, for building filter
   /// chips. Not stored separately — always derived from [items].
@@ -120,9 +125,7 @@ class LibraryState {
     }
     final folders = grouped.entries.map((entry) {
       final list = entry.value
-        ..sort(
-          (a, b) => b.downloadedAt.compareTo(a.downloadedAt),
-        );
+        ..sort((a, b) => b.downloadedAt.compareTo(a.downloadedAt));
       return LibraryFolder(
         source: entry.key.$1,
         label: entry.key.$2,
@@ -130,8 +133,8 @@ class LibraryState {
       );
     }).toList();
     folders.sort(
-      (a, b) => b.items.first.downloadedAt
-          .compareTo(a.items.first.downloadedAt),
+      (a, b) =>
+          b.items.first.downloadedAt.compareTo(a.items.first.downloadedAt),
     );
     return folders;
   }
@@ -157,7 +160,9 @@ class LibraryState {
       permission: permission ?? this.permission,
       requestedBefore: requestedBefore ?? this.requestedBefore,
       items: items ?? this.items,
-      sourceFilter: clearSourceFilter ? null : (sourceFilter ?? this.sourceFilter),
+      sourceFilter: clearSourceFilter
+          ? null
+          : (sourceFilter ?? this.sourceFilter),
       sortOption: sortOption ?? this.sortOption,
       selectionMode: selectionMode ?? this.selectionMode,
       selectedIds: selectedIds ?? this.selectedIds,
@@ -173,10 +178,12 @@ class LibraryState {
 }
 
 class LibraryController extends StateNotifier<LibraryState> {
-  LibraryController({MediaLibraryService? service, MediaSaveService? saveService})
-    : _service = service ?? MediaLibraryService(),
-      _saveService = saveService ?? MediaSaveService(),
-      super(const LibraryState()) {
+  LibraryController({
+    MediaLibraryService? service,
+    MediaSaveService? saveService,
+  }) : _service = service ?? MediaLibraryService(),
+       _saveService = saveService ?? MediaSaveService(),
+       super(const LibraryState()) {
     _init();
   }
 

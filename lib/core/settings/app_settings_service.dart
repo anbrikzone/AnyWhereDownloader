@@ -12,11 +12,16 @@ enum StatusArchiveRetention {
   oneMonth;
 
   Duration get duration => switch (this) {
-        StatusArchiveRetention.off => Duration.zero,
-        StatusArchiveRetention.oneWeek => const Duration(days: 7),
-        StatusArchiveRetention.oneMonth => const Duration(days: 30),
-      };
+    StatusArchiveRetention.off => Duration.zero,
+    StatusArchiveRetention.oneWeek => const Duration(days: 7),
+    StatusArchiveRetention.oneMonth => const Duration(days: 30),
+  };
 }
+
+/// What long-pressing a media tile (Library, WhatsApp statuses, a
+/// service's downloads) does: hold-to-peek, or start selecting with that
+/// tile already selected.
+enum LongPressAction { preview, select }
 
 /// Where photo/video downloads land — a real Android top-level directory
 /// name (matches `Environment.DIRECTORY_*`'s literal string value, e.g.
@@ -76,6 +81,7 @@ class AppSettingsService {
   static const _serviceEnabledPrefix = 'settings_service_enabled_';
   static const _clipboardAutoPasteKey = 'settings_clipboard_auto_paste';
   static const _repeatVideoKey = 'settings_repeat_video';
+  static const _longPressActionKey = 'settings_long_press_action';
   static const _localeKey = 'settings_locale';
   static const _lastUpdateCheckKey = 'settings_last_update_check_ms';
   static const _statusArchiveRetentionKey = 'settings_status_archive_retention';
@@ -134,6 +140,18 @@ class AppSettingsService {
   Future<void> setRepeatVideoEnabled(bool enabled) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_repeatVideoKey, enabled);
+  }
+
+  Future<LongPressAction> getLongPressAction() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_longPressActionKey) == 'select'
+        ? LongPressAction.select
+        : LongPressAction.preview;
+  }
+
+  Future<void> setLongPressAction(LongPressAction value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_longPressActionKey, value.name);
   }
 
   /// Null means "System default" — `MaterialApp.locale` then lets Flutter

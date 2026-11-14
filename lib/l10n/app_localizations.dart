@@ -1473,6 +1473,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Downloads complete'**
   String get notificationChannelComplete;
+
+  /// No description provided for @longPressTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Long press on media'**
+  String get longPressTitle;
+
+  /// No description provided for @longPressSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview while held, or start selecting'**
+  String get longPressSubtitle;
+
+  /// No description provided for @longPressPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview'**
+  String get longPressPreview;
+
+  /// No description provided for @longPressSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Select'**
+  String get longPressSelect;
+
+  /// No description provided for @serviceDownloadsHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloaded'**
+  String get serviceDownloadsHeader;
+
+  /// No description provided for @serviceDownloadsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing downloaded from here yet'**
+  String get serviceDownloadsEmpty;
+
+  /// No description provided for @serviceDownloadsNoAccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow gallery access to see your downloads here'**
+  String get serviceDownloadsNoAccess;
 }
 
 class _AppLocalizationsDelegate

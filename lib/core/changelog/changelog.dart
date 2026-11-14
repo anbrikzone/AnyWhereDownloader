@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 /// changelog entry's version. Keep this in sync with `pubspec.yaml`'s
 /// `version:` field and the top entry of both [kChangelog] and the
 /// project-root `CHANGELOG.md`.
-const String kAppVersion = '0.3.15';
+const String kAppVersion = '0.3.16';
 
 /// The kind of change a changelog line describes. Rendered as a small
 /// section header ("Added" / "Changed" / "Fixed"); a kind with no lines is
@@ -40,6 +40,51 @@ class ChangelogEntry {
 /// new" screen renders; the project-root `CHANGELOG.md` mirrors it for
 /// people reading the repo. Update both together on every release.
 const List<ChangelogEntry> kChangelog = [
+  ChangelogEntry(
+    version: '0.3.16',
+    date: '2026-11-14',
+    notes: {
+      'en': {
+        ChangeKind.added: [
+          "Each service screen (YouTube, TikTok, X, Instagram, LinkedIn, Pinterest) now shows what you've already downloaded from it, below the link field.",
+          "New setting (Settings → Playback): long-pressing a photo or video can either preview it while held, or start selecting with that item already selected.",
+        ],
+        ChangeKind.changed: [
+          "The bottom bar with Home and Library is a little slimmer.",
+          "Updated the built-in YouTube engine (yt-dlp 2026.10.26) for fresh installs.",
+        ],
+        ChangeKind.fixed: [
+          "The WhatsApp archive options in Settings were cut off and looked the same; they now read \"1 week\" and \"1 month\".",
+        ],
+      },
+      'ru': {
+        ChangeKind.added: [
+          "Экраны сервисов (YouTube, TikTok, X, Instagram, LinkedIn, Pinterest) теперь показывают под полем ссылки то, что вы уже скачали оттуда.",
+          "Новая настройка (Настройки → Воспроизведение): долгое нажатие на фото или видео может показывать предпросмотр, пока палец удерживается, или включать выделение сразу с этим файлом.",
+        ],
+        ChangeKind.changed: [
+          "Нижняя панель с «Главной» и «Библиотекой» стала немного ниже.",
+          "Встроенный движок YouTube обновлён (yt-dlp 2026.10.26) для новых установок.",
+        ],
+        ChangeKind.fixed: [
+          "Варианты архива WhatsApp в настройках обрезались и выглядели одинаково; теперь это «Неделя» и «Месяц».",
+        ],
+      },
+      'kk': {
+        ChangeKind.added: [
+          "Сервис экрандары (YouTube, TikTok, X, Instagram, LinkedIn, Pinterest) енді сілтеме өрісінің астында сол жерден жүктелгендерді көрсетеді.",
+          "Жаңа баптау (Баптаулар → Ойнату): фото не бейнені ұзақ басу оны ұстап тұрғанда алдын ала көрсетеді немесе сол файлмен белгілеуді бастайды.",
+        ],
+        ChangeKind.changed: [
+          "«Басты бет» пен «Кітапхана» бар төменгі панель сәл жіңішкерді.",
+          "Кірістірілген YouTube қозғалтқышы жаңартылды (yt-dlp 2026.10.26) жаңа орнатулар үшін.",
+        ],
+        ChangeKind.fixed: [
+          "Баптаулардағы WhatsApp мұрағатының нұсқалары қиылып, бірдей көрінетін; енді олар «Бір апта» және «Бір ай».",
+        ],
+      },
+    },
+  ),
   ChangelogEntry(
     version: '0.3.15',
     date: '2026-10-20',

@@ -81,7 +81,9 @@ class _PlaylistFolderPageState extends State<PlaylistFolderPage> {
     setState(() => _busy = true);
     try {
       final files = <XFile>[];
-      for (final item in _items.where((i) => _selectedIds.contains(i.asset.id))) {
+      for (final item in _items.where(
+        (i) => _selectedIds.contains(i.asset.id),
+      )) {
         final file = await item.asset.file;
         if (file != null) files.add(XFile(file.path));
       }
@@ -101,7 +103,9 @@ class _PlaylistFolderPageState extends State<PlaylistFolderPage> {
   Future<void> _deleteSelected() async {
     if (_selectedIds.isEmpty || _busy) return;
     setState(() => _busy = true);
-    final targeted = _items.where((i) => _selectedIds.contains(i.asset.id)).toList();
+    final targeted = _items
+        .where((i) => _selectedIds.contains(i.asset.id))
+        .toList();
     final deleted = await _service.delete(_selectedIds.toList());
     final deletedSet = deleted.toSet();
     // Best-effort: if that emptied the playlist's whole album directory,
@@ -167,6 +171,10 @@ class _PlaylistFolderPageState extends State<PlaylistFolderPage> {
               items: _items,
               selectedIds: _selectedIds,
               selectionMode: _selectionMode,
+              onLongPressSelect: (index) {
+                if (!_selectionMode) _enterSelectionMode();
+                _toggleSelected(_items[index].asset.id);
+              },
               onTap: (index) {
                 final asset = _items[index].asset;
                 if (_selectionMode) {

@@ -274,5 +274,12 @@
   "notificationPhaseConverting": "Аудио түрлендірілуде",
   "notificationPhasePlaylist": "Ойнату тізімі жүктелуде",
   "notificationChannelDownloads": "Жүктеулер",
-  "notificationChannelComplete": "Аяқталған жүктеулер"
+  "notificationChannelComplete": "Аяқталған жүктеулер",
+  "longPressTitle": "Медиаға ұзақ басу",
+  "longPressSubtitle": "Ұстап тұрғанда алдын ала қарау немесе белгілеу",
+  "longPressPreview": "Қарау",
+  "longPressSelect": "Белгілеу",
+  "serviceDownloadsHeader": "Жүктелгендер",
+  "serviceDownloadsEmpty": "Мұнда әзірге ештеңе жүктелмеген",
+  "serviceDownloadsNoAccess": "Жүктелгендерді осында көру үшін галереяға рұқсат беріңіз"
 }

@@ -6,6 +6,49 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 
 ---
 
+## 0.3.16 — 2026-11-14
+
+### English
+
+**Added**
+- Each service screen (YouTube, TikTok, X, Instagram, LinkedIn, Pinterest) now shows what you've already downloaded from it, below the link field.
+- New setting (Settings → Playback): long-pressing a photo or video can either preview it while held, or start selecting with that item already selected.
+
+**Changed**
+- The bottom bar with Home and Library is a little slimmer.
+- Updated the built-in YouTube engine (yt-dlp 2026.10.26) for fresh installs.
+
+**Fixed**
+- The WhatsApp archive options in Settings were cut off and looked the same; they now read "1 week" and "1 month".
+
+### Русский
+
+**Добавлено**
+- Экраны сервисов (YouTube, TikTok, X, Instagram, LinkedIn, Pinterest) теперь показывают под полем ссылки то, что вы уже скачали оттуда.
+- Новая настройка (Настройки → Воспроизведение): долгое нажатие на фото или видео может показывать предпросмотр, пока палец удерживается, или включать выделение сразу с этим файлом.
+
+**Изменено**
+- Нижняя панель с «Главной» и «Библиотекой» стала немного ниже.
+- Встроенный движок YouTube обновлён (yt-dlp 2026.10.26) для новых установок.
+
+**Исправлено**
+- Варианты архива WhatsApp в настройках обрезались и выглядели одинаково; теперь это «Неделя» и «Месяц».
+
+### Қазақша
+
+**Қосылды**
+- Сервис экрандары (YouTube, TikTok, X, Instagram, LinkedIn, Pinterest) енді сілтеме өрісінің астында сол жерден жүктелгендерді көрсетеді.
+- Жаңа баптау (Баптаулар → Ойнату): фото не бейнені ұзақ басу оны ұстап тұрғанда алдын ала көрсетеді немесе сол файлмен белгілеуді бастайды.
+
+**Өзгертілді**
+- «Басты бет» пен «Кітапхана» бар төменгі панель сәл жіңішкерді.
+- Кірістірілген YouTube қозғалтқышы жаңартылды (yt-dlp 2026.10.26) жаңа орнатулар үшін.
+
+**Түзетілді**
+- Баптаулардағы WhatsApp мұрағатының нұсқалары қиылып, бірдей көрінетін; енді олар «Бір апта» және «Бір ай».
+
+---
+
 ## 0.3.15 — 2026-10-20
 
 ### English

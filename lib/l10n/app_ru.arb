@@ -274,5 +274,12 @@
   "notificationPhaseConverting": "Конвертация аудио",
   "notificationPhasePlaylist": "Скачивание плейлиста",
   "notificationChannelDownloads": "Загрузки",
-  "notificationChannelComplete": "Завершённые загрузки"
+  "notificationChannelComplete": "Завершённые загрузки",
+  "longPressTitle": "Долгое нажатие на медиа",
+  "longPressSubtitle": "Предпросмотр, пока удерживаете, или выделение",
+  "longPressPreview": "Просмотр",
+  "longPressSelect": "Выделение",
+  "serviceDownloadsHeader": "Скачано",
+  "serviceDownloadsEmpty": "Отсюда пока ничего не скачано",
+  "serviceDownloadsNoAccess": "Разрешите доступ к галерее, чтобы видеть скачанное здесь"
 }

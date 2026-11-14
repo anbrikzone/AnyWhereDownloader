@@ -6,6 +6,7 @@ import '../../core/clipboard/clipboard_link_tracker.dart';
 import '../../core/settings/settings_providers.dart';
 import '../../core/ui/app_toast.dart';
 import '../../l10n/app_localizations.dart';
+import '../library/service_downloads_section.dart';
 import '../../services/youtube/youtube_extractor.dart';
 import '../../services/youtube/youtube_playlist.dart';
 import '../format_selection/format_selection_sheet.dart';
@@ -292,7 +293,9 @@ class _YouTubeScreenState extends ConsumerState<YouTubeScreen>
                         icon: Icon(
                           state.paused ? Icons.play_arrow : Icons.pause,
                         ),
-                        label: Text(state.paused ? l10n.resumeButton : l10n.pauseButton),
+                        label: Text(
+                          state.paused ? l10n.resumeButton : l10n.pauseButton,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -307,6 +310,12 @@ class _YouTubeScreenState extends ConsumerState<YouTubeScreen>
                 ],
               ),
             ],
+            Expanded(
+              child: ServiceDownloadsSection(
+                source: 'YouTube',
+                downloading: state.downloading,
+              ),
+            ),
           ],
         ),
       ),
