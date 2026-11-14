@@ -296,5 +296,16 @@
   "aboutSummary": "Что нового, yt-dlp, исходный код",
   "longPressSummary": "Долгое нажатие: {action}",
   "statusArchiveSummary": "Архив статусов: {value}",
-  "themeTitle": "Тема"
+  "themeTitle": "Тема",
+  "libraryFileCount": "{count, plural, one{{count} файл} few{{count} файла} many{{count} файлов} other{{count} файла}}",
+  "filterTypeVideo": "Видео",
+  "filterTypePhoto": "Фото",
+  "filterTypeAudio": "Аудио",
+  "allSourcesChip": "Все источники",
+  "groupToday": "Сегодня",
+  "groupYesterday": "Вчера",
+  "selectDayButton": "Выбрать день",
+  "searchTooltip": "Поиск",
+  "librarySearchHint": "Поиск по названию",
+  "shareButton": "Поделиться"
 }

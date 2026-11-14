@@ -5,20 +5,44 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:photo_manager/photo_manager.dart';
 
 import '../../core/l10n/status_message.dart';
-import '../../core/settings/app_settings_service.dart';
-import '../../core/settings/settings_providers.dart';
 import '../../core/storage/media_library_service.dart';
 import '../../core/ui/app_toast.dart';
 import '../../l10n/app_localizations.dart';
 import 'library_controller.dart';
 import 'library_folder_screen.dart';
+import 'library_grid.dart';
 import 'library_preview.dart';
 
-class LibraryScreen extends ConsumerWidget {
+export 'library_grid.dart' show LibraryGrid;
+
+/// Library (redesign variant A, approved 2026-11-14): a day-grouped feed
+/// with a type filter, source chips with counts, a playlists strip, search,
+/// and a floating Share/Delete bar while selecting.
+class LibraryScreen extends ConsumerStatefulWidget {
   const LibraryScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LibraryScreen> createState() => _LibraryScreenState();
+}
+
+class _LibraryScreenState extends ConsumerState<LibraryScreen> {
+  bool _searching = false;
+  final _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _closeSearch() {
+    _searchController.clear();
+    ref.read(libraryControllerProvider.notifier).setSearchQuery('');
+    setState(() => _searching = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(libraryControllerProvider);
     final controller = ref.read(libraryControllerProvider.notifier);
@@ -39,75 +63,175 @@ class LibraryScreen extends ConsumerWidget {
       }
     });
 
-    return Scaffold(
-      appBar: AppBar(
-        leading: state.selectionMode
-            ? IconButton(
-                tooltip: l10n.cancelSelectionTooltip,
-                icon: const Icon(Icons.close),
-                onPressed: controller.exitSelectionMode,
-              )
-            : null,
-        title: Text(
-          state.selectionMode
-              ? l10n.itemsSelectedCount(state.selectedIds.length)
-              : l10n.libraryTitle,
+    final showActionBar = state.selectionMode && state.selectedIds.isNotEmpty;
+
+    return PopScope(
+      canPop: !state.selectionMode && !_searching,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        if (state.selectionMode) {
+          controller.exitSelectionMode();
+        } else if (_searching) {
+          _closeSearch();
+        }
+      },
+      child: Scaffold(
+        appBar: _buildAppBar(context, l10n, state, controller),
+        body: Stack(
+          children: [
+            Positioned.fill(
+              child: _buildBody(context, l10n, state, controller),
+            ),
+            if (showActionBar)
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: 16,
+                child: _FloatingActionBar(
+                  busy: state.busy,
+                  onShare: controller.shareSelected,
+                  // No in-app confirmation: on Android 11+ deleteWithIds()
+                  // goes through MediaStore.createDeleteRequest(), which
+                  // shows the OS's own prompt for the whole batch.
+                  onDelete: controller.deleteSelected,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(
+    BuildContext context,
+    AppLocalizations l10n,
+    LibraryState state,
+    LibraryController controller,
+  ) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    if (state.selectionMode) {
+      final visibleIds = [
+        for (final item in state.visibleItems ?? const <LibraryItem>[])
+          item.asset.id,
+      ];
+      final allSelected =
+          visibleIds.isNotEmpty && state.selectedIds.containsAll(visibleIds);
+      return AppBar(
+        backgroundColor: scheme.primaryContainer,
+        foregroundColor: scheme.onPrimaryContainer,
+        leading: IconButton(
+          tooltip: l10n.cancelSelectionTooltip,
+          icon: const Icon(Icons.close),
+          onPressed: controller.exitSelectionMode,
+        ),
+        title: Text(l10n.itemsSelectedCount(state.selectedIds.length)),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: OutlinedButton(
+              onPressed: visibleIds.isEmpty
+                  ? null
+                  : () => controller.toggleSelectedGroup(visibleIds),
+              child: Text(
+                allSelected ? l10n.deselectAllTooltip : l10n.selectAllTooltip,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (_searching) {
+      return AppBar(
+        leading: IconButton(
+          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+          icon: const Icon(Icons.arrow_back),
+          onPressed: _closeSearch,
+        ),
+        title: TextField(
+          controller: _searchController,
+          autofocus: true,
+          textInputAction: TextInputAction.search,
+          decoration: InputDecoration(
+            hintText: l10n.librarySearchHint,
+            border: InputBorder.none,
+          ),
+          onChanged: controller.setSearchQuery,
         ),
         actions: [
-          if (state.hasAccess && !state.selectionMode) ...[
-            PopupMenuButton<LibrarySortOption>(
-              tooltip: l10n.sortTooltip,
-              icon: const Icon(Icons.sort),
-              initialValue: state.sortOption,
-              onSelected: controller.setSortOption,
-              itemBuilder: (context) => [
-                PopupMenuItem(
-                  value: LibrarySortOption.dateNewest,
-                  child: Text(l10n.newestFirst),
-                ),
-                PopupMenuItem(
-                  value: LibrarySortOption.dateOldest,
-                  child: Text(l10n.oldestFirst),
-                ),
-                PopupMenuItem(
-                  value: LibrarySortOption.nameAZ,
-                  child: Text(l10n.nameAZ),
-                ),
-                PopupMenuItem(
-                  value: LibrarySortOption.nameZA,
-                  child: Text(l10n.nameZA),
-                ),
-              ],
-            ),
-            IconButton(
-              tooltip: l10n.selectTooltip,
-              icon: const Icon(Icons.checklist),
-              onPressed: controller.enterSelectionMode,
-            ),
-          ],
-          if (state.hasAccess)
-            IconButton(
-              tooltip: l10n.refreshTooltip,
-              icon: const Icon(Icons.refresh),
-              onPressed: state.busy ? null : controller.refresh,
+          ValueListenableBuilder(
+            valueListenable: _searchController,
+            builder: (context, value, _) => value.text.isEmpty
+                ? const SizedBox.shrink()
+                : IconButton(
+                    tooltip: l10n.clearTooltip,
+                    icon: const Icon(Icons.clear),
+                    onPressed: () {
+                      _searchController.clear();
+                      controller.setSearchQuery('');
+                    },
+                  ),
+          ),
+        ],
+      );
+    }
+
+    final total = state.items.valueOrNull?.length;
+    return AppBar(
+      toolbarHeight: 68,
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l10n.libraryTitle),
+          if (total != null && total > 0)
+            Text(
+              l10n.libraryFileCount(total),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
             ),
         ],
       ),
-      body: _buildBody(context, l10n, state, controller),
-      bottomNavigationBar: state.selectionMode && state.selectedIds.isNotEmpty
-          ? LibraryActionBar(
-              count: state.selectedIds.length,
-              busy: state.busy,
-              onShare: controller.shareSelected,
-              // No in-app confirmation dialog: Android's scoped storage
-              // makes photo_manager's deleteWithIds() go through
-              // MediaStore.createDeleteRequest() on Android 11+, which
-              // shows the OS's own "Allow … to delete?" prompt (with a
-              // thumbnail) for the whole batch. A second, app-drawn
-              // confirmation on top of that is just double friction.
-              onDelete: controller.deleteSelected,
-            )
-          : null,
+      actions: [
+        if (state.hasAccess) ...[
+          IconButton(
+            tooltip: l10n.searchTooltip,
+            icon: const Icon(Icons.search),
+            onPressed: () => setState(() => _searching = true),
+          ),
+          PopupMenuButton<LibrarySortOption>(
+            tooltip: l10n.sortTooltip,
+            icon: const Icon(Icons.sort),
+            initialValue: state.sortOption,
+            onSelected: controller.setSortOption,
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: LibrarySortOption.dateNewest,
+                child: Text(l10n.newestFirst),
+              ),
+              PopupMenuItem(
+                value: LibrarySortOption.dateOldest,
+                child: Text(l10n.oldestFirst),
+              ),
+              PopupMenuItem(
+                value: LibrarySortOption.nameAZ,
+                child: Text(l10n.nameAZ),
+              ),
+              PopupMenuItem(
+                value: LibrarySortOption.nameZA,
+                child: Text(l10n.nameZA),
+              ),
+            ],
+          ),
+          IconButton(
+            tooltip: l10n.selectTooltip,
+            icon: const Icon(Icons.check_box_outlined),
+            onPressed: controller.enterSelectionMode,
+          ),
+        ],
+      ],
     );
   }
 
@@ -139,62 +263,139 @@ class LibraryScreen extends ConsumerWidget {
         if (allItems.isEmpty) {
           return _EmptyState(onRefresh: controller.refresh);
         }
-        final visible = state.visibleItems ?? const [];
+        final visible = state.visibleItems ?? const <LibraryItem>[];
         final folders = state.visibleFolders;
-        return Column(
-          children: [
-            if (state.availableSources.length > 1)
-              _SourceFilterRow(
-                sources: state.availableSources,
+        final counts = state.sourceCounts;
+
+        final header = <Widget>[
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+              child: _TypeFilterBar(
+                value: state.typeFilter,
+                labels: {
+                  LibraryTypeFilter.all: l10n.filterAll,
+                  LibraryTypeFilter.video: l10n.filterTypeVideo,
+                  LibraryTypeFilter.photo: l10n.filterTypePhoto,
+                  LibraryTypeFilter.audio: l10n.filterTypeAudio,
+                },
+                onChanged: controller.setTypeFilter,
+              ),
+            ),
+          ),
+          if (state.availableSources.length > 1)
+            SliverToBoxAdapter(
+              child: _SourceFilterRow(
+                sources: state.sourcesByCount,
+                counts: counts,
                 selected: state.sourceFilter,
                 onSelected: controller.setSourceFilter,
               ),
-            // Folders (playlist downloads, backlog #7) hidden while
-            // selecting — the top-level selection model only knows about
-            // individual assets, not "select every item in this folder".
-            if (folders.isNotEmpty && !state.selectionMode)
-              _FolderRow(
+            ),
+          // Folders (playlist downloads, backlog #7) hidden while
+          // selecting — the top-level selection model only knows about
+          // individual assets, not "select every item in this folder".
+          if (folders.isNotEmpty && !state.selectionMode)
+            SliverToBoxAdapter(
+              child: _FolderRow(
                 folders: folders,
                 onOpened: controller.refresh,
                 onDelete: controller.deleteFolder,
               ),
-            Expanded(
-              child: visible.isEmpty
-                  ? (folders.isEmpty
-                        ? const _NoMatchesState()
-                        : const SizedBox.shrink())
-                  : LibraryGrid(
-                      items: visible,
-                      selectedIds: state.selectedIds,
-                      selectionMode: state.selectionMode,
-                      onLongPressSelect: (index) {
-                        if (!state.selectionMode) {
-                          controller.enterSelectionMode();
-                        }
-                        controller.toggleSelected(visible[index].asset.id);
-                      },
-                      onTap: (index) {
-                        final asset = visible[index].asset;
-                        if (state.selectionMode) {
-                          controller.toggleSelected(asset.id);
-                        } else {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => LibraryPreviewPage(
-                                assets: [
-                                  for (final item in visible) item.asset,
-                                ],
-                                initialIndex: index,
-                              ),
-                            ),
-                          );
-                        }
-                      },
-                    ),
             ),
-          ],
+        ];
+
+        return RefreshIndicator(
+          onRefresh: controller.refresh,
+          child: LibraryGrid(
+            items: visible,
+            selectedIds: state.selectedIds,
+            selectionMode: state.selectionMode,
+            headerSlivers: header,
+            groupByDay: state.sortedByDate,
+            showSource: state.sourceFilter == null,
+            onSelectGroup: controller.toggleSelectedGroup,
+            emptyChild: folders.isEmpty ? const _NoMatchesState() : null,
+            bottomPadding: state.selectionMode ? 96 : 16,
+            onLongPressSelect: (index) {
+              if (!state.selectionMode) {
+                controller.enterSelectionMode();
+              }
+              controller.toggleSelected(visible[index].asset.id);
+            },
+            onTap: (index) {
+              final asset = visible[index].asset;
+              if (state.selectionMode) {
+                controller.toggleSelected(asset.id);
+              } else {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => LibraryPreviewPage(
+                      assets: [for (final item in visible) item.asset],
+                      initialIndex: index,
+                    ),
+                  ),
+                );
+              }
+            },
+          ),
         );
       },
+    );
+  }
+}
+
+/// Dark pill floating above the grid while items are selected.
+class _FloatingActionBar extends StatelessWidget {
+  const _FloatingActionBar({
+    required this.busy,
+    required this.onShare,
+    required this.onDelete,
+  });
+
+  final bool busy;
+  final VoidCallback onShare;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: scheme.inverseSurface,
+      elevation: 6,
+      borderRadius: BorderRadius.circular(32),
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Row(
+          children: [
+            Expanded(
+              child: TextButton.icon(
+                style: TextButton.styleFrom(
+                  foregroundColor: scheme.onInverseSurface,
+                  minimumSize: const Size.fromHeight(48),
+                ),
+                onPressed: busy ? null : onShare,
+                icon: const Icon(Icons.share_outlined),
+                label: Text(l10n.shareButton),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: scheme.errorContainer,
+                  foregroundColor: scheme.onErrorContainer,
+                  minimumSize: const Size.fromHeight(48),
+                ),
+                onPressed: busy ? null : onDelete,
+                icon: const Icon(Icons.delete_outline),
+                label: Text(l10n.deleteButton),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -235,52 +436,56 @@ Future<void> _showMigrationConsentDialog(
   }
 }
 
+/// "All sources" + one chip per source, each with its brand dot and count.
 class _SourceFilterRow extends StatelessWidget {
   const _SourceFilterRow({
     required this.sources,
+    required this.counts,
     required this.selected,
     required this.onSelected,
   });
 
   final List<String> sources;
+  final Map<String, int> counts;
   final String? selected;
   final ValueChanged<String?> onSelected;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
     return SizedBox(
-      height: 48,
+      height: 52,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: ChoiceChip(
-              label: Text(l10n.filterAll),
-              selected: selected == null,
-              onSelected: (_) => onSelected(null),
-            ),
+          _SourceChip(
+            label: l10n.allSourcesChip,
+            selected: selected == null,
+            onTap: () => onSelected(null),
           ),
           for (final source in sources)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: ChoiceChip(
-                label: Text(source),
+            // A source with nothing under the current type filter / search
+            // is hidden, unless it's the one selected.
+            if ((counts[source] ?? 0) > 0 || selected == source)
+              _SourceChip(
+                label: librarySourceLabel(source),
+                count: counts[source] ?? 0,
+                dotColor:
+                    librarySourceBadges[source]?.$2 ??
+                    theme.colorScheme.outline,
                 selected: selected == source,
-                onSelected: (_) => onSelected(source),
+                onTap: () => onSelected(source),
               ),
-            ),
         ],
       ),
     );
   }
 }
 
-/// Horizontal row of playlist-download folders (backlog #7) — a Google
-/// Photos-style "albums strip" above the flat asset grid, rather than mixing
-/// folder tiles into that grid (which expects one [AssetEntity] per tile).
+/// Horizontal strip of playlist-download folders (backlog #7), each a 2×2
+/// mosaic of its newest items.
 class _FolderRow extends StatelessWidget {
   const _FolderRow({
     required this.folders,
@@ -291,34 +496,45 @@ class _FolderRow extends StatelessWidget {
   final List<LibraryFolder> folders;
 
   /// Called after returning from a folder's drill-in page — a share/delete
-  /// there can change what the top-level grid should show, and refreshing
-  /// unconditionally is cheap (just a MediaStore re-read).
+  /// there can change what the top-level grid should show.
   final VoidCallback onOpened;
 
-  /// Long-press a card's "Delete playlist" action — deletes every item in
-  /// the folder without opening it first.
+  /// Long-press a card's "Delete playlist" action.
   final ValueChanged<LibraryFolder> onDelete;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-          child: Text(
-            l10n.libraryPlaylistsHeader,
-            style: Theme.of(context).textTheme.labelLarge,
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  l10n.libraryPlaylistsHeader,
+                  style: theme.textTheme.titleSmall,
+                ),
+              ),
+              Text(
+                '${folders.length}',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
           ),
         ),
         SizedBox(
-          height: 132,
+          height: 152,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             itemCount: folders.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 8),
+            separatorBuilder: (_, _) => const SizedBox(width: 10),
             itemBuilder: (context, index) {
               final folder = folders[index];
               return _FolderCard(
@@ -329,7 +545,6 @@ class _FolderRow extends StatelessWidget {
             },
           ),
         ),
-        const SizedBox(height: 4),
       ],
     );
   }
@@ -364,10 +579,12 @@ class _FolderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final covers = folder.items.take(4).map((i) => i.asset).toList();
     return SizedBox(
-      width: 96,
+      width: 156,
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         onTap: () async {
           await Navigator.of(context).push(
             MaterialPageRoute(
@@ -381,53 +598,40 @@ class _FolderCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Stack(
-                  fit: StackFit.expand,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: SizedBox(
+                height: 104,
+                child: GridView.count(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 2,
+                  crossAxisSpacing: 2,
+                  childAspectRatio: 77 / 51,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: EdgeInsets.zero,
                   children: [
-                    _FolderThumbnail(asset: folder.items.first.asset),
-                    const ColoredBox(color: Colors.black26),
-                    const Align(
-                      alignment: Alignment.center,
-                      child: Icon(
-                        Icons.folder,
-                        color: Colors.white70,
-                        size: 28,
-                      ),
-                    ),
-                    Positioned(
-                      right: 4,
-                      bottom: 4,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 1,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black54,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          '${folder.count}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ),
-                    ),
+                    for (var i = 0; i < 4; i++)
+                      i < covers.length
+                          ? _FolderThumbnail(asset: covers[i])
+                          : ColoredBox(
+                              color: theme.colorScheme.surfaceContainerHighest,
+                            ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             Text(
               folder.label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall,
+              style: theme.textTheme.labelLarge,
+            ),
+            Text(
+              '${folder.count}',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),
@@ -443,18 +647,21 @@ class _FolderThumbnail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return ColoredBox(
-      color: Colors.black12,
-      child: FutureBuilder<Uint8List?>(
-        future: asset.type == AssetType.audio
-            ? Future<Uint8List?>.value(null)
-            : asset.thumbnailDataWithSize(const ThumbnailSize(160, 160)),
-        builder: (context, snapshot) {
-          final bytes = snapshot.data;
-          if (bytes == null) return const SizedBox.shrink();
-          return Image.memory(bytes, fit: BoxFit.cover);
-        },
-      ),
+      color: scheme.surfaceContainerHighest,
+      child: asset.type == AssetType.audio
+          ? Icon(Icons.audiotrack_outlined, color: scheme.onSurfaceVariant)
+          : FutureBuilder<Uint8List?>(
+              future: asset.thumbnailDataWithSize(
+                const ThumbnailSize(160, 160),
+              ),
+              builder: (context, snapshot) {
+                final bytes = snapshot.data;
+                if (bytes == null) return const SizedBox.shrink();
+                return Image.memory(bytes, fit: BoxFit.cover);
+              },
+            ),
     );
   }
 }
@@ -629,238 +836,75 @@ class LibraryActionBar extends StatelessWidget {
   }
 }
 
-/// Grid of downloaded assets. Owns the [ScrollController] so it can (a)
-/// drive a thicker, always-visible [Scrollbar] — the default Material one
-/// is a hairline that's easy to miss — and (b) force-close whatever
-/// long-press "peek" video is currently playing the instant a real drag
-/// starts. Without (b), a peek's [VideoPlayerController] can keep playing
-/// (and its tile's state can be recycled by `GridView.builder`) while the
-/// grid scrolls out from under it, which is the likely source of the
-/// "video freezes, play/pause stop responding" reports during scrolling —
-/// rapid, overlapping controller creation/disposal is a known way to
-/// exhaust the platform's video decoder/texture resources on Android.
-class LibraryGrid extends ConsumerStatefulWidget {
-  const LibraryGrid({
-    super.key,
-    required this.items,
-    required this.selectedIds,
-    required this.selectionMode,
-    required this.onTap,
-    this.onLongPressSelect,
+/// "All | Video | Photo | Audio": a rounded track with the selected option
+/// on a raised pill — no borders or check mark (Library redesign mockup).
+class _TypeFilterBar extends StatelessWidget {
+  const _TypeFilterBar({
+    required this.value,
+    required this.labels,
+    required this.onChanged,
   });
 
-  final List<LibraryItem> items;
-  final Set<String> selectedIds;
-  final bool selectionMode;
-  final ValueChanged<int> onTap;
-
-  /// Called on long-press instead of opening the peek when Settings →
-  /// "Long press on media" is [LongPressAction.select]. Null = always peek.
-  final ValueChanged<int>? onLongPressSelect;
-
-  @override
-  ConsumerState<LibraryGrid> createState() => LibraryGridState();
-}
-
-class LibraryGridState extends ConsumerState<LibraryGrid> {
-  final ScrollController _scrollController = ScrollController();
-  VoidCallback? _closeActivePeek;
-
-  void _registerPeek(VoidCallback close) {
-    if (_closeActivePeek != close) {
-      _closeActivePeek?.call();
-    }
-    _closeActivePeek = close;
-  }
-
-  void _unregisterPeek(VoidCallback close) {
-    if (_closeActivePeek == close) {
-      _closeActivePeek = null;
-    }
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
+  final LibraryTypeFilter value;
+  final Map<LibraryTypeFilter, String> labels;
+  final ValueChanged<LibraryTypeFilter> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    final onSelect = widget.onLongPressSelect;
-    final longPressSelects =
-        onSelect != null &&
-        ref.watch(longPressActionProvider) == LongPressAction.select;
-    final grid = GridView.builder(
-      controller: _scrollController,
-      padding: const EdgeInsets.all(8),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 4,
-        mainAxisSpacing: 4,
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final dark = theme.brightness == Brightness.dark;
+    final selectedBg = dark
+        ? scheme.primaryContainer
+        : scheme.surfaceContainerLowest;
+    final selectedFg = dark ? scheme.onPrimaryContainer : scheme.onSurface;
+
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(22),
       ),
-      itemCount: widget.items.length,
-      itemBuilder: (context, index) {
-        final item = widget.items[index];
-        final asset = item.asset;
-        final selected = widget.selectedIds.contains(asset.id);
-        return _LibraryTile(
-          key: ValueKey(asset.id),
-          asset: asset,
-          selected: selected,
-          selectionActive: widget.selectionMode,
-          onTap: () => widget.onTap(index),
-          onLongPressSelect: longPressSelects ? () => onSelect(index) : null,
-          onPeekOpened: _registerPeek,
-          onPeekClosed: _unregisterPeek,
-        );
-      },
-    );
-    return NotificationListener<ScrollStartNotification>(
-      onNotification: (_) {
-        _closeActivePeek?.call();
-        return false;
-      },
-      child: Scrollbar(
-        controller: _scrollController,
-        thumbVisibility: true,
-        thickness: 10,
-        radius: const Radius.circular(6),
-        child: grid,
-      ),
-    );
-  }
-}
-
-class _LibraryTile extends StatefulWidget {
-  const _LibraryTile({
-    required super.key,
-    required this.asset,
-    required this.selected,
-    required this.selectionActive,
-    required this.onTap,
-    this.onLongPressSelect,
-    required this.onPeekOpened,
-    required this.onPeekClosed,
-  });
-
-  final AssetEntity asset;
-  final bool selected;
-  final bool selectionActive;
-  final VoidCallback onTap;
-  final VoidCallback? onLongPressSelect;
-  final ValueChanged<VoidCallback> onPeekOpened;
-  final ValueChanged<VoidCallback> onPeekClosed;
-
-  @override
-  State<_LibraryTile> createState() => _LibraryTileState();
-}
-
-class _LibraryTileState extends State<_LibraryTile> {
-  // Keyed by "assetId_size" and shared across tile instances so
-  // GridView.builder recycling old/new tiles while scrolling doesn't
-  // re-fetch the same thumbnail over the platform channel every time —
-  // that churn was a plausible contributor to scroll jank/freezes.
-  static final Map<String, Future<Uint8List?>> _thumbnailCache = {};
-
-  late Future<Uint8List?> _thumbnail;
-  OverlayEntry? _peekEntry;
-  VoidCallback? _closePeekCallback;
-
-  @override
-  void initState() {
-    super.initState();
-    // Audio has no meaningful thumbnail — MediaStore returned garbled bytes
-    // for it. Skip the fetch and let the fallback icon stand in.
-    _thumbnail = widget.asset.type == AssetType.audio
-        ? Future<Uint8List?>.value(null)
-        : _thumbnailCache.putIfAbsent(
-            '${widget.asset.id}_240',
-            () => widget.asset.thumbnailDataWithSize(
-              const ThumbnailSize(240, 240),
-            ),
-          );
-  }
-
-  void _openPeek() {
-    final overlay = Overlay.of(context);
-    final entry = OverlayEntry(
-      builder: (_) => LibraryPeekPreview(asset: widget.asset),
-    );
-    _peekEntry = entry;
-    _closePeekCallback = _closePeek;
-    widget.onPeekOpened(_closePeekCallback!);
-    overlay.insert(entry);
-  }
-
-  void _closePeek() {
-    _peekEntry?.remove();
-    _peekEntry = null;
-    if (_closePeekCallback != null) {
-      widget.onPeekClosed(_closePeekCallback!);
-      _closePeekCallback = null;
-    }
-  }
-
-  @override
-  void dispose() {
-    _peekEntry?.remove();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      // opaque so a tap anywhere on the tile registers, not just where a
-      // hit-testable child happens to be painted.
-      behavior: HitTestBehavior.opaque,
-      onTap: widget.onTap,
-      onLongPress: widget.onLongPressSelect,
-      onLongPressStart: widget.onLongPressSelect == null
-          ? (_) => _openPeek()
-          : null,
-      onLongPressEnd: widget.onLongPressSelect == null
-          ? (_) => _closePeek()
-          : null,
-      onLongPressCancel: widget.onLongPressSelect == null ? _closePeek : null,
-      child: Stack(
-        fit: StackFit.expand,
+      child: Row(
         children: [
-          ColoredBox(
-            color: Colors.black12,
-            child: FutureBuilder<Uint8List?>(
-              future: _thumbnail,
-              builder: (context, snapshot) {
-                final bytes = snapshot.data;
-                if (bytes != null) {
-                  return Image.memory(bytes, fit: BoxFit.cover);
-                }
-                return _TileFallbackIcon(type: widget.asset.type);
-              },
-            ),
-          ),
-          if (widget.asset.type == AssetType.video)
-            const Align(
-              alignment: Alignment.center,
-              child: Icon(
-                Icons.play_circle_fill,
-                color: Colors.white70,
-                size: 32,
-              ),
-            ),
-          if (widget.selectionActive)
-            Positioned(
-              top: 4,
-              right: 4,
-              child: CircleAvatar(
-                radius: 12,
-                backgroundColor: widget.selected
-                    ? Theme.of(context).colorScheme.primary
-                    : Colors.black45,
-                child: Icon(
-                  widget.selected ? Icons.check : Icons.circle_outlined,
-                  size: 16,
-                  color: Colors.white,
+          for (final entry in labels.entries)
+            Expanded(
+              child: Semantics(
+                button: true,
+                selected: entry.key == value,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => onChanged(entry.key),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    height: 36,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: entry.key == value
+                          ? selectedBg
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(18),
+                      boxShadow: entry.key == value && !dark
+                          ? const [
+                              BoxShadow(
+                                color: Color(0x1F000000),
+                                blurRadius: 2,
+                                offset: Offset(0, 1),
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: Text(
+                      entry.value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: entry.key == value
+                            ? selectedFg
+                            : scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -870,19 +914,84 @@ class _LibraryTileState extends State<_LibraryTile> {
   }
 }
 
-class _TileFallbackIcon extends StatelessWidget {
-  const _TileFallbackIcon({this.type});
+/// A compact rounded source chip: brand dot, name, muted count; the
+/// selected one is filled with the primary color (no check mark).
+class _SourceChip extends StatelessWidget {
+  const _SourceChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    this.count,
+    this.dotColor,
+  });
 
-  final AssetType? type;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final int? count;
+  final Color? dotColor;
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Icon(
-        type == AssetType.audio
-            ? Icons.audiotrack_outlined
-            : Icons.insert_drive_file_outlined,
-        color: Colors.white54,
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final fg = selected ? scheme.onPrimary : scheme.onSurface;
+    final muted = selected
+        ? scheme.onPrimary.withValues(alpha: 0.8)
+        : scheme.onSurfaceVariant;
+
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: Material(
+        color: selected ? scheme.primary : Colors.transparent,
+        shape: StadiumBorder(
+          side: BorderSide(
+            color: selected ? scheme.primary : scheme.outlineVariant,
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (dotColor != null) ...[
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: dotColor,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: selected
+                            ? scheme.onPrimary
+                            : scheme.outlineVariant,
+                        width: 0.5,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                ],
+                Text(
+                  label,
+                  style: theme.textTheme.labelLarge?.copyWith(color: fg),
+                ),
+                if (count != null) ...[
+                  const SizedBox(width: 6),
+                  Text(
+                    '$count',
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: muted,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

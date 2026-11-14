@@ -10,6 +10,21 @@ import '../../core/storage/media_save_service.dart';
 
 enum LibrarySortOption { dateNewest, dateOldest, nameAZ, nameZA }
 
+/// Media-type filter (the segmented "All | Video | Photo | Audio" row).
+enum LibraryTypeFilter { all, video, photo, audio }
+
+bool _matchesType(LibraryItem item, LibraryTypeFilter filter) =>
+    switch (filter) {
+      LibraryTypeFilter.all => true,
+      LibraryTypeFilter.video => item.asset.type == AssetType.video,
+      LibraryTypeFilter.photo => item.asset.type == AssetType.image,
+      LibraryTypeFilter.audio => item.asset.type == AssetType.audio,
+    };
+
+bool _matchesQuery(LibraryItem item, String query) =>
+    query.isEmpty ||
+    (item.asset.title ?? '').toLowerCase().contains(query.toLowerCase());
+
 /// One drill-in folder in Library — every item sharing a (source,
 /// playlistLabel) pair (see `LibraryItem.playlistLabel`), newest-first.
 class LibraryFolder {
@@ -34,6 +49,8 @@ class LibraryState {
     this.items = const AsyncValue.loading(),
     this.sourceFilter,
     this.sortOption = LibrarySortOption.dateNewest,
+    this.typeFilter = LibraryTypeFilter.all,
+    this.searchQuery = '',
     this.selectionMode = false,
     this.selectedIds = const {},
     this.busy = false,
@@ -56,6 +73,15 @@ class LibraryState {
   /// null = all sources. One of the values in [availableSources].
   final String? sourceFilter;
   final LibrarySortOption sortOption;
+  final LibraryTypeFilter typeFilter;
+
+  /// Case-insensitive substring match on the file name; empty = no search.
+  final String searchQuery;
+
+  /// Whether [visibleItems] is in date order, so the grid can group it by day.
+  bool get sortedByDate =>
+      sortOption == LibrarySortOption.dateNewest ||
+      sortOption == LibrarySortOption.dateOldest;
 
   /// Whether tapping a tile toggles selection instead of opening the full
   /// preview. Entered via the toolbar button, or by a long-press when
@@ -85,6 +111,32 @@ class LibraryState {
     return sources;
   }
 
+  /// [availableSources] ordered for the source chips: most items first
+  /// (counts as in [sourceCounts]), ties alphabetical.
+  List<String> get sourcesByCount {
+    final counts = sourceCounts;
+    return [...availableSources]..sort((a, b) {
+      final byCount = (counts[b] ?? 0).compareTo(counts[a] ?? 0);
+      return byCount != 0 ? byCount : a.compareTo(b);
+    });
+  }
+
+  /// Item count per source, after the type filter and search (for the
+  /// source chips' counts).
+  Map<String, int> get sourceCounts {
+    final all = items.valueOrNull;
+    if (all == null) return const {};
+    final counts = <String, int>{};
+    for (final item in all) {
+      if (!_matchesType(item, typeFilter) ||
+          !_matchesQuery(item, searchQuery)) {
+        continue;
+      }
+      counts[item.source] = (counts[item.source] ?? 0) + 1;
+    }
+    return counts;
+  }
+
   /// [items], filtered by [sourceFilter] and sorted by [sortOption]. Only
   /// meaningful once [items] has data — null while loading/erroring. Excludes
   /// playlist items (`playlistLabel != null`) — those are shown grouped via
@@ -95,6 +147,8 @@ class LibraryState {
     final filtered = all
         .where((i) => i.playlistLabel == null)
         .where((i) => sourceFilter == null || i.source == sourceFilter)
+        .where((i) => _matchesType(i, typeFilter))
+        .where((i) => _matchesQuery(i, searchQuery))
         .toList();
     filtered.sort((a, b) {
       switch (sortOption) {
@@ -121,6 +175,8 @@ class LibraryState {
       final label = item.playlistLabel;
       if (label == null) continue;
       if (sourceFilter != null && item.source != sourceFilter) continue;
+      if (!_matchesType(item, typeFilter)) continue;
+      if (!_matchesQuery(item, searchQuery)) continue;
       grouped.putIfAbsent((item.source, label), () => []).add(item);
     }
     final folders = grouped.entries.map((entry) {
@@ -147,6 +203,8 @@ class LibraryState {
     String? sourceFilter,
     bool clearSourceFilter = false,
     LibrarySortOption? sortOption,
+    LibraryTypeFilter? typeFilter,
+    String? searchQuery,
     bool? selectionMode,
     Set<String>? selectedIds,
     bool? busy,
@@ -164,6 +222,8 @@ class LibraryState {
           ? null
           : (sourceFilter ?? this.sourceFilter),
       sortOption: sortOption ?? this.sortOption,
+      typeFilter: typeFilter ?? this.typeFilter,
+      searchQuery: searchQuery ?? this.searchQuery,
       selectionMode: selectionMode ?? this.selectionMode,
       selectedIds: selectedIds ?? this.selectedIds,
       busy: busy ?? this.busy,
@@ -280,6 +340,27 @@ class LibraryController extends StateNotifier<LibraryState> {
 
   void setSortOption(LibrarySortOption option) {
     state = state.copyWith(sortOption: option);
+  }
+
+  void setTypeFilter(LibraryTypeFilter filter) {
+    state = state.copyWith(typeFilter: filter);
+  }
+
+  void setSearchQuery(String query) {
+    state = state.copyWith(searchQuery: query);
+  }
+
+  /// Selects every id in [ids], or — when all of them are already selected —
+  /// deselects them (the "Select all" / "Select day" toggles).
+  void toggleSelectedGroup(Iterable<String> ids) {
+    final group = ids.toSet();
+    final selected = {...state.selectedIds};
+    if (selected.containsAll(group)) {
+      selected.removeAll(group);
+    } else {
+      selected.addAll(group);
+    }
+    state = state.copyWith(selectedIds: selected);
   }
 
   void enterSelectionMode() {

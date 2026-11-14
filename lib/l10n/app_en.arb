@@ -382,5 +382,17 @@
   "@longPressSummary": {"placeholders": {"action": {"type": "String"}}},
   "statusArchiveSummary": "Status archive: {value}",
   "@statusArchiveSummary": {"placeholders": {"value": {"type": "String"}}},
-  "themeTitle": "Theme"
+  "themeTitle": "Theme",
+  "libraryFileCount": "{count, plural, =1{1 file} other{{count} files}}",
+  "@libraryFileCount": {"placeholders": {"count": {"type": "int"}}},
+  "filterTypeVideo": "Video",
+  "filterTypePhoto": "Photo",
+  "filterTypeAudio": "Audio",
+  "allSourcesChip": "All sources",
+  "groupToday": "Today",
+  "groupYesterday": "Yesterday",
+  "selectDayButton": "Select day",
+  "searchTooltip": "Search",
+  "librarySearchHint": "Search by name",
+  "shareButton": "Share"
 }

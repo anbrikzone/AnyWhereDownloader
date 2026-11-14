@@ -51,6 +51,7 @@ const List<ChangelogEntry> kChangelog = [
         ],
         ChangeKind.changed: [
           "Settings are redesigned: an app card with one update button, quick tiles for the most-used options, and tidy sections for downloads, playback, WhatsApp and About.",
+          "The Library is redesigned: downloads are grouped by day, with filters by type (video, photo, audio) and by source with counts, search by name, playlist collages, video durations, and a floating Share/Delete bar when selecting.",
           "The bottom bar with Home and Library is a little slimmer.",
           "Updated the built-in YouTube engine (yt-dlp 2026.10.26) for fresh installs.",
         ],
@@ -65,6 +66,7 @@ const List<ChangelogEntry> kChangelog = [
         ],
         ChangeKind.changed: [
           "Новый дизайн настроек: карточка приложения с одной кнопкой обновления, быстрые плитки для самых нужных опций и аккуратные разделы — загрузки, просмотр, WhatsApp и «О приложении».",
+          "Новый дизайн Библиотеки: загрузки сгруппированы по дням, есть фильтры по типу (видео, фото, аудио) и по источнику с числом файлов, поиск по названию, коллажи плейлистов, длительность видео и плавающая панель «Поделиться/Удалить» при выделении.",
           "Нижняя панель с «Главной» и «Библиотекой» стала немного ниже.",
           "Встроенный движок YouTube обновлён (yt-dlp 2026.10.26) для новых установок.",
         ],
@@ -79,6 +81,7 @@ const List<ChangelogEntry> kChangelog = [
         ],
         ChangeKind.changed: [
           "Баптаулардың жаңа дизайны: бір жаңарту батырмасы бар қолданба картасы, жиі қолданылатын опцияларға жылдам плиткалар және жүктеулер, ойнату, WhatsApp пен «Қолданба туралы» бөлімдері.",
+          "Кітапхананың жаңа дизайны: жүктеулер күн бойынша топталған, түрі (бейне, фото, аудио) және көзі бойынша сүзгілер файл санымен, атауы бойынша іздеу, плейлист коллаждары, бейне ұзақтығы және белгілеген кезде «Бөлісу/Жою» қалқымалы панелі бар.",
           "«Басты бет» пен «Кітапхана» бар төменгі панель сәл жіңішкерді.",
           "Кірістірілген YouTube қозғалтқышы жаңартылды (yt-dlp 2026.10.26) жаңа орнатулар үшін.",
         ],

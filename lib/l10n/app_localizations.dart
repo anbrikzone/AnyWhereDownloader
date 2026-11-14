@@ -1605,6 +1605,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Theme'**
   String get themeTitle;
+
+  /// No description provided for @libraryFileCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 file} other{{count} files}}'**
+  String libraryFileCount(int count);
+
+  /// No description provided for @filterTypeVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Video'**
+  String get filterTypeVideo;
+
+  /// No description provided for @filterTypePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo'**
+  String get filterTypePhoto;
+
+  /// No description provided for @filterTypeAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio'**
+  String get filterTypeAudio;
+
+  /// No description provided for @allSourcesChip.
+  ///
+  /// In en, this message translates to:
+  /// **'All sources'**
+  String get allSourcesChip;
+
+  /// No description provided for @groupToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get groupToday;
+
+  /// No description provided for @groupYesterday.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get groupYesterday;
+
+  /// No description provided for @selectDayButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Select day'**
+  String get selectDayButton;
+
+  /// No description provided for @searchTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get searchTooltip;
+
+  /// No description provided for @librarySearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by name'**
+  String get librarySearchHint;
 }
 
 class _AppLocalizationsDelegate

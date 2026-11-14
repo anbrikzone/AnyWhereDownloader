@@ -870,4 +870,41 @@ class AppLocalizationsKk extends AppLocalizations {
 
   @override
   String get themeTitle => 'Тақырып';
+
+  @override
+  String libraryFileCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count файл',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get filterTypeVideo => 'Бейне';
+
+  @override
+  String get filterTypePhoto => 'Фото';
+
+  @override
+  String get filterTypeAudio => 'Аудио';
+
+  @override
+  String get allSourcesChip => 'Барлық көздер';
+
+  @override
+  String get groupToday => 'Бүгін';
+
+  @override
+  String get groupYesterday => 'Кеше';
+
+  @override
+  String get selectDayButton => 'Күнді таңдау';
+
+  @override
+  String get searchTooltip => 'Іздеу';
+
+  @override
+  String get librarySearchHint => 'Атауы бойынша іздеу';
 }

@@ -296,5 +296,16 @@
   "aboutSummary": "Не жаңа, yt-dlp, бастапқы код",
   "longPressSummary": "Ұзақ басу: {action}",
   "statusArchiveSummary": "Статус мұрағаты: {value}",
-  "themeTitle": "Тақырып"
+  "themeTitle": "Тақырып",
+  "libraryFileCount": "{count, plural, other{{count} файл}}",
+  "filterTypeVideo": "Бейне",
+  "filterTypePhoto": "Фото",
+  "filterTypeAudio": "Аудио",
+  "allSourcesChip": "Барлық көздер",
+  "groupToday": "Бүгін",
+  "groupYesterday": "Кеше",
+  "selectDayButton": "Күнді таңдау",
+  "searchTooltip": "Іздеу",
+  "librarySearchHint": "Атауы бойынша іздеу",
+  "shareButton": "Бөлісу"
 }

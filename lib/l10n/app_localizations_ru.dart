@@ -870,4 +870,44 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get themeTitle => 'Тема';
+
+  @override
+  String libraryFileCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count файла',
+      many: '$count файлов',
+      few: '$count файла',
+      one: '$count файл',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get filterTypeVideo => 'Видео';
+
+  @override
+  String get filterTypePhoto => 'Фото';
+
+  @override
+  String get filterTypeAudio => 'Аудио';
+
+  @override
+  String get allSourcesChip => 'Все источники';
+
+  @override
+  String get groupToday => 'Сегодня';
+
+  @override
+  String get groupYesterday => 'Вчера';
+
+  @override
+  String get selectDayButton => 'Выбрать день';
+
+  @override
+  String get searchTooltip => 'Поиск';
+
+  @override
+  String get librarySearchHint => 'Поиск по названию';
 }

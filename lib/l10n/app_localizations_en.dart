@@ -869,4 +869,42 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get themeTitle => 'Theme';
+
+  @override
+  String libraryFileCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count files',
+      one: '1 file',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get filterTypeVideo => 'Video';
+
+  @override
+  String get filterTypePhoto => 'Photo';
+
+  @override
+  String get filterTypeAudio => 'Audio';
+
+  @override
+  String get allSourcesChip => 'All sources';
+
+  @override
+  String get groupToday => 'Today';
+
+  @override
+  String get groupYesterday => 'Yesterday';
+
+  @override
+  String get selectDayButton => 'Select day';
+
+  @override
+  String get searchTooltip => 'Search';
+
+  @override
+  String get librarySearchHint => 'Search by name';
 }
