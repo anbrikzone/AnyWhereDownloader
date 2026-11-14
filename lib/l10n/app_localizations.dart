@@ -1665,6 +1665,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Search by name'**
   String get librarySearchHint;
+
+  /// No description provided for @pasteButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste'**
+  String get pasteButton;
+
+  /// No description provided for @recentSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent'**
+  String get recentSection;
 }
 
 class _AppLocalizationsDelegate

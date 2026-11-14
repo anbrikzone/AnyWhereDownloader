@@ -907,4 +907,10 @@ class AppLocalizationsKk extends AppLocalizations {
 
   @override
   String get librarySearchHint => 'Атауы бойынша іздеу';
+
+  @override
+  String get pasteButton => 'Қою';
+
+  @override
+  String get recentSection => 'Соңғылар';
 }

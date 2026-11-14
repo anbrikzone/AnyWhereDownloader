@@ -307,5 +307,7 @@
   "selectDayButton": "Күнді таңдау",
   "searchTooltip": "Іздеу",
   "librarySearchHint": "Атауы бойынша іздеу",
-  "shareButton": "Бөлісу"
+  "shareButton": "Бөлісу",
+  "pasteButton": "Қою",
+  "recentSection": "Соңғылар"
 }

@@ -907,4 +907,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get librarySearchHint => 'Search by name';
+
+  @override
+  String get pasteButton => 'Paste';
+
+  @override
+  String get recentSection => 'Recent';
 }

@@ -30,6 +30,24 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   final _searchController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    // Home's "Recent" strip and the service screens read this controller
+    // too, so a migration may already be pending before Library ever
+    // mounts — `ref.listen` below only sees later changes.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (ref.read(libraryControllerProvider).pendingMigrationConsent != null) {
+        _showMigrationConsentDialog(
+          context,
+          ref.read(libraryControllerProvider.notifier),
+          AppLocalizations.of(context)!,
+        );
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();

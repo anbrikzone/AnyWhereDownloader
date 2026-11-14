@@ -307,5 +307,7 @@
   "selectDayButton": "Выбрать день",
   "searchTooltip": "Поиск",
   "librarySearchHint": "Поиск по названию",
-  "shareButton": "Поделиться"
+  "shareButton": "Поделиться",
+  "pasteButton": "Вставить",
+  "recentSection": "Недавние"
 }

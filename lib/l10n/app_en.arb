@@ -394,5 +394,7 @@
   "selectDayButton": "Select day",
   "searchTooltip": "Search",
   "librarySearchHint": "Search by name",
-  "shareButton": "Share"
+  "shareButton": "Share",
+  "pasteButton": "Paste",
+  "recentSection": "Recent"
 }

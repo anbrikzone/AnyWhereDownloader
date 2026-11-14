@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:photo_manager/photo_manager.dart';
 
@@ -22,6 +23,74 @@ const librarySourceBadges = <String, (String, Color)>{
   'LinkedIn': ('in', Color(0xFF0A66C2)),
   'Pinterest': ('P', Color(0xFFB7081B)),
 };
+
+/// [librarySourceBadges] lookup that also accepts a service's display
+/// title (`X / Twitter`), as the download registry records it.
+(String, Color)? librarySourceBadgeFor(String source) =>
+    librarySourceBadges[source] ??
+    librarySourceBadges[source.replaceAll(' / ', '-')];
+
+/// Brand logo per Library source (Font Awesome brand glyphs).
+const librarySourceLogos = <String, FaIconData>{
+  'YouTube': FontAwesomeIcons.youtube,
+  'Instagram': FontAwesomeIcons.instagram,
+  'WhatsApp': FontAwesomeIcons.whatsapp,
+  'TikTok': FontAwesomeIcons.tiktok,
+  'X-Twitter': FontAwesomeIcons.xTwitter,
+  'LinkedIn': FontAwesomeIcons.linkedinIn,
+  'Pinterest': FontAwesomeIcons.pinterestP,
+};
+
+/// A service's white logo on its brand color, in a rounded square (the
+/// short text label stands in for a source without a logo). Near-black
+/// brands (TikTok, X) get a faint outline on dark surfaces.
+class ServiceLogoBadge extends StatelessWidget {
+  const ServiceLogoBadge({
+    super.key,
+    required this.source,
+    this.size = 56,
+    this.radius,
+    this.outlineOnDark = true,
+  });
+
+  /// A Library source (`X-Twitter`) or a service title (`X / Twitter`).
+  final String source;
+  final double size;
+  final double? radius;
+  final bool outlineOnDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final key = librarySourceBadges.containsKey(source)
+        ? source
+        : source.replaceAll(' / ', '-');
+    final badge = librarySourceBadges[key];
+    final logo = librarySourceLogos[key];
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: badge?.$2 ?? scheme.primary,
+        borderRadius: BorderRadius.circular(radius ?? size * 0.32),
+        border: outlineOnDark && Theme.of(context).brightness == Brightness.dark
+            ? Border.all(color: Colors.white24)
+            : null,
+      ),
+      child: logo != null
+          ? FaIcon(logo, size: size * 0.5, color: Colors.white)
+          : Text(
+              badge?.$1 ?? (source.isEmpty ? '' : source.substring(0, 1)),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: size * 0.3,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+    );
+  }
+}
 
 /// Display name for a Library source (`X-Twitter` is a folder-safe name).
 String librarySourceLabel(String source) =>
@@ -286,7 +355,8 @@ class LibraryGridState extends ConsumerState<LibraryGrid> {
   }
 }
 
-String _formatDuration(int seconds) {
+/// `m:ss`, or `h:mm:ss` from an hour up.
+String formatMediaDuration(int seconds) {
   final h = seconds ~/ 3600;
   final m = (seconds % 3600) ~/ 60;
   final s = (seconds % 60).toString().padLeft(2, '0');
@@ -407,22 +477,11 @@ class _LibraryTileState extends State<_LibraryTile> {
               Positioned(
                 left: 6,
                 top: 6,
-                child: Container(
-                  width: 20,
-                  height: 20,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: badge.$2,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    badge.$1,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+                child: ServiceLogoBadge(
+                  source: widget.item.source,
+                  size: 22,
+                  radius: 7,
+                  outlineOnDark: false,
                 ),
               ),
             if (_asset.type == AssetType.video)
@@ -439,7 +498,7 @@ class _LibraryTileState extends State<_LibraryTile> {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    _formatDuration(_asset.duration),
+                    formatMediaDuration(_asset.duration),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 11,

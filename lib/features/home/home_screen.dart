@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+import 'package:photo_manager/photo_manager.dart';
 
 import '../../core/clipboard/clipboard_link_tracker.dart';
 import '../../core/download/download_registry.dart';
 import '../../core/extraction/extractor_registry.dart';
 import '../../core/extraction/media_extractor.dart';
+import '../../core/navigation/app_route_service.dart';
 import '../../core/settings/settings_providers.dart';
 import '../../core/share/share_intent_service.dart';
+import '../../core/storage/media_library_service.dart';
 import '../../core/update/update_providers.dart';
 import '../../services/instagram/instagram_extractor.dart';
 import '../../services/linkedin/linkedin_extractor.dart';
@@ -19,6 +23,9 @@ import '../../core/ui/app_toast.dart';
 import '../../l10n/app_localizations.dart';
 import '../direct_download/direct_download_screen.dart';
 import '../downloads/downloads_screen.dart';
+import '../library/library_controller.dart';
+import '../library/library_grid.dart';
+import '../library/library_preview.dart';
 import '../settings/settings_screen.dart';
 import '../whatsapp/whatsapp_status_screen.dart';
 import '../youtube/youtube_screen.dart';
@@ -31,12 +38,16 @@ class _ServiceDef {
     required this.serviceType,
     required this.title,
     required this.icon,
+    required this.source,
     this.builder,
   });
 
   final ServiceType serviceType;
   final String title;
   final IconData icon;
+
+  /// Its folder name under `AnyWhereDownloader/` — keys the brand badge.
+  final String source;
   final WidgetBuilder? builder;
 }
 
@@ -44,12 +55,14 @@ class _ServiceEntry {
   const _ServiceEntry({
     required this.title,
     required this.icon,
+    required this.source,
     required this.enabled,
     this.builder,
   });
 
   final String title;
   final IconData icon;
+  final String source;
   final bool enabled;
   final WidgetBuilder? builder;
 }
@@ -68,42 +81,49 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       serviceType: ServiceType.youtube,
       title: 'YouTube',
       icon: Icons.smart_display_outlined,
+      source: 'YouTube',
       builder: _buildYouTube,
     ),
     _ServiceDef(
       serviceType: ServiceType.whatsapp,
       title: 'WhatsApp',
       icon: Icons.chat_outlined,
+      source: 'WhatsApp',
       builder: _buildWhatsApp,
     ),
     _ServiceDef(
       serviceType: ServiceType.tiktok,
       title: 'TikTok',
       icon: Icons.music_note_outlined,
+      source: 'TikTok',
       builder: _buildTikTok,
     ),
     _ServiceDef(
       serviceType: ServiceType.xTwitter,
       title: 'X / Twitter',
       icon: Icons.alternate_email,
+      source: 'X-Twitter',
       builder: _buildXTwitter,
     ),
     _ServiceDef(
       serviceType: ServiceType.instagram,
       title: 'Instagram',
       icon: Icons.camera_alt_outlined,
+      source: 'Instagram',
       builder: _buildInstagram,
     ),
     _ServiceDef(
       serviceType: ServiceType.linkedin,
       title: 'LinkedIn',
       icon: Icons.work_outline,
+      source: 'LinkedIn',
       builder: _buildLinkedIn,
     ),
     _ServiceDef(
       serviceType: ServiceType.pinterest,
       title: 'Pinterest',
       icon: Icons.push_pin_outlined,
+      source: 'Pinterest',
       builder: _buildPinterest,
     ),
   ];
@@ -272,9 +292,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   void _navigateForService(ServiceType type, String url) {
     switch (type) {
       case ServiceType.youtube:
-        Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => YouTubeScreen(initialUrl: url)));
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => YouTubeScreen(initialUrl: url)),
+        );
       case ServiceType.tiktok ||
           ServiceType.xTwitter ||
           ServiceType.instagram ||
@@ -282,12 +302,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           ServiceType.pinterest:
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) => DirectDownloadScreen(service: type, initialUrl: url),
+            builder: (_) =>
+                DirectDownloadScreen(service: type, initialUrl: url),
           ),
         );
       case ServiceType.whatsapp:
         setState(
-          () => _urlError = AppLocalizations.of(context)!.whatsappNotSupportedYet,
+          () =>
+              _urlError = AppLocalizations.of(context)!.whatsappNotSupportedYet,
         );
     }
   }
@@ -310,13 +332,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         _ServiceEntry(
           title: def.title,
           icon: def.icon,
+          source: def.source,
           enabled: enabledMap[def.serviceType] ?? true,
           builder: def.builder,
         ),
     ];
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final library = ref.watch(libraryControllerProvider);
+    final stats = <String, ({int count, DateTime latest})>{};
+    if (library.hasAccess) {
+      for (final item in library.items.valueOrNull ?? const <LibraryItem>[]) {
+        final prev = stats[item.source];
+        final at = item.downloadedAt;
+        stats[item.source] = (
+          count: (prev?.count ?? 0) + 1,
+          latest: prev == null || at.isAfter(prev.latest) ? at : prev.latest,
+        );
+      }
+    }
     return Scaffold(
       appBar: AppBar(
-        title: const Text('AnyWhere Downloader'),
+        title: Text(
+          'AnyWhere Downloader',
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: scheme.primary,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
         actions: [
           _DownloadsButton(tooltip: l10n.downloadsTitle),
           IconButton(
@@ -330,74 +373,54 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           ),
         ],
       ),
-      body: Column(
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         children: [
-          const SizedBox(height: 32),
-          Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    TextField(
-                      controller: _urlController,
-                      decoration: InputDecoration(
-                        labelText: l10n.homeUrlHint,
-                        border: const OutlineInputBorder(),
-                        errorText: _urlError,
-                        suffixIcon: ValueListenableBuilder(
-                          valueListenable: _urlController,
-                          builder: (context, value, _) {
-                            if (value.text.isEmpty) {
-                              return const SizedBox.shrink();
-                            }
-                            return IconButton(
-                              icon: const Icon(Icons.clear),
-                              tooltip: l10n.clearTooltip,
-                              onPressed: _clearUrl,
-                            );
-                          },
-                        ),
-                      ),
-                      keyboardType: TextInputType.url,
-                      textInputAction: TextInputAction.go,
-                      onSubmitted: (_) => _onGoPressed(),
-                    ),
-                    const SizedBox(height: 12),
-                    FilledButton(
-                      onPressed: _onGoPressed,
-                      child: Text(l10n.goButton),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+          const SizedBox(height: 12),
+          _LinkCard(
+            controller: _urlController,
+            errorText: _urlError,
+            onPaste: _pasteFromClipboard,
+            onClear: _clearUrl,
+            onGo: _onGoPressed,
           ),
-          const SizedBox(height: 32),
-          Expanded(
-            child: GridView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-                childAspectRatio: 2.6,
-              ),
-              itemCount: services.length,
-              itemBuilder: (context, index) {
-                final service = services[index];
-                return _ServiceCard(
+          const _ActiveDownloadCard(),
+          _HomeSectionLabel(l10n.servicesSection),
+          GridView(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 8,
+              crossAxisSpacing: 8,
+              mainAxisExtent: 68,
+            ),
+            children: [
+              for (final service in services)
+                _ServiceTile(
                   service: service,
+                  stats: stats[service.source],
                   onTap: () => _onTileTap(service),
-                );
-              },
-            ),
+                ),
+            ],
           ),
+          const _RecentStrip(),
         ],
       ),
     );
+  }
+
+  /// "Paste" inside the link field — an explicit clipboard read (unlike
+  /// `_checkClipboard`, no recognition check: the user asked for it).
+  Future<void> _pasteFromClipboard() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    final text = data?.text?.trim();
+    if (!mounted || text == null || text.isEmpty) return;
+    ClipboardLinkTracker.instance.markHandled(text);
+    setState(() {
+      _urlController.text = text;
+      _urlError = null;
+    });
   }
 
   void _onTileTap(_ServiceEntry service) {
@@ -412,49 +435,411 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 }
 
-class _ServiceCard extends StatelessWidget {
-  const _ServiceCard({required this.service, required this.onTap});
+class _HomeSectionLabel extends StatelessWidget {
+  const _HomeSectionLabel(this.text, {this.trailing});
 
-  final _ServiceEntry service;
-  final VoidCallback onTap;
+  final String text;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 16, 0, 6),
+      child: SizedBox(
+        height: 30,
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(text, style: Theme.of(context).textTheme.titleSmall),
+            ),
+            ?trailing,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The card with the link field (Paste inside it) and the big Download
+/// button.
+class _LinkCard extends StatelessWidget {
+  const _LinkCard({
+    required this.controller,
+    required this.errorText,
+    required this.onPaste,
+    required this.onClear,
+    required this.onGo,
+  });
+
+  final TextEditingController controller;
+  final String? errorText;
+  final VoidCallback onPaste;
+  final VoidCallback onClear;
+  final VoidCallback onGo;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: scheme.surfaceContainerLowest,
+      borderRadius: BorderRadius.circular(28),
+      elevation: 1,
+      shadowColor: Colors.black26,
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.url,
+              textInputAction: TextInputAction.go,
+              onSubmitted: (_) => onGo(),
+              decoration: InputDecoration(
+                hintText: l10n.homeUrlHint,
+                errorText: errorText,
+                filled: true,
+                fillColor: scheme.surfaceContainerHigh,
+                prefixIcon: const Icon(Icons.link),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                suffixIcon: ValueListenableBuilder(
+                  valueListenable: controller,
+                  builder: (context, value, _) => Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: value.text.isEmpty
+                        ? FilledButton.tonal(
+                            onPressed: onPaste,
+                            child: Text(l10n.pasteButton),
+                          )
+                        : IconButton(
+                            icon: const Icon(Icons.clear),
+                            tooltip: l10n.clearTooltip,
+                            onPressed: onClear,
+                          ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+              onPressed: onGo,
+              icon: const Icon(Icons.download),
+              label: Text(l10n.downloadButton),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The running download (the newest when several run) with its progress;
+/// tapping opens the Downloads screen. Hidden when nothing is running.
+class _ActiveDownloadCard extends ConsumerWidget {
+  const _ActiveDownloadCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final active = ref.watch(downloadRegistryProvider.select((s) => s.active));
+    if (active.isEmpty) return const SizedBox.shrink();
+    final entry = active.last;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final percent = (entry.progress * 100).round();
+    final title = active.length > 1
+        ? '${entry.title} (+${active.length - 1})'
+        : entry.title;
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Material(
+        color: scheme.primaryContainer,
+        borderRadius: BorderRadius.circular(20),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const DownloadsScreen())),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                ServiceLogoBadge(source: entry.source, size: 36, radius: 12),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: scheme.onPrimaryContainer,
+                              ),
+                            ),
+                          ),
+                          if (entry.progress > 0)
+                            Text(
+                              '$percent%',
+                              style: theme.textTheme.labelLarge?.copyWith(
+                                color: scheme.onPrimaryContainer,
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(3),
+                        child: LinearProgressIndicator(
+                          minHeight: 6,
+                          value: entry.progress > 0 ? entry.progress : null,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A service card: logo, name, and how many files were downloaded from it
+/// plus when the last one was (from the Library list; omitted when the
+/// list isn't available, e.g. no gallery access).
+class _ServiceTile extends StatelessWidget {
+  const _ServiceTile({
+    required this.service,
+    required this.stats,
+    required this.onTap,
+  });
+
+  final _ServiceEntry service;
+  final ({int count, DateTime latest})? stats;
+  final VoidCallback onTap;
+
+  String? _meta(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    if (!service.enabled) return l10n.serviceDisabledLabel;
+    final s = stats;
+    if (s == null) return null;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final day = DateTime(s.latest.year, s.latest.month, s.latest.day);
+    final diff = today.difference(day).inDays;
+    final when = diff == 0
+        ? l10n.groupToday.toLowerCase()
+        : diff == 1
+        ? l10n.groupYesterday.toLowerCase()
+        : DateFormat.MMMd(
+            Localizations.localeOf(context).toLanguageTag(),
+          ).format(s.latest);
+    return '${l10n.libraryFileCount(s.count)} · $when';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final meta = _meta(context);
     return Opacity(
       opacity: service.enabled ? 1 : 0.5,
-      child: Card(
+      child: Material(
+        color: scheme.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(20),
         clipBehavior: Clip.antiAlias,
-        margin: EdgeInsets.zero,
         child: InkWell(
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(
               children: [
-                Icon(service.icon, size: 22, color: colorScheme.primary),
-                const SizedBox(width: 10),
+                ServiceLogoBadge(source: service.source, size: 40, radius: 12),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         service.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodyMedium,
+                        style: theme.textTheme.titleSmall,
                       ),
-                      if (!service.enabled)
+                      if (meta != null)
                         Text(
-                          AppLocalizations.of(context)!.serviceDisabledLabel,
-                          style: Theme.of(context).textTheme.bodySmall,
+                          meta,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
                         ),
                     ],
                   ),
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The four newest downloads, plus a link to the Library tab. Reads the
+/// shared Library controller, which only *checks* gallery permission —
+/// without access, or with nothing downloaded, the strip is hidden.
+class _RecentStrip extends ConsumerWidget {
+  const _RecentStrip();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final state = ref.watch(libraryControllerProvider);
+    final all = state.items.valueOrNull;
+    if (!state.hasAccess || all == null || all.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final recent = all.take(4).toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _HomeSectionLabel(
+          l10n.recentSection,
+          trailing: TextButton(
+            // Fits the 30dp label row (a default TextButton is 40dp tall
+            // and was clipped there).
+            style: TextButton.styleFrom(
+              minimumSize: const Size(0, 30),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            onPressed: () =>
+                AppRouteService.instance.dispatch(AppRoute.library),
+            child: Text(l10n.libraryTitle),
+          ),
+        ),
+        GridView.count(
+          crossAxisCount: 4,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 6,
+          crossAxisSpacing: 6,
+          children: [
+            for (var i = 0; i < recent.length; i++)
+              _RecentTile(
+                item: recent[i],
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => LibraryPreviewPage(
+                      assets: [for (final item in recent) item.asset],
+                      initialIndex: i,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _RecentTile extends StatelessWidget {
+  const _RecentTile({required this.item, required this.onTap});
+
+  final LibraryItem item;
+  final VoidCallback onTap;
+
+  static final Map<String, Future<Uint8List?>> _cache = {};
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final asset = item.asset;
+    final thumb = asset.type == AssetType.audio
+        ? Future<Uint8List?>.value(null)
+        : _cache.putIfAbsent(
+            asset.id,
+            () => asset.thumbnailDataWithSize(const ThumbnailSize(200, 200)),
+          );
+    return GestureDetector(
+      onTap: onTap,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: ColoredBox(
+          color: scheme.surfaceContainerHighest,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              FutureBuilder<Uint8List?>(
+                future: thumb,
+                builder: (context, snapshot) {
+                  final bytes = snapshot.data;
+                  if (bytes != null) {
+                    return Image.memory(bytes, fit: BoxFit.cover);
+                  }
+                  return Icon(
+                    asset.type == AssetType.audio
+                        ? Icons.audiotrack_outlined
+                        : Icons.insert_drive_file_outlined,
+                    color: scheme.onSurfaceVariant,
+                  );
+                },
+              ),
+              Positioned(
+                left: 5,
+                top: 5,
+                child: ServiceLogoBadge(
+                  source: item.source,
+                  size: 20,
+                  radius: 6,
+                  outlineOnDark: false,
+                ),
+              ),
+              if (asset.type == AssetType.video)
+                Positioned(
+                  right: 5,
+                  bottom: 5,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 1,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    child: Text(
+                      formatMediaDuration(asset.duration),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ),

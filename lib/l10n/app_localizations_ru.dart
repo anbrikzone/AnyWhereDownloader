@@ -910,4 +910,10 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get librarySearchHint => 'Поиск по названию';
+
+  @override
+  String get pasteButton => 'Вставить';
+
+  @override
+  String get recentSection => 'Недавние';
 }
