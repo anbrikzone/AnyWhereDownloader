@@ -821,4 +821,53 @@ class AppLocalizationsKk extends AppLocalizations {
   @override
   String get serviceDownloadsNoAccess =>
       'Жүктелгендерді осында көру үшін галереяға рұқсат беріңіз';
+
+  @override
+  String get quickSettingsSection => 'Жылдам баптаулар';
+
+  @override
+  String get allSettingsSection => 'Барлық баптаулар';
+
+  @override
+  String get downloadsFoldersTitle => 'Жүктеулер мен қалталар';
+
+  @override
+  String get settingOn => 'Қосулы';
+
+  @override
+  String get settingOff => 'Өшірулі';
+
+  @override
+  String get checkButton => 'Тексеру';
+
+  @override
+  String get updateButton => 'Жаңарту';
+
+  @override
+  String get allUpToDate => 'Бәрі өзекті';
+
+  @override
+  String get autoPasteShort => 'Автокірістіру';
+
+  @override
+  String get linksSection => 'Сілтемелер';
+
+  @override
+  String get recommendedBadge => 'ұсынылады';
+
+  @override
+  String get aboutSummary => 'Не жаңа, yt-dlp, бастапқы код';
+
+  @override
+  String longPressSummary(String action) {
+    return 'Ұзақ басу: $action';
+  }
+
+  @override
+  String statusArchiveSummary(String value) {
+    return 'Статус мұрағаты: $value';
+  }
+
+  @override
+  String get themeTitle => 'Тақырып';
 }

@@ -820,4 +820,53 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get serviceDownloadsNoAccess =>
       'Allow gallery access to see your downloads here';
+
+  @override
+  String get quickSettingsSection => 'Quick settings';
+
+  @override
+  String get allSettingsSection => 'All settings';
+
+  @override
+  String get downloadsFoldersTitle => 'Downloads & folders';
+
+  @override
+  String get settingOn => 'On';
+
+  @override
+  String get settingOff => 'Off';
+
+  @override
+  String get checkButton => 'Check';
+
+  @override
+  String get updateButton => 'Update';
+
+  @override
+  String get allUpToDate => 'Everything is up to date';
+
+  @override
+  String get autoPasteShort => 'Auto-paste';
+
+  @override
+  String get linksSection => 'Links';
+
+  @override
+  String get recommendedBadge => 'recommended';
+
+  @override
+  String get aboutSummary => 'What\'s new, yt-dlp, source code';
+
+  @override
+  String longPressSummary(String action) {
+    return 'Long press: $action';
+  }
+
+  @override
+  String statusArchiveSummary(String value) {
+    return 'Status archive: $value';
+  }
+
+  @override
+  String get themeTitle => 'Theme';
 }

@@ -281,5 +281,20 @@
   "longPressSelect": "Белгілеу",
   "serviceDownloadsHeader": "Жүктелгендер",
   "serviceDownloadsEmpty": "Мұнда әзірге ештеңе жүктелмеген",
-  "serviceDownloadsNoAccess": "Жүктелгендерді осында көру үшін галереяға рұқсат беріңіз"
+  "serviceDownloadsNoAccess": "Жүктелгендерді осында көру үшін галереяға рұқсат беріңіз",
+  "quickSettingsSection": "Жылдам баптаулар",
+  "allSettingsSection": "Барлық баптаулар",
+  "downloadsFoldersTitle": "Жүктеулер мен қалталар",
+  "settingOn": "Қосулы",
+  "settingOff": "Өшірулі",
+  "checkButton": "Тексеру",
+  "updateButton": "Жаңарту",
+  "allUpToDate": "Бәрі өзекті",
+  "autoPasteShort": "Автокірістіру",
+  "linksSection": "Сілтемелер",
+  "recommendedBadge": "ұсынылады",
+  "aboutSummary": "Не жаңа, yt-dlp, бастапқы код",
+  "longPressSummary": "Ұзақ басу: {action}",
+  "statusArchiveSummary": "Статус мұрағаты: {value}",
+  "themeTitle": "Тақырып"
 }

@@ -1515,6 +1515,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Allow gallery access to see your downloads here'**
   String get serviceDownloadsNoAccess;
+
+  /// No description provided for @quickSettingsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick settings'**
+  String get quickSettingsSection;
+
+  /// No description provided for @allSettingsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'All settings'**
+  String get allSettingsSection;
+
+  /// No description provided for @downloadsFoldersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloads & folders'**
+  String get downloadsFoldersTitle;
+
+  /// No description provided for @settingOn.
+  ///
+  /// In en, this message translates to:
+  /// **'On'**
+  String get settingOn;
+
+  /// No description provided for @settingOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get settingOff;
+
+  /// No description provided for @checkButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Check'**
+  String get checkButton;
+
+  /// No description provided for @updateButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Update'**
+  String get updateButton;
+
+  /// No description provided for @allUpToDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything is up to date'**
+  String get allUpToDate;
+
+  /// No description provided for @autoPasteShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-paste'**
+  String get autoPasteShort;
+
+  /// No description provided for @linksSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Links'**
+  String get linksSection;
+
+  /// No description provided for @recommendedBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'recommended'**
+  String get recommendedBadge;
+
+  /// No description provided for @aboutSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'What\'s new, yt-dlp, source code'**
+  String get aboutSummary;
+
+  /// No description provided for @longPressSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Long press: {action}'**
+  String longPressSummary(String action);
+
+  /// No description provided for @statusArchiveSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Status archive: {value}'**
+  String statusArchiveSummary(String value);
+
+  /// No description provided for @themeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get themeTitle;
 }
 
 class _AppLocalizationsDelegate

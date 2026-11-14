@@ -365,5 +365,22 @@
   "longPressSelect": "Select",
   "serviceDownloadsHeader": "Downloaded",
   "serviceDownloadsEmpty": "Nothing downloaded from here yet",
-  "serviceDownloadsNoAccess": "Allow gallery access to see your downloads here"
+  "serviceDownloadsNoAccess": "Allow gallery access to see your downloads here",
+  "quickSettingsSection": "Quick settings",
+  "allSettingsSection": "All settings",
+  "downloadsFoldersTitle": "Downloads & folders",
+  "settingOn": "On",
+  "settingOff": "Off",
+  "checkButton": "Check",
+  "updateButton": "Update",
+  "allUpToDate": "Everything is up to date",
+  "autoPasteShort": "Auto-paste",
+  "linksSection": "Links",
+  "recommendedBadge": "recommended",
+  "aboutSummary": "What's new, yt-dlp, source code",
+  "longPressSummary": "Long press: {action}",
+  "@longPressSummary": {"placeholders": {"action": {"type": "String"}}},
+  "statusArchiveSummary": "Status archive: {value}",
+  "@statusArchiveSummary": {"placeholders": {"value": {"type": "String"}}},
+  "themeTitle": "Theme"
 }

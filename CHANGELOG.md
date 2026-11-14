@@ -15,6 +15,7 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 - New setting (Settings → Playback): long-pressing a photo or video can either preview it while held, or start selecting with that item already selected.
 
 **Changed**
+- Settings are redesigned: an app card with one update button, quick tiles for the most-used options, and tidy sections for downloads, playback, WhatsApp and About.
 - The bottom bar with Home and Library is a little slimmer.
 - Updated the built-in YouTube engine (yt-dlp 2026.10.26) for fresh installs.
 
@@ -28,6 +29,7 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 - Новая настройка (Настройки → Воспроизведение): долгое нажатие на фото или видео может показывать предпросмотр, пока палец удерживается, или включать выделение сразу с этим файлом.
 
 **Изменено**
+- Новый дизайн настроек: карточка приложения с одной кнопкой обновления, быстрые плитки для самых нужных опций и аккуратные разделы — загрузки, просмотр, WhatsApp и «О приложении».
 - Нижняя панель с «Главной» и «Библиотекой» стала немного ниже.
 - Встроенный движок YouTube обновлён (yt-dlp 2026.10.26) для новых установок.
 
@@ -41,6 +43,7 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 - Жаңа баптау (Баптаулар → Ойнату): фото не бейнені ұзақ басу оны ұстап тұрғанда алдын ала көрсетеді немесе сол файлмен белгілеуді бастайды.
 
 **Өзгертілді**
+- Баптаулардың жаңа дизайны: бір жаңарту батырмасы бар қолданба картасы, жиі қолданылатын опцияларға жылдам плиткалар және жүктеулер, ойнату, WhatsApp пен «Қолданба туралы» бөлімдері.
 - «Басты бет» пен «Кітапхана» бар төменгі панель сәл жіңішкерді.
 - Кірістірілген YouTube қозғалтқышы жаңартылды (yt-dlp 2026.10.26) жаңа орнатулар үшін.
 

@@ -821,4 +821,53 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get serviceDownloadsNoAccess =>
       'Разрешите доступ к галерее, чтобы видеть скачанное здесь';
+
+  @override
+  String get quickSettingsSection => 'Быстрые настройки';
+
+  @override
+  String get allSettingsSection => 'Все настройки';
+
+  @override
+  String get downloadsFoldersTitle => 'Загрузки и папки';
+
+  @override
+  String get settingOn => 'Включено';
+
+  @override
+  String get settingOff => 'Выключено';
+
+  @override
+  String get checkButton => 'Проверить';
+
+  @override
+  String get updateButton => 'Обновить';
+
+  @override
+  String get allUpToDate => 'Всё актуально';
+
+  @override
+  String get autoPasteShort => 'Автовставка';
+
+  @override
+  String get linksSection => 'Ссылки';
+
+  @override
+  String get recommendedBadge => 'рекоменд.';
+
+  @override
+  String get aboutSummary => 'Что нового, yt-dlp, исходный код';
+
+  @override
+  String longPressSummary(String action) {
+    return 'Долгое нажатие: $action';
+  }
+
+  @override
+  String statusArchiveSummary(String value) {
+    return 'Архив статусов: $value';
+  }
+
+  @override
+  String get themeTitle => 'Тема';
 }

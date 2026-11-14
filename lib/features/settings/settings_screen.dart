@@ -8,388 +8,250 @@ import '../../core/extraction/media_extractor.dart';
 import '../../core/settings/app_settings_service.dart';
 import '../../core/settings/settings_providers.dart';
 import '../../core/settings/yt_dlp_status_provider.dart';
-import '../../core/storage/media_library_service.dart';
-import '../../core/ui/app_toast.dart';
 import '../../core/update/update_providers.dart';
-import '../../core/update/update_service.dart' show kRepoDisplayUrl;
 import '../../l10n/app_localizations.dart';
-import 'changelog_screen.dart';
-import 'services_screen.dart';
+import 'settings_pages.dart';
+import 'settings_widgets.dart';
 import 'update_sheet.dart';
 
-/// Fixed width shared by the WhatsApp archive and "Save location" dropdowns
-/// (`_Dropdown`'s `width` param) — wide enough for `AudioSaveRoot`'s longest
-/// label (`Notifications`) so the value text starts at the same indent and
-/// the arrow lands at the same spot on every row, regardless of how short
-/// that row's own selected label is (`Off`, `Pictures`, `DCIM`, `Movies`,
-/// `Music`, ...).
-const _dropdownAlignedWidth = 130.0;
-
+/// Settings hub (redesign variant B, approved 2026-11-14): an app card with
+/// the update check, four quick tiles (two toggles, theme, language), and a
+/// list of sections that each open their own page (`settings_pages.dart`).
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
     final themeMode = ref.watch(themeModeProvider);
-    final enabledServices = ref.watch(enabledServicesProvider);
+    final locale = ref.watch(localeProvider);
     final clipboardAutoPaste = ref.watch(clipboardAutoPasteEnabledProvider);
     final repeatVideo = ref.watch(repeatVideoEnabledProvider);
-    final longPressAction = ref.watch(longPressActionProvider);
-    final locale = ref.watch(localeProvider);
-    final statusArchive = ref.watch(statusArchiveRetentionProvider);
-    final mediaSaveRoot = ref.watch(mediaSaveRootProvider);
-    final audioSaveRoot = ref.watch(audioSaveRootProvider);
-    final versionLabel =
-        ref.watch(appVersionLabelProvider).valueOrNull ?? kAppVersion;
+    final longPress = ref.watch(longPressActionProvider);
+    final retention = ref.watch(statusArchiveRetentionProvider);
+    final mediaRoot = ref.watch(mediaSaveRootProvider);
+    final audioRoot = ref.watch(audioSaveRootProvider);
+    final enabled = ref.watch(enabledServicesProvider);
+    final enabledCount = ServiceType.values
+        .where((s) => enabled[s] ?? true)
+        .length;
+
+    final themeLabels = {
+      ThemeMode.system: l10n.systemDefaultOption,
+      ThemeMode.light: l10n.lightThemeOption,
+      ThemeMode.dark: l10n.darkThemeOption,
+    };
+    final localeLabels = <Locale?, String>{
+      null: l10n.systemDefaultOption,
+      const Locale('en'): 'English',
+      const Locale('ru'): 'Русский',
+      const Locale('kk'): 'Қазақша',
+    };
+    final archiveLabels = {
+      StatusArchiveRetention.off: l10n.statusArchiveOff,
+      StatusArchiveRetention.oneWeek: l10n.statusArchiveWeek,
+      StatusArchiveRetention.oneMonth: l10n.statusArchiveMonth,
+    };
+    final longPressLabel = longPress == LongPressAction.select
+        ? l10n.longPressSelect
+        : l10n.longPressPreview;
+
+    void open(Widget page) =>
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.settingsTitle)),
+      backgroundColor: scheme.surfaceContainer,
+      appBar: AppBar(
+        title: Text(l10n.settingsTitle),
+        backgroundColor: scheme.surfaceContainer,
+      ),
       body: ListView(
+        padding: const EdgeInsets.only(top: 4, bottom: 32),
         children: [
-          ListTile(
-            title: Text(l10n.appearanceSection),
-            trailing: _Dropdown<ThemeMode>(
-              value: themeMode,
-              items: {
-                ThemeMode.system: l10n.systemDefaultOption,
-                ThemeMode.light: l10n.lightThemeOption,
-                ThemeMode.dark: l10n.darkThemeOption,
-              },
-              onChanged: (mode) => _setThemeMode(ref, mode),
+          const _AppCard(),
+          SettingsSectionLabel(l10n.quickSettingsSection),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: _QuickTile(
+                        icon: Icons.content_paste_go_outlined,
+                        title: l10n.autoPasteShort,
+                        value: clipboardAutoPaste
+                            ? l10n.settingOn
+                            : l10n.settingOff,
+                        active: clipboardAutoPaste,
+                        onTap: () => ref
+                            .read(clipboardAutoPasteEnabledProvider.notifier)
+                            .setEnabled(!clipboardAutoPaste),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _QuickTile(
+                        icon: Icons.repeat,
+                        title: l10n.repeatVideoTitle,
+                        value: repeatVideo ? l10n.settingOn : l10n.settingOff,
+                        active: repeatVideo,
+                        onTap: () => ref
+                            .read(repeatVideoEnabledProvider.notifier)
+                            .setEnabled(!repeatVideo),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _QuickTile(
+                        icon: Icons.contrast,
+                        title: l10n.themeTitle,
+                        value: themeLabels[themeMode]!,
+                        onTap: () async {
+                          final picked = await _pickOption<ThemeMode>(
+                            context,
+                            title: l10n.themeTitle,
+                            options: themeLabels,
+                            current: themeMode,
+                          );
+                          if (picked != null) {
+                            ref
+                                .read(themeModeProvider.notifier)
+                                .setThemeMode(picked.value);
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _QuickTile(
+                        icon: Icons.language,
+                        title: l10n.languageSection,
+                        value: localeLabels[locale] ?? l10n.systemDefaultOption,
+                        onTap: () async {
+                          final picked = await _pickOption<Locale?>(
+                            context,
+                            title: l10n.languageSection,
+                            options: localeLabels,
+                            current: locale,
+                          );
+                          if (picked != null) {
+                            ref
+                                .read(localeProvider.notifier)
+                                .setLocale(picked.value);
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-          const Divider(),
-          ListTile(
-            title: Text(l10n.servicesSection),
-            subtitle: Text(
-              l10n.servicesEnabledSubtitle(
-                ServiceType.values
-                    .where((s) => enabledServices[s] ?? true)
-                    .length,
-                ServiceType.values.length,
+          SettingsSectionLabel(l10n.allSettingsSection),
+          SettingsCard(
+            children: [
+              _SectionRow(
+                icon: Icons.download_outlined,
+                background: scheme.primaryContainer,
+                foreground: scheme.onPrimaryContainer,
+                title: l10n.downloadsFoldersTitle,
+                summary:
+                    '${mediaRoot.androidDirectoryName} · '
+                    '${audioRoot.androidDirectoryName} · '
+                    '${l10n.servicesEnabledSubtitle(enabledCount, ServiceType.values.length)}',
+                onTap: () => open(const DownloadsSettingsPage()),
               ),
-            ),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const ServicesScreen())),
+              _SectionRow(
+                icon: Icons.smart_display_outlined,
+                background: scheme.secondaryContainer,
+                foreground: scheme.onSecondaryContainer,
+                title: l10n.playbackSection,
+                summary: l10n.longPressSummary(longPressLabel),
+                onTap: () => open(const PlaybackSettingsPage()),
+              ),
+              _SectionRow(
+                icon: Icons.chat_outlined,
+                background: scheme.tertiaryContainer,
+                foreground: scheme.onTertiaryContainer,
+                title: 'WhatsApp',
+                summary: l10n.statusArchiveSummary(archiveLabels[retention]!),
+                onTap: () => open(const WhatsAppSettingsPage()),
+              ),
+              _SectionRow(
+                icon: Icons.info_outline,
+                background: scheme.surfaceContainerHighest,
+                foreground: scheme.onSurfaceVariant,
+                title: l10n.aboutSection,
+                summary: l10n.aboutSummary,
+                onTap: () => open(const AboutSettingsPage()),
+              ),
+            ],
           ),
-          const Divider(),
-          _SectionHeader(l10n.clipboardSection),
-          SwitchListTile(
-            title: Text(l10n.clipboardAutoPasteTitle),
-            subtitle: Text(l10n.clipboardAutoPasteSubtitle),
-            value: clipboardAutoPaste,
-            onChanged: (enabled) => ref
-                .read(clipboardAutoPasteEnabledProvider.notifier)
-                .setEnabled(enabled),
-          ),
-          const Divider(),
-          _SectionHeader(l10n.playbackSection),
-          SwitchListTile(
-            title: Text(l10n.repeatVideoTitle),
-            subtitle: Text(l10n.repeatVideoSubtitle),
-            value: repeatVideo,
-            onChanged: (enabled) => ref
-                .read(repeatVideoEnabledProvider.notifier)
-                .setEnabled(enabled),
-          ),
-          ListTile(
-            title: Text(l10n.longPressTitle),
-            subtitle: Text(l10n.longPressSubtitle),
-            trailing: _Dropdown<LongPressAction>(
-              value: longPressAction,
-              items: {
-                LongPressAction.preview: l10n.longPressPreview,
-                LongPressAction.select: l10n.longPressSelect,
-              },
-              onChanged: (value) =>
-                  ref.read(longPressActionProvider.notifier).setAction(value),
-              width: _dropdownAlignedWidth,
-            ),
-          ),
-          const Divider(),
-          _SectionHeader(l10n.whatsappSection),
-          ListTile(
-            title: Text(l10n.statusArchiveTitle),
-            subtitle: Text(l10n.statusArchiveSubtitle),
-            trailing: _Dropdown<StatusArchiveRetention>(
-              value: statusArchive,
-              items: {
-                StatusArchiveRetention.off: l10n.statusArchiveOff,
-                StatusArchiveRetention.oneWeek: l10n.statusArchiveWeek,
-                StatusArchiveRetention.oneMonth: l10n.statusArchiveMonth,
-              },
-              onChanged: (value) => ref
-                  .read(statusArchiveRetentionProvider.notifier)
-                  .setRetention(value),
-              width: _dropdownAlignedWidth,
-            ),
-          ),
-          const Divider(),
-          _SectionHeader(l10n.saveLocationSection),
-          ListTile(
-            title: Text(l10n.saveLocationMediaTitle),
-            subtitle: Text(l10n.saveLocationMediaSubtitle),
-            trailing: _Dropdown<MediaSaveRoot>(
-              value: mediaSaveRoot,
-              items: {
-                for (final root in MediaSaveRoot.values)
-                  root: root.androidDirectoryName,
-              },
-              onChanged: (value) =>
-                  _onMediaSaveRootChanged(context, ref, l10n, value),
-              // Fixed so this row's arrow lines up with the audio row's
-              // below regardless of which option is selected — see the
-              // width param's doc on `_Dropdown`. Wide enough for the
-              // longest label either dropdown can show ("Notifications").
-              width: _dropdownAlignedWidth,
-            ),
-          ),
-          ListTile(
-            title: Text(l10n.saveLocationAudioTitle),
-            subtitle: Text(l10n.saveLocationAudioSubtitle),
-            trailing: _Dropdown<AudioSaveRoot>(
-              value: audioSaveRoot,
-              items: {
-                for (final root in AudioSaveRoot.values)
-                  root: root.androidDirectoryName,
-              },
-              onChanged: (value) =>
-                  _onAudioSaveRootChanged(context, ref, l10n, value),
-              width: _dropdownAlignedWidth,
-            ),
-          ),
-          const Divider(),
-          ListTile(
-            title: Text(l10n.languageSection),
-            trailing: _Dropdown<Locale?>(
-              value: locale,
-              items: {
-                null: l10n.systemDefaultOption,
-                const Locale('en'): 'English',
-                const Locale('ru'): 'Русский',
-                const Locale('kk'): 'Қазақша',
-              },
-              onChanged: (value) =>
-                  ref.read(localeProvider.notifier).setLocale(value),
-            ),
-          ),
-          const Divider(),
-          _SectionHeader(l10n.aboutSection),
-          ListTile(
-            leading: const Icon(Icons.science_outlined),
-            title: Text(l10n.betaNoticeTitle),
-            subtitle: Text(l10n.betaNoticeBody),
-          ),
-          ListTile(
-            leading: const Icon(Icons.code),
-            title: Text(l10n.sourceCodeTitle),
-            subtitle: const Text(kRepoDisplayUrl),
-            trailing: const Icon(Icons.open_in_new, size: 18),
-            onTap: () => ref
-                .read(updateControllerProvider.notifier)
-                .openRepositoryPage(),
-          ),
-          ListTile(
-            title: Text(l10n.whatsNewTitle),
-            subtitle: Text(l10n.versionLabel(versionLabel)),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const ChangelogScreen())),
-          ),
-          const _UpdateRow(),
-          const _YtDlpRow(),
-          const SizedBox(height: 12),
         ],
       ),
     );
   }
-
-  void _setThemeMode(WidgetRef ref, ThemeMode? mode) {
-    if (mode == null) return;
-    ref.read(themeModeProvider.notifier).setThemeMode(mode);
-  }
 }
 
-/// New downloads use [value] immediately either way; only asks about
-/// relocating *existing* ones if it actually changed.
-Future<void> _onMediaSaveRootChanged(
-  BuildContext context,
-  WidgetRef ref,
-  AppLocalizations l10n,
-  MediaSaveRoot value,
-) async {
-  final previous = ref.read(mediaSaveRootProvider);
-  ref.read(mediaSaveRootProvider.notifier).setRoot(value);
-  if (value == previous || !context.mounted) return;
-  await _offerToMoveExisting(
-    context: context,
-    l10n: l10n,
-    newRootLabel: value.androidDirectoryName,
-    attempt: () => MediaLibraryService().attemptMoveRoot(
-      isAudio: false,
-      fromRoot: previous.androidDirectoryName,
-      toRoot: value.androidDirectoryName,
-    ),
-  );
-}
-
-/// Audio counterpart of [_onMediaSaveRootChanged].
-Future<void> _onAudioSaveRootChanged(
-  BuildContext context,
-  WidgetRef ref,
-  AppLocalizations l10n,
-  AudioSaveRoot value,
-) async {
-  final previous = ref.read(audioSaveRootProvider);
-  ref.read(audioSaveRootProvider.notifier).setRoot(value);
-  if (value == previous || !context.mounted) return;
-  await _offerToMoveExisting(
-    context: context,
-    l10n: l10n,
-    newRootLabel: value.androidDirectoryName,
-    attempt: () => MediaLibraryService().attemptMoveRoot(
-      isAudio: true,
-      fromRoot: previous.androidDirectoryName,
-      toRoot: value.androidDirectoryName,
-    ),
-  );
-}
-
-/// Shared "move existing downloads too?" flow for both save-location
-/// dropdowns — added 2026-09-13 after on-device feedback that changing the
-/// setting alone left old files behind (confirmed as intended, but the user
-/// wanted the *option* to relocate them too). Reuses the exact
-/// [MediaLibraryService.attemptMoveRoot]/`completeMigrationAfterConsent`
-/// two-phase consent shape already built for backlog #7's legacy-folder
-/// migration — a deliberate root change hits the identical
-/// `RecoverableSecurityException` requirement a `RELATIVE_PATH` move always
-/// does (see `MediaSaveBridge.moveBucket`'s bug #5 doc), so the same batched
-/// single-dialog-then-retry flow applies here unchanged.
-Future<void> _offerToMoveExisting({
-  required BuildContext context,
-  required AppLocalizations l10n,
-  required String newRootLabel,
-  required Future<PendingMigrationConsent?> Function() attempt,
-}) async {
-  final proceed = await showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Text(l10n.rootMoveConfirmTitle),
-      content: Text(l10n.rootMoveConfirmBody(newRootLabel)),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          child: Text(l10n.rootMoveConfirmNo),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(true),
-          child: Text(l10n.rootMoveConfirmYes),
-        ),
-      ],
-    ),
-  );
-  if (proceed != true || !context.mounted) return;
-
-  showDialog<void>(
-    context: context,
-    barrierDismissible: false,
-    builder: (context) => AlertDialog(
-      content: Row(
-        children: [
-          const SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-          const SizedBox(width: 16),
-          Expanded(child: Text(l10n.rootMoveInProgress)),
-        ],
-      ),
-    ),
-  );
-
-  final service = MediaLibraryService();
-  final pending = await attempt();
-  final fullyMoved = pending == null
-      ? true
-      : await service.completeMigrationAfterConsent(pending);
-
-  if (!context.mounted) return;
-  Navigator.of(context, rootNavigator: true).pop(); // dismiss the busy dialog
-  showAppToast(
-    context,
-    fullyMoved ? l10n.rootMoveDone : l10n.rootMoveIncomplete,
-  );
-}
-
-/// Compact dropdown for a settings row — takes far less vertical space than
-/// a `RadioListTile` group when there are only a few mutually-exclusive
-/// options, at the cost of the options not all being visible at once.
-///
-/// [width] is optional — without it (the default, every other row using
-/// this) the button hugs its own selected label, so two rows whose values
-/// differ in length (e.g. `Movies` vs `Music`) show their dropdown arrow at
-/// different horizontal positions, which reads as misaligned when the rows
-/// sit directly under each other (reported on-device 2026-09-13, the two
-/// "Save location" rows). Passing a fixed [width] (with `isExpanded: true`)
-/// pins the arrow to the same right edge on every row regardless of the
-/// selected label's length, at the cost of a visible gap before the arrow
-/// for a short label in a [width] sized for a longer one.
-class _Dropdown<T> extends StatelessWidget {
-  const _Dropdown({
-    required this.value,
-    required this.items,
-    required this.onChanged,
-    this.width,
-  });
-
+/// Wraps the picked value so a sheet dismissed without a choice (null) is
+/// distinguishable from picking the `null` option ("System default").
+class _Picked<T> {
+  const _Picked(this.value);
   final T value;
-  final Map<T, String> items;
-  final ValueChanged<T> onChanged;
-  final double? width;
+}
 
-  @override
-  Widget build(BuildContext context) {
-    final button = DropdownButtonHideUnderline(
-      child: DropdownButton<T>(
-        value: value,
-        isDense: true,
-        isExpanded: width != null,
-        items: [
-          for (final entry in items.entries)
-            DropdownMenuItem<T>(value: entry.key, child: Text(entry.value)),
+Future<_Picked<T>?> _pickOption<T>(
+  BuildContext context, {
+  required String title,
+  required Map<T, String> options,
+  required T current,
+}) {
+  return showModalBottomSheet<_Picked<T>>(
+    context: context,
+    showDragHandle: true,
+    builder: (context) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+            child: Text(title, style: Theme.of(context).textTheme.titleLarge),
+          ),
+          for (final entry in options.entries)
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+              title: Text(entry.value),
+              trailing: entry.key == current
+                  ? Icon(
+                      Icons.check,
+                      color: Theme.of(context).colorScheme.primary,
+                    )
+                  : null,
+              onTap: () => Navigator.of(context).pop(_Picked<T>(entry.key)),
+            ),
+          const SizedBox(height: 8),
         ],
-        onChanged: (selected) {
-          if (selected != null || items.containsKey(null)) {
-            onChanged(selected as T);
-          }
-        },
       ),
-    );
-    return width == null ? button : SizedBox(width: width, child: button);
-  }
+    ),
+  );
 }
 
-/// "Check for updates" row. A tap kicks off **both** checks — the app
-/// (GitHub release, [updateControllerProvider]) and the YouTube engine
-/// ([ytDlpStatusProvider]) — in the background and returns immediately: the
-/// row keeps showing the last known result the whole time, never a
-/// blocking spinner. A short cosmetic pulse (≤2 s) acknowledges the tap;
-/// the real network calls run their own timeouts unwatched and update the
-/// row if and when anything changed. If an app update is found, the tap
-/// opens [showUpdateSheet] instead.
-class _UpdateRow extends ConsumerStatefulWidget {
-  const _UpdateRow();
+/// App identity + update status + one "Check"/"Update" button.
+class _AppCard extends ConsumerStatefulWidget {
+  const _AppCard();
 
   @override
-  ConsumerState<_UpdateRow> createState() => _UpdateRowState();
+  ConsumerState<_AppCard> createState() => _AppCardState();
 }
 
-class _UpdateRowState extends ConsumerState<_UpdateRow> {
+class _AppCardState extends ConsumerState<_AppCard> {
   bool _pulsing = false;
   Timer? _pulseTimer;
 
@@ -399,10 +261,8 @@ class _UpdateRowState extends ConsumerState<_UpdateRow> {
     super.dispose();
   }
 
-  void _startCheck() {
-    // Fire-and-forget — neither call is awaited, nothing blocks.
-    unawaited(ref.read(updateControllerProvider.notifier).checkNow());
-    unawaited(ref.read(ytDlpStatusProvider.notifier).updateNow());
+  void _check() {
+    startUpdateCheck(ref);
     setState(() => _pulsing = true);
     _pulseTimer?.cancel();
     _pulseTimer = Timer(const Duration(seconds: 2), () {
@@ -413,120 +273,239 @@ class _UpdateRowState extends ConsumerState<_UpdateRow> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final appState = ref.watch(updateControllerProvider);
     final ytState = ref.watch(ytDlpStatusProvider);
+    final version =
+        ref.watch(appVersionLabelProvider).valueOrNull ?? kAppVersion;
 
     final hasAppUpdate =
         appState is UpdateAvailable ||
         appState is UpdateDownloading ||
         appState is UpdateReadyToInstall ||
         appState is UpdateError;
+    final ytFailed = ytState.info?.lastUpdateStatus == 'failed';
 
-    // Short yt-dlp clause appended to the "no app update" line.
-    String ytClause() => switch (ytState.info?.lastUpdateStatus) {
-      'done' => l10n.ytDlpUpdatedToShort(ytState.info?.version ?? ''),
-      'upToDate' => l10n.ytDlpCurrentShort,
-      'failed' => l10n.ytDlpFailedShort,
-      _ => '',
-    };
-
-    String? subtitle;
+    IconData? statusIcon;
+    String? status;
     if (appState is UpdateAvailable) {
-      subtitle = l10n.updateAvailable(appState.info.version);
+      status = l10n.updateAvailable(appState.info.version);
+      statusIcon = Icons.new_releases_outlined;
     } else if (appState is UpdateReadyToInstall) {
-      subtitle = l10n.updateAvailable(appState.info.version);
+      status = l10n.updateAvailable(appState.info.version);
+      statusIcon = Icons.new_releases_outlined;
     } else if (appState is UpdateDownloading) {
-      subtitle = l10n.updateDownloadingLabel;
+      status = l10n.updateDownloadingLabel;
     } else if (appState is UpdateError) {
-      subtitle = l10n.updateFailed;
+      status = l10n.updateFailed;
+      statusIcon = Icons.error_outline;
+    } else if (_pulsing || appState is UpdateChecking) {
+      status = l10n.updateChecking;
     } else if (appState is UpdateUpToDate) {
-      final yt = ytClause();
-      subtitle = yt.isEmpty
-          ? l10n.appNoUpdateLabel
-          : '${l10n.appNoUpdateLabel} · $yt';
+      status = ytFailed
+          ? '${l10n.appNoUpdateLabel} · ${l10n.ytDlpFailedShort}'
+          : l10n.allUpToDate;
+      statusIcon = ytFailed ? Icons.error_outline : Icons.check_circle_outline;
     } else {
-      // Not checked yet this session — show "checking…" only during the pulse.
-      subtitle = _pulsing ? l10n.updateChecking : null;
+      final yt = ytState.info?.version;
+      status = yt == null ? null : l10n.ytDlpVersionLabel(yt);
     }
 
-    return ListTile(
-      leading: hasAppUpdate
-          ? const Badge(child: Icon(Icons.system_update_outlined))
-          : const Icon(Icons.system_update_outlined),
-      title: Text(l10n.checkForUpdatesTitle),
-      subtitle: subtitle == null ? null : Text(subtitle),
-      trailing: _pulsing
-          ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : null,
-      onTap: () {
-        if (hasAppUpdate) {
-          showUpdateSheet(context);
-        } else {
-          _startCheck();
-        }
-      },
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: scheme.primaryContainer,
+          borderRadius: BorderRadius.circular(28),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.asset(
+                    'assets/icon/icon.png',
+                    width: 56,
+                    height: 56,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'AnyWhere Downloader',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: scheme.onPrimaryContainer,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${l10n.versionLabel(version)} · ${l10n.betaNoticeTitle}',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: scheme.onPrimaryContainer,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                if (statusIcon != null) ...[
+                  Icon(statusIcon, size: 18, color: scheme.onPrimaryContainer),
+                  const SizedBox(width: 8),
+                ],
+                Expanded(
+                  child: Text(
+                    status ?? '',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: scheme.onPrimaryContainer,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  onPressed: _pulsing
+                      ? null
+                      : hasAppUpdate
+                      ? () => showUpdateSheet(context)
+                      : _check,
+                  child: _pulsing
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(
+                          hasAppUpdate ? l10n.updateButton : l10n.checkButton,
+                        ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
 
-/// Read-only "yt-dlp" line under [_UpdateRow] — just shows the installed
-/// engine version and last-update result. The check/update action lives in
-/// [_UpdateRow] now; this is here so the version is visible at a glance.
-class _YtDlpRow extends ConsumerWidget {
-  const _YtDlpRow();
+/// One quick-settings tile. [active] fills it with the primary color (a
+/// toggle that is on); a tile without [active] is a plain picker.
+class _QuickTile extends StatelessWidget {
+  const _QuickTile({
+    required this.icon,
+    required this.title,
+    required this.value,
+    required this.onTap,
+    this.active,
+  });
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final state = ref.watch(ytDlpStatusProvider);
-    final info = state.info;
-
-    final String subtitle;
-    if (state.updating) {
-      subtitle = l10n.ytDlpUpdatingLabel;
-    } else if (state.loading || info == null) {
-      subtitle = l10n.ytDlpEngineChecking;
-    } else {
-      final version = info.version != null
-          ? l10n.ytDlpVersionLabel(info.version!)
-          : l10n.ytDlpVersionUnknown;
-      final status = switch (info.lastUpdateStatus) {
-        'done' => l10n.ytDlpStatusUpdated,
-        'upToDate' => l10n.ytDlpStatusUpToDate,
-        'failed' => l10n.ytDlpStatusUpdateFailed,
-        _ => l10n.ytDlpStatusNotYet,
-      };
-      subtitle = '$version · $status';
-    }
-
-    return ListTile(
-      dense: true,
-      leading: const Icon(Icons.terminal_outlined),
-      title: const Text('yt-dlp'),
-      subtitle: Text(subtitle),
-    );
-  }
-}
-
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader(this.title);
-
+  final IconData icon;
   final String title;
+  final String value;
+  final VoidCallback onTap;
+  final bool? active;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-      child: Text(
-        title,
-        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-          color: Theme.of(context).colorScheme.primary,
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final on = active == true;
+    final bg = on ? scheme.primary : scheme.surfaceContainerLowest;
+    final fg = on ? scheme.onPrimary : scheme.onSurface;
+    final sub = on
+        ? scheme.onPrimary.withValues(alpha: 0.85)
+        : scheme.onSurfaceVariant;
+
+    final tile = Material(
+      color: bg,
+      borderRadius: BorderRadius.circular(24),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: on
+                      ? scheme.onPrimary.withValues(alpha: 0.18)
+                      : scheme.primaryContainer,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  size: 20,
+                  color: on ? scheme.onPrimary : scheme.onPrimaryContainer,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleSmall?.copyWith(color: fg),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(color: sub),
+              ),
+            ],
+          ),
         ),
       ),
+    );
+    if (active == null) return tile;
+    return Semantics(toggled: on, button: true, child: tile);
+  }
+}
+
+class _SectionRow extends StatelessWidget {
+  const _SectionRow({
+    required this.icon,
+    required this.background,
+    required this.foreground,
+    required this.title,
+    required this.summary,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color background;
+  final Color foreground;
+  final String title;
+  final String summary;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      leading: SettingsIconBox(
+        icon: icon,
+        background: background,
+        foreground: foreground,
+      ),
+      title: Text(title),
+      subtitle: Text(summary, maxLines: 1, overflow: TextOverflow.ellipsis),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: onTap,
     );
   }
 }

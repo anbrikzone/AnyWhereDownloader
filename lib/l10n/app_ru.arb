@@ -281,5 +281,20 @@
   "longPressSelect": "Выделение",
   "serviceDownloadsHeader": "Скачано",
   "serviceDownloadsEmpty": "Отсюда пока ничего не скачано",
-  "serviceDownloadsNoAccess": "Разрешите доступ к галерее, чтобы видеть скачанное здесь"
+  "serviceDownloadsNoAccess": "Разрешите доступ к галерее, чтобы видеть скачанное здесь",
+  "quickSettingsSection": "Быстрые настройки",
+  "allSettingsSection": "Все настройки",
+  "downloadsFoldersTitle": "Загрузки и папки",
+  "settingOn": "Включено",
+  "settingOff": "Выключено",
+  "checkButton": "Проверить",
+  "updateButton": "Обновить",
+  "allUpToDate": "Всё актуально",
+  "autoPasteShort": "Автовставка",
+  "linksSection": "Ссылки",
+  "recommendedBadge": "рекоменд.",
+  "aboutSummary": "Что нового, yt-dlp, исходный код",
+  "longPressSummary": "Долгое нажатие: {action}",
+  "statusArchiveSummary": "Архив статусов: {value}",
+  "themeTitle": "Тема"
 }
