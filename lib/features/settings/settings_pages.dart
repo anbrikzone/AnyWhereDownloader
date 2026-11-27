@@ -31,11 +31,7 @@ const serviceLabels = {
 
 Widget _sectionPage(BuildContext context, String title, List<Widget> body) {
   return Scaffold(
-    backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
-    appBar: AppBar(
-      title: Text(title),
-      backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
-    ),
+    appBar: AppBar(title: Text(title)),
     body: ListView(padding: const EdgeInsets.only(bottom: 32), children: body),
   );
 }

@@ -8,6 +8,7 @@ import '../../core/extraction/media_extractor.dart';
 import '../../core/settings/app_settings_service.dart';
 import '../../core/settings/settings_providers.dart';
 import '../../core/settings/yt_dlp_status_provider.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/update/update_providers.dart';
 import '../../l10n/app_localizations.dart';
 import 'settings_pages.dart';
@@ -61,11 +62,7 @@ class SettingsScreen extends ConsumerWidget {
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
 
     return Scaffold(
-      backgroundColor: scheme.surfaceContainer,
-      appBar: AppBar(
-        title: Text(l10n.settingsTitle),
-        backgroundColor: scheme.surfaceContainer,
-      ),
+      appBar: AppBar(title: Text(l10n.settingsTitle)),
       body: ListView(
         padding: const EdgeInsets.only(top: 4, bottom: 32),
         children: [
@@ -420,7 +417,7 @@ class _QuickTile extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final on = active == true;
-    final bg = on ? scheme.primary : scheme.surfaceContainerLowest;
+    final bg = on ? scheme.primary : scheme.cardSurface;
     final fg = on ? scheme.onPrimary : scheme.onSurface;
     final sub = on
         ? scheme.onPrimary.withValues(alpha: 0.85)

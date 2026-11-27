@@ -84,7 +84,9 @@ class _ServiceDownloadsSectionState
             Text(
               l10n.serviceDownloadsNoAccess,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 8),
             OutlinedButton(
@@ -126,7 +128,9 @@ class _ServiceDownloadsSectionState
               ? Center(
                   child: Text(
                     l10n.serviceDownloadsEmpty,
-                    style: const TextStyle(color: Colors.grey),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 )
               : LibraryGrid(

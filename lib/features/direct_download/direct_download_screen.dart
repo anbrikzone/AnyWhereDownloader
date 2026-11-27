@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/clipboard/clipboard_link_tracker.dart';
 import '../../core/extraction/media_extractor.dart';
 import '../../core/settings/settings_providers.dart';
+import '../../core/ui/link_input_card.dart';
 import '../../core/ui/app_toast.dart';
 import '../../l10n/app_localizations.dart';
 import '../library/service_downloads_section.dart';
@@ -197,42 +198,27 @@ class _DirectDownloadScreenState extends ConsumerState<DirectDownloadScreen>
           children: [
             Text(
               _service.urlHint(l10n),
-              style: const TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _urlController,
-              enabled: !state.busy,
-              decoration: InputDecoration(
-                labelText: _service.urlLabel(l10n),
-                border: const OutlineInputBorder(),
-                suffixIcon: ValueListenableBuilder(
-                  valueListenable: _urlController,
-                  builder: (context, value, _) {
-                    if (value.text.isEmpty) return const SizedBox.shrink();
-                    return IconButton(
-                      icon: const Icon(Icons.clear),
-                      tooltip: l10n.clearTooltip,
-                      onPressed: state.busy ? null : _clearUrl,
-                    );
-                  },
-                ),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
-              keyboardType: TextInputType.url,
-              textInputAction: TextInputAction.go,
-              onSubmitted: (_) => state.busy ? null : _onFetchPressed(),
             ),
             const SizedBox(height: 12),
-            FilledButton.icon(
-              onPressed: state.busy ? null : _onFetchPressed,
-              icon: state.fetching
+            LinkInputCard(
+              controller: _urlController,
+              hintText: _service.urlLabel(l10n),
+              enabled: !state.busy,
+              onClear: _clearUrl,
+              onSubmit: _onFetchPressed,
+              buttonIcon: state.fetching
                   ? const SizedBox(
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.search),
-              label: Text(state.fetching ? l10n.fetchingButton : l10n.goButton),
+              buttonLabel: state.fetching
+                  ? l10n.fetchingButton
+                  : l10n.goButton,
             ),
             if (state.downloading) ...[
               const SizedBox(height: 24),

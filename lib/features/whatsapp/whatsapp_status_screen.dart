@@ -218,7 +218,9 @@ class _FolderPickerPrompt extends StatelessWidget {
             Text(
               l10n.whatsappPickFolderNote,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 24),
             Wrap(
@@ -295,7 +297,11 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, size: 56, color: Colors.red),
+            Icon(
+              Icons.error_outline,
+              size: 56,
+              color: Theme.of(context).colorScheme.error,
+            ),
             const SizedBox(height: 16),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 16),
@@ -444,8 +450,6 @@ class _StatusGridState extends ConsumerState<_StatusGrid> {
       child: Scrollbar(
         controller: _scrollController,
         thumbVisibility: true,
-        thickness: 10,
-        radius: const Radius.circular(6),
         child: GridView.builder(
           controller: _scrollController,
           padding: const EdgeInsets.all(8),
@@ -594,56 +598,78 @@ class _StatusTileState extends State<_StatusTile> {
           ? (_) => _closePeek()
           : null,
       onLongPressCancel: widget.onLongPressSelect == null ? _closePeek : null,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          ColoredBox(
-            color: Colors.black12,
-            child: FutureBuilder<String?>(
-              future: _thumbnailPath,
-              builder: (context, snapshot) {
-                final path = snapshot.data;
-                if (path != null) {
-                  return Image.file(
-                    File(path),
-                    fit: BoxFit.cover,
-                    // Archived images resolve to the raw full-res status
-                    // file — decode it down to roughly tile size (3-col
-                    // grid) instead of full resolution per tile.
-                    cacheWidth: 480,
-                    errorBuilder: (_, _, _) => const _TileFallbackIcon(),
-                  );
-                }
-                return const _TileFallbackIcon();
-              },
-            ),
-          ),
-          if (widget.item.mediaType == StatusMediaType.video)
-            const Align(
-              alignment: Alignment.center,
-              child: Icon(
-                Icons.play_circle_fill,
-                color: Colors.white70,
-                size: 32,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            ColoredBox(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              child: FutureBuilder<String?>(
+                future: _thumbnailPath,
+                builder: (context, snapshot) {
+                  final path = snapshot.data;
+                  if (path != null) {
+                    return Image.file(
+                      File(path),
+                      fit: BoxFit.cover,
+                      // Archived images resolve to the raw full-res status
+                      // file — decode it down to roughly tile size (3-col
+                      // grid) instead of full resolution per tile.
+                      cacheWidth: 480,
+                      errorBuilder: (_, _, _) => const _TileFallbackIcon(),
+                    );
+                  }
+                  return const _TileFallbackIcon();
+                },
               ),
             ),
-          if (widget.selectionActive)
-            Positioned(
-              top: 4,
-              right: 4,
-              child: CircleAvatar(
-                radius: 12,
-                backgroundColor: widget.selected
-                    ? Theme.of(context).colorScheme.primary
-                    : Colors.black45,
+            if (widget.item.mediaType == StatusMediaType.video)
+              const Align(
+                alignment: Alignment.center,
                 child: Icon(
-                  widget.selected ? Icons.check : Icons.circle_outlined,
-                  size: 16,
-                  color: Colors.white,
+                  Icons.play_circle_fill,
+                  color: Colors.white70,
+                  size: 32,
                 ),
               ),
-            ),
-        ],
+            if (widget.selected)
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.primary,
+                    width: 3,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            if (widget.selectionActive)
+              Positioned(
+                top: 6,
+                right: 6,
+                child: Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: widget.selected
+                        ? Theme.of(context).colorScheme.primary
+                        : Colors.black26,
+                    border: widget.selected
+                        ? null
+                        : Border.all(color: Colors.white, width: 2),
+                  ),
+                  child: widget.selected
+                      ? Icon(
+                          Icons.check,
+                          size: 16,
+                          color: Theme.of(context).colorScheme.onPrimary,
+                        )
+                      : null,
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -654,8 +680,11 @@ class _TileFallbackIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Icon(Icons.insert_drive_file_outlined, color: Colors.white54),
+    return Center(
+      child: Icon(
+        Icons.insert_drive_file_outlined,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
     );
   }
 }

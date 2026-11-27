@@ -19,6 +19,7 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 - The Library is redesigned: downloads are grouped by day, with filters by type (video, photo, audio) and by source with counts, search by name, playlist collages, video durations, and a floating Share/Delete bar when selecting.
 - The Home screen is redesigned: a cleaner link card with a Paste button, service tiles with logos and how many files you've downloaded from each, your current download's progress, and your most recent downloads.
 - The bottom bar with Home and Library is a little slimmer.
+- Service screens use the same link card as Home, with a Paste button; in dark mode cards stand out from the background, the scroll bar is thinner, and WhatsApp statuses look like Library tiles.
 - Updated the built-in YouTube engine (yt-dlp 2026.10.26) for fresh installs.
 
 **Fixed**
@@ -35,6 +36,7 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 - Новый дизайн Библиотеки: загрузки сгруппированы по дням, есть фильтры по типу (видео, фото, аудио) и по источнику с числом файлов, поиск по названию, коллажи плейлистов, длительность видео и плавающая панель «Поделиться/Удалить» при выделении.
 - Новый дизайн Главной: аккуратная карточка ссылки с кнопкой «Вставить», плитки сервисов с логотипами и числом скачанных файлов, прогресс текущей загрузки и последние загрузки.
 - Нижняя панель с «Главной» и «Библиотекой» стала немного ниже.
+- Экраны сервисов получили ту же карточку ссылки, что и Главная, с кнопкой «Вставить»; в тёмной теме карточки лучше отделяются от фона, полоса прокрутки стала тоньше, а статусы WhatsApp оформлены как плитки Библиотеки.
 - Встроенный движок YouTube обновлён (yt-dlp 2026.10.26) для новых установок.
 
 **Исправлено**
@@ -51,6 +53,7 @@ updated together. Notes are grouped **Added / Changed / Fixed**.
 - Кітапхананың жаңа дизайны: жүктеулер күн бойынша топталған, түрі (бейне, фото, аудио) және көзі бойынша сүзгілер файл санымен, атауы бойынша іздеу, плейлист коллаждары, бейне ұзақтығы және белгілеген кезде «Бөлісу/Жою» қалқымалы панелі бар.
 - Басты беттің жаңа дизайны: «Қою» батырмасы бар ықшам сілтеме картасы, логотиптері мен жүктелген файл саны көрсетілген сервис плиткалары, ағымдағы жүктеудің барысы және соңғы жүктеулер.
 - «Басты бет» пен «Кітапхана» бар төменгі панель сәл жіңішкерді.
+- Сервис экрандарында Басты беттегідей «Қою» батырмасы бар сілтеме картасы; қараңғы тақырыпта карталар фоннан жақсы ажыратылады, айналдыру жолағы жіңішкерді, ал WhatsApp статустары Кітапхана плиткалары сияқты көрінеді.
 - Кірістірілген YouTube қозғалтқышы жаңартылды (yt-dlp 2026.10.26) жаңа орнатулар үшін.
 
 **Түзетілді**

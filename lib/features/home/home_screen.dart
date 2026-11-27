@@ -10,6 +10,7 @@ import '../../core/extraction/extractor_registry.dart';
 import '../../core/extraction/media_extractor.dart';
 import '../../core/navigation/app_route_service.dart';
 import '../../core/settings/settings_providers.dart';
+import '../../core/ui/link_input_card.dart';
 import '../../core/share/share_intent_service.dart';
 import '../../core/storage/media_library_service.dart';
 import '../../core/update/update_providers.dart';
@@ -20,6 +21,7 @@ import '../../services/tiktok/tiktok_extractor.dart';
 import '../../services/x_twitter/x_twitter_extractor.dart';
 import '../../services/youtube/youtube_extractor.dart';
 import '../../core/ui/app_toast.dart';
+import '../../core/theme/app_colors.dart';
 import '../../l10n/app_localizations.dart';
 import '../direct_download/direct_download_screen.dart';
 import '../downloads/downloads_screen.dart';
@@ -377,12 +379,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         children: [
           const SizedBox(height: 12),
-          _LinkCard(
+          LinkInputCard(
             controller: _urlController,
+            hintText: l10n.homeUrlHint,
             errorText: _urlError,
             onPaste: _pasteFromClipboard,
             onClear: _clearUrl,
-            onGo: _onGoPressed,
+            onSubmit: _onGoPressed,
+            buttonIcon: const Icon(Icons.download),
+            buttonLabel: l10n.downloadButton,
           ),
           const _ActiveDownloadCard(),
           _HomeSectionLabel(l10n.servicesSection),
@@ -453,90 +458,6 @@ class _HomeSectionLabel extends StatelessWidget {
               child: Text(text, style: Theme.of(context).textTheme.titleSmall),
             ),
             ?trailing,
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// The card with the link field (Paste inside it) and the big Download
-/// button.
-class _LinkCard extends StatelessWidget {
-  const _LinkCard({
-    required this.controller,
-    required this.errorText,
-    required this.onPaste,
-    required this.onClear,
-    required this.onGo,
-  });
-
-  final TextEditingController controller;
-  final String? errorText;
-  final VoidCallback onPaste;
-  final VoidCallback onClear;
-  final VoidCallback onGo;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final scheme = Theme.of(context).colorScheme;
-    return Material(
-      color: scheme.surfaceContainerLowest,
-      borderRadius: BorderRadius.circular(28),
-      elevation: 1,
-      shadowColor: Colors.black26,
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TextField(
-              controller: controller,
-              keyboardType: TextInputType.url,
-              textInputAction: TextInputAction.go,
-              onSubmitted: (_) => onGo(),
-              decoration: InputDecoration(
-                hintText: l10n.homeUrlHint,
-                errorText: errorText,
-                filled: true,
-                fillColor: scheme.surfaceContainerHigh,
-                prefixIcon: const Icon(Icons.link),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                suffixIcon: ValueListenableBuilder(
-                  valueListenable: controller,
-                  builder: (context, value, _) => Padding(
-                    padding: const EdgeInsets.only(right: 6),
-                    child: value.text.isEmpty
-                        ? FilledButton.tonal(
-                            onPressed: onPaste,
-                            child: Text(l10n.pasteButton),
-                          )
-                        : IconButton(
-                            icon: const Icon(Icons.clear),
-                            tooltip: l10n.clearTooltip,
-                            onPressed: onClear,
-                          ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            FilledButton.icon(
-              style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(48),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-              ),
-              onPressed: onGo,
-              icon: const Icon(Icons.download),
-              label: Text(l10n.downloadButton),
-            ),
           ],
         ),
       ),
@@ -662,7 +583,7 @@ class _ServiceTile extends StatelessWidget {
     return Opacity(
       opacity: service.enabled ? 1 : 0.5,
       child: Material(
-        color: scheme.surfaceContainerLowest,
+        color: scheme.cardSurface,
         borderRadius: BorderRadius.circular(20),
         clipBehavior: Clip.antiAlias,
         child: InkWell(

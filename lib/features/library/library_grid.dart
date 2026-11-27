@@ -343,8 +343,6 @@ class LibraryGridState extends ConsumerState<LibraryGrid> {
       child: Scrollbar(
         controller: _scrollController,
         thumbVisibility: _scrolled,
-        thickness: 10,
-        radius: const Radius.circular(6),
         child: CustomScrollView(
           controller: _scrollController,
           physics: const AlwaysScrollableScrollPhysics(),

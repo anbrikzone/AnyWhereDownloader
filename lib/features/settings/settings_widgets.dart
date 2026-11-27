@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_colors.dart';
+
 /// Building blocks shared by the Settings hub and its section pages — the
 /// rounded-card look of the 2026-11-14 redesign (variant B).
 
@@ -37,7 +39,7 @@ class SettingsCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Material(
-        color: scheme.surfaceContainerLowest,
+        color: scheme.cardSurface,
         borderRadius: BorderRadius.circular(24),
         clipBehavior: Clip.antiAlias,
         child: Padding(
