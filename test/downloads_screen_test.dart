@@ -49,7 +49,7 @@ void main() {
 
     expect(find.text('In progress'), findsOneWidget);
     expect(find.text('pin.mp4'), findsOneWidget);
-    expect(find.text('Pinterest · Starting download…'), findsOneWidget);
+    expect(find.text('Starting download…'), findsOneWidget);
     expect(find.byTooltip('Pause'), findsNothing);
 
     await tester.tap(find.byTooltip('Cancel'));
@@ -57,7 +57,7 @@ void main() {
     expect(canceled, 1);
   });
 
-  testWidgets('finished downloads are listed under Recent with their outcome',
+  testWidgets('finished downloads are grouped by day with their outcome',
       (tester) async {
     final registry = DownloadRegistry(store: _MemoryStore());
     registry.begin(
@@ -74,8 +74,8 @@ void main() {
     await tester.pumpWidget(_app(registry));
     await tester.pump();
 
-    expect(find.text('Recent'), findsOneWidget);
-    expect(find.text('YouTube · Failed: HTTP 403'), findsOneWidget);
+    expect(find.text('Today'), findsOneWidget);
+    expect(find.textContaining('Failed: HTTP 403 · '), findsOneWidget);
     expect(find.byTooltip('Clear history'), findsOneWidget);
   });
 }

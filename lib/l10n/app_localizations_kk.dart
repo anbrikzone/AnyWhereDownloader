@@ -913,4 +913,31 @@ class AppLocalizationsKk extends AppLocalizations {
 
   @override
   String get recentSection => 'Соңғылар';
+
+  @override
+  String get capVideo4k => '4K-ге дейін бейне';
+
+  @override
+  String get capShorts => 'Shorts';
+
+  @override
+  String get capPlaylists => 'Ойнату тізімдері';
+
+  @override
+  String get capVideo => 'Бейне';
+
+  @override
+  String get capPhotos => 'Фото';
+
+  @override
+  String get capReels => 'Reels';
+
+  @override
+  String get capPosts => 'Жазбалар';
+
+  @override
+  String get capCarousels => 'Карусельдер';
+
+  @override
+  String get allInLibrary => 'Барлығы Кітапханада';
 }

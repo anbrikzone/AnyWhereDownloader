@@ -309,5 +309,14 @@
   "librarySearchHint": "Поиск по названию",
   "shareButton": "Поделиться",
   "pasteButton": "Вставить",
-  "recentSection": "Недавние"
+  "recentSection": "Недавние",
+  "capVideo4k": "Видео до 4K",
+  "capShorts": "Shorts",
+  "capPlaylists": "Плейлисты",
+  "capVideo": "Видео",
+  "capPhotos": "Фото",
+  "capReels": "Reels",
+  "capPosts": "Посты",
+  "capCarousels": "Карусели",
+  "allInLibrary": "Все в Библиотеке"
 }

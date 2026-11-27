@@ -8,6 +8,7 @@ import '../../core/ui/link_input_card.dart';
 import '../../core/ui/app_toast.dart';
 import '../../l10n/app_localizations.dart';
 import '../library/service_downloads_section.dart';
+import '../service/service_screen_parts.dart';
 import '../../services/youtube/youtube_extractor.dart';
 import '../../services/youtube/youtube_playlist.dart';
 import '../format_selection/format_selection_sheet.dart';
@@ -226,19 +227,22 @@ class _YouTubeScreenState extends ConsumerState<YouTubeScreen>
     });
 
     return Scaffold(
-      appBar: AppBar(title: const Text('YouTube')),
+      appBar: AppBar(actions: const [DownloadsButton()]),
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              l10n.youtubeUrlHint,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+            ServiceHeader(
+              title: 'YouTube',
+              librarySource: 'YouTube',
+              capabilities: [
+                l10n.capVideo4k,
+                l10n.capShorts,
+                l10n.capPlaylists,
+                'MP3 / M4A',
+              ],
             ),
-            const SizedBox(height: 12),
             LinkInputCard(
               controller: _urlController,
               hintText: l10n.youtubeUrlLabel,
@@ -256,46 +260,21 @@ class _YouTubeScreenState extends ConsumerState<YouTubeScreen>
                   ? l10n.fetchingButton
                   : l10n.goButton,
             ),
-            if (state.downloading) ...[
-              const SizedBox(height: 24),
-              LinearProgressIndicator(
-                value:
+            if (state.downloading)
+              ServiceActiveDownloadCard(
+                registrySource: 'YouTube',
+                progress:
                     ((state.downloadPhase == 'merging' ||
                                 state.downloadPhase == 'converting') &&
                             !state.mergeDurationKnown) ||
                         (state.progress <= 0 && !state.paused)
                     ? null
                     : state.progress,
+                label: _progressLabel(l10n, state),
+                paused: state.paused,
+                onTogglePause: state.canPause ? controller.togglePause : null,
+                onCancel: controller.cancelDownload,
               ),
-              const SizedBox(height: 8),
-              Text(_progressLabel(l10n, state)),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  if (state.canPause) ...[
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: controller.togglePause,
-                        icon: Icon(
-                          state.paused ? Icons.play_arrow : Icons.pause,
-                        ),
-                        label: Text(
-                          state.paused ? l10n.resumeButton : l10n.pauseButton,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: controller.cancelDownload,
-                      icon: const Icon(Icons.close),
-                      label: Text(l10n.cancelButton),
-                    ),
-                  ),
-                ],
-              ),
-            ],
             Expanded(
               child: ServiceDownloadsSection(
                 source: 'YouTube',

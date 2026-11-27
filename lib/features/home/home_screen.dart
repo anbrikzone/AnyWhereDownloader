@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import 'package:photo_manager/photo_manager.dart';
 
 import '../../core/clipboard/clipboard_link_tracker.dart';
@@ -11,6 +10,7 @@ import '../../core/extraction/media_extractor.dart';
 import '../../core/navigation/app_route_service.dart';
 import '../../core/settings/settings_providers.dart';
 import '../../core/ui/link_input_card.dart';
+import '../service/service_screen_parts.dart';
 import '../../core/share/share_intent_service.dart';
 import '../../core/storage/media_library_service.dart';
 import '../../core/update/update_providers.dart';
@@ -341,18 +341,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     ];
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final library = ref.watch(libraryControllerProvider);
-    final stats = <String, ({int count, DateTime latest})>{};
-    if (library.hasAccess) {
-      for (final item in library.items.valueOrNull ?? const <LibraryItem>[]) {
-        final prev = stats[item.source];
-        final at = item.downloadedAt;
-        stats[item.source] = (
-          count: (prev?.count ?? 0) + 1,
-          latest: prev == null || at.isAfter(prev.latest) ? at : prev.latest,
-        );
-      }
-    }
+    final stats = libraryStatsBySource(ref.watch(libraryControllerProvider));
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -363,7 +352,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           ),
         ),
         actions: [
-          _DownloadsButton(tooltip: l10n.downloadsTitle),
+          const DownloadsButton(),
           IconButton(
             tooltip: l10n.settingsTooltip,
             icon: _updateAvailable(ref)
@@ -561,18 +550,7 @@ class _ServiceTile extends StatelessWidget {
     if (!service.enabled) return l10n.serviceDisabledLabel;
     final s = stats;
     if (s == null) return null;
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final day = DateTime(s.latest.year, s.latest.month, s.latest.day);
-    final diff = today.difference(day).inDays;
-    final when = diff == 0
-        ? l10n.groupToday.toLowerCase()
-        : diff == 1
-        ? l10n.groupYesterday.toLowerCase()
-        : DateFormat.MMMd(
-            Localizations.localeOf(context).toLanguageTag(),
-          ).format(s.latest);
-    return '${l10n.libraryFileCount(s.count)} · $when';
+    return libraryStatsLabel(context, s);
   }
 
   @override
@@ -764,32 +742,6 @@ class _RecentTile extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// Home AppBar entry to the Downloads screen (backlog #19), badged with the
-/// number of downloads currently running.
-class _DownloadsButton extends ConsumerWidget {
-  const _DownloadsButton({required this.tooltip});
-
-  final String tooltip;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final active = ref.watch(
-      downloadRegistryProvider.select((s) => s.active.length),
-    );
-    return IconButton(
-      tooltip: tooltip,
-      icon: Badge(
-        isLabelVisible: active > 0,
-        label: Text('$active'),
-        child: const Icon(Icons.download_outlined),
-      ),
-      onPressed: () => Navigator.of(
-        context,
-      ).push(MaterialPageRoute(builder: (_) => const DownloadsScreen())),
     );
   }
 }

@@ -309,5 +309,14 @@
   "librarySearchHint": "Атауы бойынша іздеу",
   "shareButton": "Бөлісу",
   "pasteButton": "Қою",
-  "recentSection": "Соңғылар"
+  "recentSection": "Соңғылар",
+  "capVideo4k": "4K-ге дейін бейне",
+  "capShorts": "Shorts",
+  "capPlaylists": "Ойнату тізімдері",
+  "capVideo": "Бейне",
+  "capPhotos": "Фото",
+  "capReels": "Reels",
+  "capPosts": "Жазбалар",
+  "capCarousels": "Карусельдер",
+  "allInLibrary": "Барлығы Кітапханада"
 }

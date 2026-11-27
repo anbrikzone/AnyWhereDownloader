@@ -24,6 +24,7 @@ class DirectDownloadService {
     required this.fallbackFileName,
     required this.urlHint,
     required this.urlLabel,
+    required this.capabilities,
   });
 
   final ServiceType type;
@@ -48,6 +49,9 @@ class DirectDownloadService {
   final String Function(AppLocalizations l10n) urlHint;
   final String Function(AppLocalizations l10n) urlLabel;
 
+  /// Chips in the screen header naming what this service can download.
+  final List<String> Function(AppLocalizations l10n) capabilities;
+
   static final tiktok = DirectDownloadService._(
     type: ServiceType.tiktok,
     title: 'TikTok',
@@ -58,6 +62,7 @@ class DirectDownloadService {
     fallbackFileName: 'tiktok',
     urlHint: (l10n) => l10n.tiktokUrlHint,
     urlLabel: (l10n) => l10n.tiktokUrlLabel,
+    capabilities: (l10n) => [l10n.capVideo, l10n.capPhotos],
   );
 
   static final xTwitter = DirectDownloadService._(
@@ -74,6 +79,7 @@ class DirectDownloadService {
     fallbackFileName: 'x_twitter',
     urlHint: (l10n) => l10n.xTwitterUrlHint,
     urlLabel: (l10n) => l10n.xTwitterUrlLabel,
+    capabilities: (l10n) => [l10n.capVideo, l10n.capPhotos],
   );
 
   static final instagram = DirectDownloadService._(
@@ -86,6 +92,7 @@ class DirectDownloadService {
     fallbackFileName: 'instagram',
     urlHint: (l10n) => l10n.instagramUrlHint,
     urlLabel: (l10n) => l10n.instagramUrlLabel,
+    capabilities: (l10n) => [l10n.capReels, l10n.capPosts, l10n.capCarousels],
   );
 
   static final linkedin = DirectDownloadService._(
@@ -98,6 +105,7 @@ class DirectDownloadService {
     fallbackFileName: 'linkedin',
     urlHint: (l10n) => l10n.linkedinUrlHint,
     urlLabel: (l10n) => l10n.linkedinUrlLabel,
+    capabilities: (l10n) => [l10n.capVideo, l10n.capPhotos],
   );
 
   static final pinterest = DirectDownloadService._(
@@ -110,6 +118,7 @@ class DirectDownloadService {
     fallbackFileName: 'pinterest',
     urlHint: (l10n) => l10n.pinterestUrlHint,
     urlLabel: (l10n) => l10n.pinterestUrlLabel,
+    capabilities: (l10n) => [l10n.capVideo, l10n.capPhotos],
   );
 
   static final _byType = {

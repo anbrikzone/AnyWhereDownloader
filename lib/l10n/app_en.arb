@@ -396,5 +396,14 @@
   "librarySearchHint": "Search by name",
   "shareButton": "Share",
   "pasteButton": "Paste",
-  "recentSection": "Recent"
+  "recentSection": "Recent",
+  "capVideo4k": "Video up to 4K",
+  "capShorts": "Shorts",
+  "capPlaylists": "Playlists",
+  "capVideo": "Video",
+  "capPhotos": "Photos",
+  "capReels": "Reels",
+  "capPosts": "Posts",
+  "capCarousels": "Carousels",
+  "allInLibrary": "All in Library"
 }

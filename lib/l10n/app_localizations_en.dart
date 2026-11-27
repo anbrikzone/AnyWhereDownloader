@@ -913,4 +913,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get recentSection => 'Recent';
+
+  @override
+  String get capVideo4k => 'Video up to 4K';
+
+  @override
+  String get capShorts => 'Shorts';
+
+  @override
+  String get capPlaylists => 'Playlists';
+
+  @override
+  String get capVideo => 'Video';
+
+  @override
+  String get capPhotos => 'Photos';
+
+  @override
+  String get capReels => 'Reels';
+
+  @override
+  String get capPosts => 'Posts';
+
+  @override
+  String get capCarousels => 'Carousels';
+
+  @override
+  String get allInLibrary => 'All in Library';
 }

@@ -916,4 +916,31 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get recentSection => 'Недавние';
+
+  @override
+  String get capVideo4k => 'Видео до 4K';
+
+  @override
+  String get capShorts => 'Shorts';
+
+  @override
+  String get capPlaylists => 'Плейлисты';
+
+  @override
+  String get capVideo => 'Видео';
+
+  @override
+  String get capPhotos => 'Фото';
+
+  @override
+  String get capReels => 'Reels';
+
+  @override
+  String get capPosts => 'Посты';
+
+  @override
+  String get capCarousels => 'Карусели';
+
+  @override
+  String get allInLibrary => 'Все в Библиотеке';
 }

@@ -8,6 +8,7 @@ import '../../l10n/app_localizations.dart';
 import 'library_controller.dart';
 import 'library_preview.dart';
 import 'library_screen.dart';
+import '../service/service_screen_parts.dart';
 
 /// "Downloaded" grid under a service screen's URL field — the Library
 /// items saved under that service's folder ([source], e.g. `YouTube`,
@@ -113,12 +114,24 @@ class _ServiceDownloadsSectionState
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsets.only(top: 16, bottom: 4),
-          child: Text(
-            items == null || items.isEmpty
-                ? l10n.serviceDownloadsHeader
-                : '${l10n.serviceDownloadsHeader} · ${items.length}',
-            style: theme.textTheme.titleSmall,
+          padding: const EdgeInsets.fromLTRB(4, 12, 0, 2),
+          child: SizedBox(
+            height: 40,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.serviceDownloadsHeader,
+                    style: theme.textTheme.titleSmall,
+                  ),
+                ),
+                if (items != null && items.isNotEmpty)
+                  TextButton(
+                    onPressed: () => openLibraryFor(ref, widget.source),
+                    child: Text(l10n.allInLibrary),
+                  ),
+              ],
+            ),
           ),
         ),
         Expanded(

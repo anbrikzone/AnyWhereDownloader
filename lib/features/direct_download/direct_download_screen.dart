@@ -9,6 +9,7 @@ import '../../core/ui/link_input_card.dart';
 import '../../core/ui/app_toast.dart';
 import '../../l10n/app_localizations.dart';
 import '../library/service_downloads_section.dart';
+import '../service/service_screen_parts.dart';
 import '../format_selection/carousel_selection_sheet.dart';
 import '../format_selection/format_selection_sheet.dart';
 import '../format_selection/rename_dialog.dart';
@@ -190,19 +191,17 @@ class _DirectDownloadScreenState extends ConsumerState<DirectDownloadScreen>
     });
 
     return Scaffold(
-      appBar: AppBar(title: Text(_service.title)),
+      appBar: AppBar(actions: const [DownloadsButton()]),
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              _service.urlHint(l10n),
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+            ServiceHeader(
+              title: _service.title,
+              librarySource: _service.librarySource,
+              capabilities: _service.capabilities(l10n),
             ),
-            const SizedBox(height: 12),
             LinkInputCard(
               controller: _urlController,
               hintText: _service.urlLabel(l10n),
@@ -220,47 +219,22 @@ class _DirectDownloadScreenState extends ConsumerState<DirectDownloadScreen>
                   ? l10n.fetchingButton
                   : l10n.goButton,
             ),
-            if (state.downloading) ...[
-              const SizedBox(height: 24),
-              // Nothing reported yet (yt-dlp is still re-extracting, or an
-              // HLS stream hasn't produced a fragment count) — animate
-              // instead of showing a frozen-looking 0%.
-              LinearProgressIndicator(
-                value: state.progress > 0 || state.paused
+            if (state.downloading)
+              ServiceActiveDownloadCard(
+                registrySource: _service.title,
+                // Nothing reported yet (yt-dlp is still re-extracting, or an
+                // HLS stream hasn't produced a fragment count) — animate
+                // instead of showing a frozen-looking 0%.
+                progress: state.progress > 0 || state.paused
                     ? state.progress
                     : null,
+                label: _progressLabel(l10n, state),
+                paused: state.paused,
+                // A yt-dlp merge download (HLS-only Pinterest video) can
+                // only be canceled, like YouTube's high-res path.
+                onTogglePause: state.canPause ? controller.togglePause : null,
+                onCancel: controller.cancelDownload,
               ),
-              const SizedBox(height: 8),
-              Text(_progressLabel(l10n, state)),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  // A yt-dlp merge download (HLS-only Pinterest video) can
-                  // only be canceled, like YouTube's high-res path.
-                  if (state.canPause) ...[
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: controller.togglePause,
-                        icon: Icon(
-                          state.paused ? Icons.play_arrow : Icons.pause,
-                        ),
-                        label: Text(
-                          state.paused ? l10n.resumeButton : l10n.pauseButton,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: controller.cancelDownload,
-                      icon: const Icon(Icons.close),
-                      label: Text(l10n.cancelButton),
-                    ),
-                  ),
-                ],
-              ),
-            ],
             Expanded(
               child: ServiceDownloadsSection(
                 source: _service.librarySource,

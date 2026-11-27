@@ -1677,6 +1677,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Recent'**
   String get recentSection;
+
+  /// No description provided for @capVideo4k.
+  ///
+  /// In en, this message translates to:
+  /// **'Video up to 4K'**
+  String get capVideo4k;
+
+  /// No description provided for @capShorts.
+  ///
+  /// In en, this message translates to:
+  /// **'Shorts'**
+  String get capShorts;
+
+  /// No description provided for @capPlaylists.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlists'**
+  String get capPlaylists;
+
+  /// No description provided for @capVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Video'**
+  String get capVideo;
+
+  /// No description provided for @capPhotos.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos'**
+  String get capPhotos;
+
+  /// No description provided for @capReels.
+  ///
+  /// In en, this message translates to:
+  /// **'Reels'**
+  String get capReels;
+
+  /// No description provided for @capPosts.
+  ///
+  /// In en, this message translates to:
+  /// **'Posts'**
+  String get capPosts;
+
+  /// No description provided for @capCarousels.
+  ///
+  /// In en, this message translates to:
+  /// **'Carousels'**
+  String get capCarousels;
+
+  /// No description provided for @allInLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'All in Library'**
+  String get allInLibrary;
 }
 
 class _AppLocalizationsDelegate
