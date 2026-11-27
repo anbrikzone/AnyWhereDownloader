@@ -10,6 +10,7 @@ import 'package:video_player/video_player.dart';
 
 import '../../core/logging/app_log.dart';
 import '../../core/settings/settings_providers.dart';
+import '../../core/storage/media_save_service.dart';
 import '../../core/storage/saf_service.dart';
 import '../../services/whatsapp/whatsapp_status_reader.dart';
 import '../preview/video_player_view.dart';
@@ -177,6 +178,27 @@ class _StatusPreviewItemState extends ConsumerState<_StatusPreviewItem> {
   bool _loading = true;
   bool _failed = false;
 
+  /// Still frame for route transitions (see `VideoPlayerView.poster`).
+  String? _posterPath;
+
+  /// Extracts [_posterPath] from the local video file; best effort, the
+  /// player falls back to black without it.
+  Future<void> _loadPoster(String videoPath) async {
+    try {
+      final tempDir = await getTemporaryDirectory();
+      final dest = '${tempDir.path}/wa_poster_${videoPath.hashCode}.jpg';
+      final ok = await MediaSaveService().saveVideoThumbnail(
+        sourcePath: videoPath,
+        destPath: dest,
+        width: 720,
+        height: 720,
+      );
+      if (ok && mounted) setState(() => _posterPath = dest);
+    } catch (e, st) {
+      logError('StatusPreview.poster', e, st);
+    }
+  }
+
   // See `LibraryPreviewPage` for the full rationale — ported as-is. The
   // recovery target here is `_tempPath` (already a local file, unlike
   // Library's MediaStore-backed `AssetEntity.file`) rather than a separate
@@ -336,6 +358,7 @@ class _StatusPreviewItemState extends ConsumerState<_StatusPreviewItem> {
             _loading = false;
           });
           _scheduleStuckCheck();
+          _loadPoster(path);
         }
         return;
       }
@@ -381,6 +404,7 @@ class _StatusPreviewItemState extends ConsumerState<_StatusPreviewItem> {
           _loading = false;
         });
         _scheduleStuckCheck();
+        _loadPoster(destPath);
       }
     } catch (e, st) {
       logError('WhatsAppStatusPreview.load', e, st);
@@ -427,7 +451,16 @@ class _StatusPreviewItemState extends ConsumerState<_StatusPreviewItem> {
     final controller = _videoController;
     if (controller != null && controller.value.isInitialized) {
       return SizedBox.expand(
-        child: VideoPlayerView(controller: controller),
+        child: VideoPlayerView(
+          controller: controller,
+          poster: _posterPath == null
+              ? null
+              : Image.file(
+                  File(_posterPath!),
+                  fit: BoxFit.cover,
+                  gaplessPlayback: true,
+                ),
+        ),
       );
     }
     if (_imagePath != null) {

@@ -59,6 +59,7 @@ class VideoPlayerView extends StatefulWidget {
     super.key,
     required this.controller,
     this.isAudio = false,
+    this.poster,
   });
 
   final VideoPlayerController controller;
@@ -66,6 +67,11 @@ class VideoPlayerView extends StatefulWidget {
   /// Audio has no picture — show an art placeholder + a centred transport
   /// row instead of the full-bleed video stack.
   final bool isAudio;
+
+  /// A Flutter-drawn still of the video (its thumbnail), shown in place of
+  /// the native surface while the page's route is animating — see
+  /// [_VideoPlayerViewState._routeSettled]. Null → black.
+  final Widget? poster;
 
   @override
   State<VideoPlayerView> createState() => _VideoPlayerViewState();
@@ -100,6 +106,36 @@ class _VideoPlayerViewState extends State<VideoPlayerView>
   /// Whether this widget currently holds the screen-awake lock (so it only
   /// toggles it on a real change, and releases exactly what it acquired).
   bool _awake = false;
+
+  /// False while this page's route is animating (opening, closing, or
+  /// following an Android predictive-back gesture). The video is a native
+  /// ExoPlayer surface (`VideoViewType.platformView`), which Flutter's
+  /// route transition can't scale or fade: on a back swipe the page shrank
+  /// and faded while the video stayed full-size and opaque on top of the
+  /// previous screen for ~0.5s, reading as a freeze. During transitions
+  /// the surface is swapped for [VideoPlayerView.poster].
+  bool _routeSettled = true;
+  Animation<double>? _routeAnimation;
+
+  void _onRouteStatus(AnimationStatus status) {
+    final settled = status == AnimationStatus.completed;
+    if (settled != _routeSettled && mounted) {
+      setState(() => _routeSettled = settled);
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final animation = ModalRoute.of(context)?.animation;
+    if (animation != _routeAnimation) {
+      _routeAnimation?.removeStatusListener(_onRouteStatus);
+      _routeAnimation = animation;
+      animation?.addStatusListener(_onRouteStatus);
+      _routeSettled =
+          animation == null || animation.status == AnimationStatus.completed;
+    }
+  }
 
   VideoPlayerController get _c => widget.controller;
 
@@ -148,6 +184,7 @@ class _VideoPlayerViewState extends State<VideoPlayerView>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _routeAnimation?.removeStatusListener(_onRouteStatus);
     _c.removeListener(_onTick);
     _hideTimer?.cancel();
     _seekFx.dispose();
@@ -244,7 +281,15 @@ class _VideoPlayerViewState extends State<VideoPlayerView>
           // peek previews).
           : AspectRatio(
               aspectRatio: _c.value.aspectRatio > 0 ? _c.value.aspectRatio : 16 / 9,
-              child: VideoPlayer(_c),
+              // The poster always sits under the video so it's already
+              // decoded when a transition swaps the native surface out.
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  widget.poster ?? const ColoredBox(color: Colors.black),
+                  if (_routeSettled) VideoPlayer(_c),
+                ],
+              ),
             ),
     );
   }

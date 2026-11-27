@@ -318,5 +318,14 @@
   "capReels": "Reels",
   "capPosts": "Посты",
   "capCarousels": "Карусели",
-  "allInLibrary": "Все в Библиотеке"
+  "allInLibrary": "Все в Библиотеке",
+  "whatsappStatusCount": "{count, plural, one{{count} статус} few{{count} статуса} other{{count} статусов}}",
+  "ageMinutes": "{count} мин",
+  "ageHours": "{count} ч",
+  "ageDays": "{count} дн",
+  "whatsappSetupSubtitle": "Статусы, которые вы уже посмотрели",
+  "whatsappSetupTitle": "Подключите папку статусов",
+  "whatsappSetupStep1": "Откройте нужный статус в самом WhatsApp — только после просмотра он появляется на телефоне.",
+  "whatsappSetupStep2": "Нажмите кнопку ниже — выбор папки откроется уже в нужном месте.",
+  "whatsappSetupStep3": "Нажмите «Использовать эту папку». Это нужно один раз."
 }

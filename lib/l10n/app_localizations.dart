@@ -1731,6 +1731,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'All in Library'**
   String get allInLibrary;
+
+  /// No description provided for @whatsappStatusCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 status} other{{count} statuses}}'**
+  String whatsappStatusCount(int count);
+
+  /// No description provided for @ageMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} min'**
+  String ageMinutes(int count);
+
+  /// No description provided for @ageHours.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} h'**
+  String ageHours(int count);
+
+  /// No description provided for @ageDays.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} d'**
+  String ageDays(int count);
+
+  /// No description provided for @whatsappSetupSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Statuses you\'ve already viewed'**
+  String get whatsappSetupSubtitle;
+
+  /// No description provided for @whatsappSetupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect the status folder'**
+  String get whatsappSetupTitle;
+
+  /// No description provided for @whatsappSetupStep1.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the status in WhatsApp itself — it only appears on the phone after you view it.'**
+  String get whatsappSetupStep1;
+
+  /// No description provided for @whatsappSetupStep2.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a button below — the folder picker opens in the right place.'**
+  String get whatsappSetupStep2;
+
+  /// No description provided for @whatsappSetupStep3.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap “Use this folder”. You only need to do this once.'**
+  String get whatsappSetupStep3;
 }
 
 class _AppLocalizationsDelegate

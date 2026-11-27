@@ -940,4 +940,42 @@ class AppLocalizationsKk extends AppLocalizations {
 
   @override
   String get allInLibrary => 'Барлығы Кітапханада';
+
+  @override
+  String whatsappStatusCount(int count) {
+    return '$count статус';
+  }
+
+  @override
+  String ageMinutes(int count) {
+    return '$count мин';
+  }
+
+  @override
+  String ageHours(int count) {
+    return '$count сағ';
+  }
+
+  @override
+  String ageDays(int count) {
+    return '$count күн';
+  }
+
+  @override
+  String get whatsappSetupSubtitle => 'Сіз көрген статустар';
+
+  @override
+  String get whatsappSetupTitle => 'Статустар қалтасын қосыңыз';
+
+  @override
+  String get whatsappSetupStep1 =>
+      'Қажетті статусты WhatsApp-тың өзінде ашыңыз — ол телефонда тек көргеннен кейін пайда болады.';
+
+  @override
+  String get whatsappSetupStep2 =>
+      'Төмендегі батырманы басыңыз — қалта таңдау бірден керекті жерде ашылады.';
+
+  @override
+  String get whatsappSetupStep3 =>
+      '«Осы қалтаны пайдалану» батырмасын басыңыз. Бұл бір рет қана керек.';
 }

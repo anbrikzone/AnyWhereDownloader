@@ -940,4 +940,48 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get allInLibrary => 'All in Library';
+
+  @override
+  String whatsappStatusCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count statuses',
+      one: '1 status',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String ageMinutes(int count) {
+    return '$count min';
+  }
+
+  @override
+  String ageHours(int count) {
+    return '$count h';
+  }
+
+  @override
+  String ageDays(int count) {
+    return '$count d';
+  }
+
+  @override
+  String get whatsappSetupSubtitle => 'Statuses you\'ve already viewed';
+
+  @override
+  String get whatsappSetupTitle => 'Connect the status folder';
+
+  @override
+  String get whatsappSetupStep1 =>
+      'Open the status in WhatsApp itself — it only appears on the phone after you view it.';
+
+  @override
+  String get whatsappSetupStep2 =>
+      'Tap a button below — the folder picker opens in the right place.';
+
+  @override
+  String get whatsappSetupStep3 =>
+      'Tap “Use this folder”. You only need to do this once.';
 }

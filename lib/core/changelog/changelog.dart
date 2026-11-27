@@ -42,7 +42,7 @@ class ChangelogEntry {
 const List<ChangelogEntry> kChangelog = [
   ChangelogEntry(
     version: '0.3.16',
-    date: '2026-11-14',
+    date: '2026-11-27',
     notes: {
       'en': {
         ChangeKind.added: [
@@ -54,11 +54,13 @@ const List<ChangelogEntry> kChangelog = [
           "The Library is redesigned: downloads are grouped by day, with filters by type (video, photo, audio) and by source with counts, search by name, playlist collages, video durations, and a floating Share/Delete bar when selecting.",
           "The Home screen is redesigned: a cleaner link card with a Paste button, service tiles with logos and how many files you've downloaded from each, your current download's progress, and your most recent downloads.",
           "The bottom bar with Home and Library is a little slimmer.",
+          "Service screens, Downloads and WhatsApp are redesigned to match: a header with the service logo and how many files you've downloaded, chips showing what each service can download, a tidy card for the running download, download history grouped by day, and WhatsApp statuses showing how long ago they were posted.",
           "Service screens use the same link card as Home, with a Paste button; in dark mode cards stand out from the background, the scroll bar is thinner, and WhatsApp statuses look like Library tiles.",
           "Updated the built-in YouTube engine (yt-dlp 2026.10.26) for fresh installs.",
         ],
         ChangeKind.fixed: [
           "The WhatsApp archive options in Settings were cut off and looked the same; they now read \"1 week\" and \"1 month\".",
+          "Swiping back from a video no longer leaves the video frozen on screen for a moment; it now shrinks and fades away together with the page.",
         ],
       },
       'ru': {
@@ -71,11 +73,13 @@ const List<ChangelogEntry> kChangelog = [
           "Новый дизайн Библиотеки: загрузки сгруппированы по дням, есть фильтры по типу (видео, фото, аудио) и по источнику с числом файлов, поиск по названию, коллажи плейлистов, длительность видео и плавающая панель «Поделиться/Удалить» при выделении.",
           "Новый дизайн Главной: аккуратная карточка ссылки с кнопкой «Вставить», плитки сервисов с логотипами и числом скачанных файлов, прогресс текущей загрузки и последние загрузки.",
           "Нижняя панель с «Главной» и «Библиотекой» стала немного ниже.",
+          "Экраны сервисов, «Загрузки» и WhatsApp в новом дизайне: шапка с логотипом сервиса и числом скачанных файлов, чипы с тем, что умеет сервис, аккуратная карточка текущей загрузки, история загрузок по дням, а у статусов WhatsApp видно, сколько времени назад они опубликованы.",
           "Экраны сервисов получили ту же карточку ссылки, что и Главная, с кнопкой «Вставить»; в тёмной теме карточки лучше отделяются от фона, полоса прокрутки стала тоньше, а статусы WhatsApp оформлены как плитки Библиотеки.",
           "Встроенный движок YouTube обновлён (yt-dlp 2026.10.26) для новых установок.",
         ],
         ChangeKind.fixed: [
           "Варианты архива WhatsApp в настройках обрезались и выглядели одинаково; теперь это «Неделя» и «Месяц».",
+          "Свайп «назад» из видео больше не оставляет картинку застывшей на экране: теперь видео уменьшается и исчезает вместе со страницей.",
         ],
       },
       'kk': {
@@ -88,11 +92,13 @@ const List<ChangelogEntry> kChangelog = [
           "Кітапхананың жаңа дизайны: жүктеулер күн бойынша топталған, түрі (бейне, фото, аудио) және көзі бойынша сүзгілер файл санымен, атауы бойынша іздеу, плейлист коллаждары, бейне ұзақтығы және белгілеген кезде «Бөлісу/Жою» қалқымалы панелі бар.",
           "Басты беттің жаңа дизайны: «Қою» батырмасы бар ықшам сілтеме картасы, логотиптері мен жүктелген файл саны көрсетілген сервис плиткалары, ағымдағы жүктеудің барысы және соңғы жүктеулер.",
           "«Басты бет» пен «Кітапхана» бар төменгі панель сәл жіңішкерді.",
+          "Сервис экрандары, «Жүктеулер» және WhatsApp жаңа дизайнда: сервис логотипі мен жүктелген файлдар саны бар тақырып, сервис не істей алатынын көрсететін чиптер, ағымдағы жүктеудің ықшам картасы, күндер бойынша жүктеу тарихы, ал WhatsApp статустарында қанша уақыт бұрын жарияланғаны көрінеді.",
           "Сервис экрандарында Басты беттегідей «Қою» батырмасы бар сілтеме картасы; қараңғы тақырыпта карталар фоннан жақсы ажыратылады, айналдыру жолағы жіңішкерді, ал WhatsApp статустары Кітапхана плиткалары сияқты көрінеді.",
           "Кірістірілген YouTube қозғалтқышы жаңартылды (yt-dlp 2026.10.26) жаңа орнатулар үшін.",
         ],
         ChangeKind.fixed: [
           "Баптаулардағы WhatsApp мұрағатының нұсқалары қиылып, бірдей көрінетін; енді олар «Бір апта» және «Бір ай».",
+          "Бейнеден «артқа» сырғытқанда сурет экранда қатып қалмайды: енді бейне бетпен бірге кішірейіп, жоғалады.",
         ],
       },
     },

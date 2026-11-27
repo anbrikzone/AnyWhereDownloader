@@ -318,5 +318,14 @@
   "capReels": "Reels",
   "capPosts": "Жазбалар",
   "capCarousels": "Карусельдер",
-  "allInLibrary": "Барлығы Кітапханада"
+  "allInLibrary": "Барлығы Кітапханада",
+  "whatsappStatusCount": "{count} статус",
+  "ageMinutes": "{count} мин",
+  "ageHours": "{count} сағ",
+  "ageDays": "{count} күн",
+  "whatsappSetupSubtitle": "Сіз көрген статустар",
+  "whatsappSetupTitle": "Статустар қалтасын қосыңыз",
+  "whatsappSetupStep1": "Қажетті статусты WhatsApp-тың өзінде ашыңыз — ол телефонда тек көргеннен кейін пайда болады.",
+  "whatsappSetupStep2": "Төмендегі батырманы басыңыз — қалта таңдау бірден керекті жерде ашылады.",
+  "whatsappSetupStep3": "«Осы қалтаны пайдалану» батырмасын басыңыз. Бұл бір рет қана керек."
 }

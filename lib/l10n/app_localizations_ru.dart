@@ -943,4 +943,49 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get allInLibrary => 'Все в Библиотеке';
+
+  @override
+  String whatsappStatusCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count статусов',
+      few: '$count статуса',
+      one: '$count статус',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String ageMinutes(int count) {
+    return '$count мин';
+  }
+
+  @override
+  String ageHours(int count) {
+    return '$count ч';
+  }
+
+  @override
+  String ageDays(int count) {
+    return '$count дн';
+  }
+
+  @override
+  String get whatsappSetupSubtitle => 'Статусы, которые вы уже посмотрели';
+
+  @override
+  String get whatsappSetupTitle => 'Подключите папку статусов';
+
+  @override
+  String get whatsappSetupStep1 =>
+      'Откройте нужный статус в самом WhatsApp — только после просмотра он появляется на телефоне.';
+
+  @override
+  String get whatsappSetupStep2 =>
+      'Нажмите кнопку ниже — выбор папки откроется уже в нужном месте.';
+
+  @override
+  String get whatsappSetupStep3 =>
+      'Нажмите «Использовать эту папку». Это нужно один раз.';
 }

@@ -405,5 +405,18 @@
   "capReels": "Reels",
   "capPosts": "Posts",
   "capCarousels": "Carousels",
-  "allInLibrary": "All in Library"
+  "allInLibrary": "All in Library",
+  "whatsappStatusCount": "{count, plural, =1{1 status} other{{count} statuses}}",
+  "@whatsappStatusCount": {"placeholders": {"count": {"type": "int"}}},
+  "ageMinutes": "{count} min",
+  "@ageMinutes": {"placeholders": {"count": {"type": "int"}}},
+  "ageHours": "{count} h",
+  "@ageHours": {"placeholders": {"count": {"type": "int"}}},
+  "ageDays": "{count} d",
+  "@ageDays": {"placeholders": {"count": {"type": "int"}}},
+  "whatsappSetupSubtitle": "Statuses you've already viewed",
+  "whatsappSetupTitle": "Connect the status folder",
+  "whatsappSetupStep1": "Open the status in WhatsApp itself — it only appears on the phone after you view it.",
+  "whatsappSetupStep2": "Tap a button below — the folder picker opens in the right place.",
+  "whatsappSetupStep3": "Tap “Use this folder”. You only need to do this once."
 }

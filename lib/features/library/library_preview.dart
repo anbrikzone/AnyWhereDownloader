@@ -155,6 +155,7 @@ class _LibraryPreviewItemState extends ConsumerState<_LibraryPreviewItem> {
   File? _videoFile;
   VideoPlayerController? _videoController;
   bool _loading = true;
+  Uint8List? _posterBytes;
 
   // Rapid scrubbing can wedge some Android hardware H.264 decoders (Exynos
   // seen via logcat): playback reports `isPlaying: true` but no frames
@@ -338,6 +339,15 @@ class _LibraryPreviewItemState extends ConsumerState<_LibraryPreviewItem> {
       return;
     }
     if (type == AssetType.video) {
+      // Poster for route transitions (see `VideoPlayerView.poster`); not
+      // awaited — the video doesn't wait for it.
+      widget.asset.thumbnailDataWithSize(const ThumbnailSize(720, 720)).then(
+        (bytes) {
+          if (mounted && bytes != null) setState(() => _posterBytes = bytes);
+        },
+        onError: (Object e, StackTrace st) =>
+            logError('LibraryPreview.poster', e, st),
+      );
       // Play straight from the MediaStore-backed file — an earlier local
       // copy step was measured to dominate open time (~3.5s of ~3.7s for a
       // 547MB video) and wasn't what fixed the mute bug (the watchdog is).
@@ -389,7 +399,17 @@ class _LibraryPreviewItemState extends ConsumerState<_LibraryPreviewItem> {
     final controller = _videoController;
     if (controller != null && controller.value.isInitialized) {
       return SizedBox.expand(
-        child: VideoPlayerView(controller: controller, isAudio: _isAudio),
+        child: VideoPlayerView(
+          controller: controller,
+          isAudio: _isAudio,
+          poster: _posterBytes == null
+              ? null
+              : Image.memory(
+                  _posterBytes!,
+                  fit: BoxFit.cover,
+                  gaplessPlayback: true,
+                ),
+        ),
       );
     }
     if (_file != null) {

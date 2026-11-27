@@ -10,9 +10,11 @@ import '../../core/settings/app_settings_service.dart';
 import '../../core/settings/settings_providers.dart';
 import '../../core/storage/media_save_service.dart';
 import '../../core/storage/saf_service.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/ui/app_toast.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/whatsapp/whatsapp_status_reader.dart';
+import '../library/library_grid.dart';
 import 'whatsapp_status_controller.dart';
 import 'whatsapp_status_preview.dart';
 
@@ -48,11 +50,11 @@ class WhatsAppStatusScreen extends ConsumerWidget {
                   onPressed: controller.exitSelectionMode,
                 )
               : null,
-          title: Text(
-            state.selectionMode
-                ? l10n.itemsSelectedCount(state.selectedUris.length)
-                : 'WhatsApp',
-          ),
+          // The brand header below the bar names the screen; the bar only
+          // titles itself while selecting.
+          title: state.selectionMode
+              ? Text(l10n.itemsSelectedCount(state.selectedUris.length))
+              : null,
           actions: [
             if (state.treeUri != null && !state.selectionMode)
               IconButton(
@@ -62,37 +64,35 @@ class WhatsAppStatusScreen extends ConsumerWidget {
               ),
             if (state.treeUri != null)
               IconButton(
-                tooltip: l10n.refreshTooltip,
-                icon: const Icon(Icons.refresh),
-                onPressed: state.busy ? null : controller.refresh,
-              ),
-            if (state.treeUri != null)
-              IconButton(
                 tooltip: l10n.changeFolderTooltip,
                 icon: const Icon(Icons.drive_folder_upload_outlined),
                 onPressed: state.busy ? null : controller.forgetFolder,
               ),
           ],
-          bottom: showTabs
-              ? TabBar(
-                  tabs: [
-                    Tab(text: l10n.statusTabRecent),
-                    Tab(text: l10n.statusTabArchived),
-                  ],
-                )
-              : null,
         ),
-        body: _buildBody(context, l10n, state, controller, showTabs),
-        bottomNavigationBar:
-            state.selectionMode && state.selectedUris.isNotEmpty
-            ? _ActionBar(
-                count: state.selectedUris.length,
-                saving: state.saving,
-                sharing: state.sharing,
-                onSave: controller.saveSelected,
-                onShare: controller.shareSelected,
-              )
-            : null,
+        body: Stack(
+          children: [
+            Positioned.fill(
+              child: _buildBody(context, l10n, state, controller, showTabs),
+            ),
+            if (state.selectionMode && state.selectedUris.isNotEmpty)
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: 16,
+                child: SafeArea(
+                  top: false,
+                  child: _ActionBar(
+                    count: state.selectedUris.length,
+                    saving: state.saving,
+                    sharing: state.sharing,
+                    onSave: controller.saveSelected,
+                    onShare: controller.shareSelected,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -113,13 +113,39 @@ class WhatsAppStatusScreen extends ConsumerWidget {
     }
 
     final recentView = _buildRecentView(context, l10n, state, controller);
-    if (!showTabs) return recentView;
-
-    return TabBarView(
-      children: [
-        recentView,
-        _buildArchivedView(context, l10n, state, controller),
-      ],
+    final recentCount = state.items.valueOrNull?.length;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _WhatsAppHeader(
+            subtitle: recentCount == null
+                ? null
+                : l10n.whatsappStatusCount(recentCount),
+            onRefresh: state.busy ? null : controller.refresh,
+          ),
+          if (showTabs) ...[
+            _PillTabBar(
+              labels: [
+                '${l10n.statusTabRecent}  ${recentCount ?? ''}'.trim(),
+                '${l10n.statusTabArchived}  ${state.archivedItems.length}',
+              ],
+            ),
+            const SizedBox(height: 12),
+          ],
+          Expanded(
+            child: showTabs
+                ? TabBarView(
+                    children: [
+                      recentView,
+                      _buildArchivedView(context, l10n, state, controller),
+                    ],
+                  )
+                : recentView,
+          ),
+        ],
+      ),
     );
   }
 
@@ -202,46 +228,165 @@ class _FolderPickerPrompt extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.folder_open, size: 56),
-            const SizedBox(height: 16),
-            Text(
-              l10n.whatsappPickFolderInstructions,
-              textAlign: TextAlign.center,
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final buttonShape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(20),
+    );
+    Widget step(int n, String text) => Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: scheme.primaryContainer,
+            shape: BoxShape.circle,
+          ),
+          child: Text(
+            '$n',
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: scheme.onPrimaryContainer,
+              fontWeight: FontWeight.w700,
             ),
-            const SizedBox(height: 8),
-            Text(
-              l10n.whatsappPickFolderNote,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 24),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              alignment: WrapAlignment.center,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(text, style: theme.textTheme.bodyMedium),
+          ),
+        ),
+      ],
+    );
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      children: [
+        _WhatsAppHeader(subtitle: l10n.whatsappSetupSubtitle),
+        Material(
+          color: scheme.cardSurface,
+          borderRadius: BorderRadius.circular(28),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                Text(l10n.whatsappSetupTitle, style: theme.textTheme.titleMedium),
+                const SizedBox(height: 16),
+                step(1, l10n.whatsappSetupStep1),
+                const SizedBox(height: 14),
+                step(2, l10n.whatsappSetupStep2),
+                const SizedBox(height: 14),
+                step(3, l10n.whatsappSetupStep3),
+                const SizedBox(height: 20),
                 FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                    shape: buttonShape,
+                  ),
                   onPressed: () => onPick(business: false),
                   icon: const Icon(Icons.folder_open),
                   label: const Text('WhatsApp'),
                 ),
-                OutlinedButton.icon(
+                const SizedBox(height: 8),
+                FilledButton.tonalIcon(
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                    shape: buttonShape,
+                  ),
                   onPressed: () => onPick(business: true),
                   icon: const Icon(Icons.folder_open),
                   label: const Text('WhatsApp Business'),
                 ),
               ],
             ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Brand header shared by the setup and status views: logo, name, one
+/// line of detail, and (once a folder is set) a Refresh button.
+class _WhatsAppHeader extends StatelessWidget {
+  const _WhatsAppHeader({required this.subtitle, this.onRefresh});
+
+  final String? subtitle;
+  final VoidCallback? onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 0, 0, 14),
+      child: Row(
+        children: [
+          const ServiceLogoBadge(source: 'WhatsApp', size: 56, radius: 18),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('WhatsApp', style: theme.textTheme.headlineSmall),
+                if (subtitle != null)
+                  Text(
+                    subtitle!,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          if (onRefresh != null)
+            IconButton(
+              tooltip: l10n.refreshTooltip,
+              icon: const Icon(Icons.refresh),
+              onPressed: onRefresh,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Recent / Archived switch drawn as a pill segmented control; drives the
+/// enclosing [DefaultTabController].
+class _PillTabBar extends StatelessWidget {
+  const _PillTabBar({required this.labels});
+
+  final List<String> labels;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Container(
+      height: 44,
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: TabBar(
+        dividerHeight: 0,
+        indicatorSize: TabBarIndicatorSize.tab,
+        indicator: BoxDecoration(
+          color: scheme.cardSurface,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: const [
+            BoxShadow(color: Colors.black12, blurRadius: 2, offset: Offset(0, 1)),
           ],
         ),
+        labelColor: scheme.onSurface,
+        unselectedLabelColor: scheme.onSurfaceVariant,
+        labelStyle: theme.textTheme.labelLarge,
+        splashBorderRadius: BorderRadius.circular(20),
+        tabs: [for (final label in labels) Tab(text: label)],
       ),
     );
   }
@@ -347,13 +492,25 @@ class _ActionBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final busy = saving || sharing;
-    return SafeArea(
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(20),
+    );
+    // Floating card over the grid, like Library's selection bar.
+    return Material(
+      color: Theme.of(context).colorScheme.cardSurface,
+      borderRadius: BorderRadius.circular(28),
+      elevation: 6,
+      shadowColor: Colors.black38,
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(8),
         child: Row(
           children: [
             Expanded(
               child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                  shape: shape,
+                ),
                 onPressed: busy ? null : onShare,
                 icon: sharing
                     ? const SizedBox(
@@ -368,6 +525,10 @@ class _ActionBar extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                  shape: shape,
+                ),
                 onPressed: busy ? null : onSave,
                 icon: saving
                     ? const SizedBox(
@@ -452,11 +613,12 @@ class _StatusGridState extends ConsumerState<_StatusGrid> {
         thumbVisibility: true,
         child: GridView.builder(
           controller: _scrollController,
-          padding: const EdgeInsets.all(8),
+          // Room under the last row for the floating selection bar.
+          padding: EdgeInsets.only(bottom: widget.selectionMode ? 96 : 16),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 3,
-            crossAxisSpacing: 4,
-            mainAxisSpacing: 4,
+            crossAxisSpacing: 6,
+            mainAxisSpacing: 6,
           ),
           itemCount: widget.items.length,
           itemBuilder: (context, index) {
@@ -599,7 +761,7 @@ class _StatusTileState extends State<_StatusTile> {
           : null,
       onLongPressCancel: widget.onLongPressSelect == null ? _closePeek : null,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -624,13 +786,35 @@ class _StatusTileState extends State<_StatusTile> {
                 },
               ),
             ),
+            // How long ago the status was posted, bottom-left.
+            Positioned(
+              left: 6,
+              bottom: 5,
+              child: Text(
+                _ageLabel(AppLocalizations.of(context)!, widget.item.lastModified),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  shadows: [Shadow(color: Colors.black54, blurRadius: 3)],
+                ),
+              ),
+            ),
             if (widget.item.mediaType == StatusMediaType.video)
-              const Align(
-                alignment: Alignment.center,
-                child: Icon(
-                  Icons.play_circle_fill,
-                  color: Colors.white70,
-                  size: 32,
+              Positioned(
+                right: 5,
+                bottom: 5,
+                child: Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Icon(
+                    Icons.play_arrow,
+                    color: Colors.white,
+                    size: 14,
+                  ),
                 ),
               ),
             if (widget.selected)
@@ -640,7 +824,7 @@ class _StatusTileState extends State<_StatusTile> {
                     color: Theme.of(context).colorScheme.primary,
                     width: 3,
                   ),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                 ),
               ),
             if (widget.selectionActive)
@@ -673,6 +857,14 @@ class _StatusTileState extends State<_StatusTile> {
       ),
     );
   }
+}
+
+/// "5 min", "3 h", "2 d" since [at].
+String _ageLabel(AppLocalizations l10n, DateTime at) {
+  final age = DateTime.now().difference(at);
+  if (age.inHours < 1) return l10n.ageMinutes(age.inMinutes.clamp(1, 59));
+  if (age.inDays < 1) return l10n.ageHours(age.inHours);
+  return l10n.ageDays(age.inDays);
 }
 
 class _TileFallbackIcon extends StatelessWidget {
